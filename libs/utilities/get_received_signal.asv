@@ -1,0 +1,9 @@
+function [received_signal, phi_LOS] = get_received_signal(scint_model, fd, fdr)
+T_I = 0.01;
+phi_LOS_0 = 0;
+fd = 1000;
+fdr = 0.94;
+rx_mean_power = 1;
+B x
+
+end

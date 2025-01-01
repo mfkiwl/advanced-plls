@@ -1,0 +1,62 @@
+%% Comments
+% Project Title: EKF_VAR_General_Config
+
+% Author: Rodrigo de Lima Florindo
+
+% Version: 1.0
+
+% Date: 03/07/2024
+
+% Description: This code may be used to generate the initial configurations
+% of the EKF-VAR for each topology.
+
+% Its output are:
+% 1 - The full initial error covariance matrix - Px_0_0;
+% 2 - The initial States - x_hat_0_0;
+% 3 - the full process noise covariance matrix - Qk;
+% 4 - the full process state transition matrix - Fk;
+% 5 - the Constant of the VAR model - C.
+
+function [Px_0_0,x_hat_0_0,Qk,Fk,C] = EKF_VAR_Separate_General_Config(L,M,NumSeries,P_rho,P_phi,T_I,sigma2,fd,fdr,deltaArray,Q_arfit_rho,Q_arfit_phi,A_rho,A_phi,c_rho,c_phi,TopologySelector)
+sigma_QD = zeros(1,L+M-1);
+sigma_QD(end) = sigma2;%2*pi*1.35*10^-8;
+[FD,QD]=LOS(L,M,T_I,sigma_QD,deltaArray);
+
+%Initialization Matrices
+DopplerInit_States = zeros(1,(L+M-1));
+DopplerInit_States(L+1) = fd;
+DopplerInit_States(L+2) = fdr;
+DopplerInit_Covariance = zeros(1,(L+M-1));
+
+if TopologySelector == 1
+    DopplerInit_Covariance(1) = pi^2/3;
+    DopplerInit_Covariance(2) = 5^2/12;
+    DopplerInit_Covariance(3) = 0.01^2/12;
+elseif TopologySelector == 2
+    DopplerInit_Covariance(1) = pi^2/3;
+    DopplerInit_Covariance(2) = pi^2/3;
+    DopplerInit_Covariance(3) = 5^2/12;
+    DopplerInit_Covariance(4) = 0.01^2/12;
+elseif TopologySelector == 3
+    DopplerInit_Covariance(1) = pi^2/3;
+    DopplerInit_Covariance(2) = pi^2/3;
+    DopplerInit_Covariance(3) = pi^2/3;
+    DopplerInit_Covariance(4) = 5^2/12;
+    DopplerInit_Covariance(5) = 0.01^2/12;
+end
+
+ScintInit_States = [ones(1,L*P_rho),zeros(1,L*P_phi)];
+ScintInit_Covariance = [ones(1,L*P_rho)*((0.1^2)/12),ones(1,L*P_phi)*(pi^2/3)];
+
+Px_0_0 = diag([DopplerInit_Covariance,ScintInit_Covariance]); % Initial Error Covariance Matrix
+x_hat_0_0 = ([DopplerInit_States,ScintInit_States])'; % Initial state vector
+
+QVAR = blkdiag(Q_arfit_rho,zeros(L*(P_rho-1),L*(P_rho-1)),Q_arfit_phi,zeros(L*(P_phi-1),L*(P_phi-1)));
+Qk = blkdiag(QD,QVAR);
+
+FVAR = blkdiag([A_rho;[eye(L*(P_rho-1)),zeros(L*(P_rho-1),L)]],[A_phi;[eye(L*(P_phi-1)),zeros(L*(P_phi-1),L)]]);
+
+Fk = blkdiag(FD,FVAR);
+
+C = [zeros(1,L+M-1),c_rho',zeros(1,L*(P_rho-1)),c_phi',zeros(1,L*(P_phi-1))];
+end
