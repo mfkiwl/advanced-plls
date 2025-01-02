@@ -43,7 +43,7 @@ function [psi_csm] = get_csm_data(S4,tau0,simulation_time,T_I)
 % Author 1: Rodrigo de Lima Florindo
 % Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
 % Author's 1 Email: rdlfresearch@gmail.com
-% Date: 01/01/2025
+% Date: 01/01/2025 (Day, Month, Year)
 
 % Number of sub-samples that are used in calculating the averages of the 
 % complex field that represents the ionospheric scintillation effect. 

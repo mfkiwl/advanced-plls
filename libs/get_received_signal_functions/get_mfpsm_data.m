@@ -17,7 +17,7 @@ function [psi_mfpsm, ps_realization] = get_mfpsm_data(S4,tau0,simulation_time,T_
 %   S4              - Scintillation index (0 <= S4 <= 1)
 %   tau0            - Signal intensity decorrelation time in seconds
 %   simulation_time - Duration of the simulation in seconds
-%   T_I              - Sampling time
+%   T_I             - Sampling time
 %
 % Outputs:
 %   psi_mfpsm       - Output complex field timeseries (refractive + 
@@ -52,9 +52,9 @@ function [psi_mfpsm, ps_realization] = get_mfpsm_data(S4,tau0,simulation_time,T_
 % Author 1: Rodrigo de Lima Florindo
 % Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
 % Author's 1 Email: rdlfresearch@gmail.com
-% Date: 01/01/2025
+% Date: 01/01/2025 (Day, Month, Year)
 
-user_input = setup_user_input(S4,tau0,simulation_time);
+user_input = get_user_input(S4,tau0,simulation_time);
 
 % Obtain the U and rhoVeff values based on the user input S4 and tau0.
 [U_mapped,rhoFVeff_mapped] = ParaMapping(user_input);
@@ -73,15 +73,20 @@ end
 % realization directly.
 [psi_mfpsm, ps_realization] = RunGenScintFieldRealization( ...
     user_input,satGEOM,U_mapped,rhoFVeff_mapped,T_I);
+psi_mfpsm = psi_mfpsm(1,1:simulation_time/T_I).';
+ps_realization = ps_realization(1,1:simulation_time/T_I).';
 end
 
-function user_input = setup_user_input(S4,tau0,simulation_time)
+function user_input = get_user_input(S4,tau0,simulation_time)
     %% Simulation  Settings
     %Specify the date and time in [year, moth, day, hour, minutes, seconds]
     %format
     user_input.dateTime = [2014 01 02 10 00 00];
     %Specify the simulation time with the argument of the function
     user_input.length = simulation_time;
+    % Plotting figures of the simulated propagation geometry and 
+    % scintillation intensity and phase? yes-1/no-0
+    user_input.plotSign = 0;
     
     %% Receiver Settings
     % Please specify receiver position as [lat(rad), lon(rad), height(m)].'
@@ -95,7 +100,7 @@ function user_input = setup_user_input(S4,tau0,simulation_time)
     
     %% Satellite settings
     % Please specify satellite PRN (0~32)
-    user_input.PRN = 30;
+    user_input.PRN = 12;
     % Please specify how many GPS frequencies to simulate
     % (1- GPS L1 only; 2 - GPS L1 and L2; 3 - GPS L1,L2, and L5)
     user_input.frequencyNo = 1;
@@ -107,8 +112,4 @@ function user_input = setup_user_input(S4,tau0,simulation_time)
     user_input.S4 = S4;
     % Signal intensity decorrelation time in sec.
     user_input.tau0 = tau0;
-    
-    % Plotting figures of the simulated propagation geometry and 
-    % scintillation intensity and phase? yes-1/no-0
-    user_input.plotSign = 0;
 end

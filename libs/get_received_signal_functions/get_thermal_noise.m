@@ -40,7 +40,7 @@ function thermal_noise = get_thermal_noise(simulation_time, T_I, rx_mean_power, 
 % Author 1: Rodrigo de Lima Florindo
 % Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
 % Author's 1 Email: rdlfresearch@gmail.com
-% Date: 01/01/2025
+% Date: 01/01/2025 (Day, Month, Year)
 
 % Convert CN0 from dB-Hz to linear scale
 C_over_N0_linear = 10^(C_over_N0_dBHz / 10);

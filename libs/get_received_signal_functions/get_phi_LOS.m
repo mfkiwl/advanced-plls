@@ -41,7 +41,7 @@ function phi_LOS = get_phi_LOS(simulation_time, T_I, phi_LOS_0, fd, fdr)
 % Author 1: Rodrigo de Lima Florindo
 % Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
 % Author's 1 Email: rdlfresearch@gmail.com
-% Date: 01/01/2025
+% Date: 01/01/2025 (Day, Month, Year)
 
 % Preallocate the LOS phase time series vector
 phi_LOS = zeros(simulation_time / T_I, 1);
