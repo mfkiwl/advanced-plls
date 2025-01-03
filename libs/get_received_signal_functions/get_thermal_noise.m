@@ -40,7 +40,14 @@ function thermal_noise = get_thermal_noise(simulation_time, T_I, rx_mean_power, 
 % Author 1: Rodrigo de Lima Florindo
 % Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
 % Author's 1 Email: rdlfresearch@gmail.com
-% Date: 01/01/2025 (Day, Month, Year)
+% Last Modification Date: 03/01/2025 (Day, Month, Year)
+
+% Input validation
+validate_scalar_real_positive(simulation_time, 'get_thermal_noise', 'simulation_time');
+validate_scalar_real_positive(T_I, 'get_thermal_noise', 'T_I');
+validate_scalar_real_positive(rx_mean_power, 'get_thermal_noise', 'rx_mean_power');
+validate_scalar_real_positive(B, 'get_thermal_noise', 'B');
+validate_scalar_numeric(C_over_N0_dBHz, 'get_thermal_noise', 'C_over_N0_dBHz');
 
 % Convert CN0 from dB-Hz to linear scale
 C_over_N0_linear = 10^(C_over_N0_dBHz / 10);

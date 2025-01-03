@@ -49,6 +49,17 @@ function [psi_csm] = get_csm_data(S4,tau0,simulation_time,T_I)
 % complex field that represents the ionospheric scintillation effect. 
 % Using more sub-samples increases the accuracy of the averages
 % at the expense of a greater computational burden.
+
+% Input validation
+validate_scalar_real_positive(simulation_time, 'get_csm_data', 'simulation_time');
+validate_scalar_real_positive(T_I, 'get_csm_data', 'T_I');
+validate_scalar_real_positive(tau0, 'get_csm_data', 'tau0');
+
+if ~isnumeric(S4) || ~isscalar(S4) || S4 < 0 || S4 > 1
+    error('get_csm_data:InvalidInput', ...
+          'The input "S4" must be a numeric scalar within the range [0, 1]. Received: %d.', num2str(S4));
+end
+
 Nspa = 8;
 
 % Amount of samples to be simulated

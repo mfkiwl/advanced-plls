@@ -42,11 +42,11 @@ function los_phase = get_los_phase(simulation_time, sampling_interval, los_phase
 % Last Modification Date: 03/01/2025
 
 % Input validation
-validate_scalar_real_positive(simulation_time, 'simulation_time');
-validate_scalar_real_positive(sampling_interval, 'sampling_interval');
-validate_numerical_scalar(los_phase_0, 'los_phase_0');
-validate_numerical_scalar(fd, 'fd');
-validate_numerical_scalar(fdr, 'fdr');
+validate_scalar_real_positive(simulation_time, 'get_los_phase', 'simulation_time');
+validate_scalar_real_positive(sampling_interval, 'get_los_phase', 'sampling_interval');
+validate_scalar_numeric(los_phase_0, 'get_los_phase', 'los_phase_0');
+validate_scalar_numeric(fd, 'get_los_phase', 'fd');
+validate_scalar_numeric(fdr, 'get_los_phase', 'fdr');
 
 % Create the time vector
 time_vector = (0:sampling_interval:simulation_time-sampling_interval).';
@@ -55,17 +55,3 @@ time_vector = (0:sampling_interval:simulation_time-sampling_interval).';
 los_phase = los_phase_0 + 2 * pi * (fd * time_vector + fdr * (time_vector.^2) / 2);
 end
 
-% Helper Functions
-function validate_scalar_real_positive(value, name)
-    if ~isnumeric(value) || ~isscalar(value) || value <= 0
-        error('get_los_phase:InvalidInput', ...
-              'The input "%s" must be a positive scalar. Received: %g.', name, value);
-    end
-end
-
-function validate_numerical_scalar(value, name)
-    if ~isnumeric(value) || ~isscalar(value)
-        error('get_los_phase:InvalidInput', ...
-              'The input "%s" must be a real scalar. Received type: %s.', name, class(value));
-    end
-end

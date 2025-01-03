@@ -52,8 +52,23 @@ function [psi_mfpsm, ps_realization] = get_mfpsm_data(S4,tau0,simulation_time,T_
 % Author 1: Rodrigo de Lima Florindo
 % Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
 % Author's 1 Email: rdlfresearch@gmail.com
-% Date: 01/01/2025 (Day, Month, Year)
+% Last Modification Date: 03/01/2025 (Day, Month, Year)
 
+% Input validation
+validate_scalar_real_positive(simulation_time, 'get_csm_data', 'simulation_time');
+validate_scalar_real_positive(T_I, 'get_csm_data', 'T_I');
+validate_scalar_real_positive(tau0, 'get_csm_data', 'tau0');
+
+if ~isnumeric(S4) || ~isscalar(S4) || S4 < 0 || S4 > 1
+    error('get_csm_data:InvalidInput', ...
+          'The input "S4" must be a numeric scalar within the range [0, 1]. Received: %d.', num2str(S4));
+end
+
+% Get the user_input settings considered the inputted S4,tau0 and
+% simulation_time, as well as other fixed parameters, such as the satellite
+% PRN, the receiver location and velocity, the date of the simulation, a 
+% flag to generate plots regarding the simulations andthe amount of 
+% frequency bands to be simulated.
 user_input = get_user_input(S4,tau0,simulation_time);
 
 % Obtain the U and rhoVeff values based on the user input S4 and tau0.

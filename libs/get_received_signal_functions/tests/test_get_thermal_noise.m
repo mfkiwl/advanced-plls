@@ -1,52 +1,37 @@
-% test_get_thermal_noise
-% Unit tests for the `get_thermal_noise` function, validating its
-% performance in generating thermal noise with specified properties.
-%
-% Syntax:
-%   results = runtests('test_get_thermal_noise')
-%
-% Description:
-%   This test class ensures that the `get_thermal_noise` function meets the
-%   expected behavior for generating additive white Gaussian noise (AWGN).
-%   The tests validate key properties such as the mean, autocorrelation, 
-%   and variance of the generated noise.
-%
-% Tests:
-%   1. Mean Test:
-%      Validates that the mean of the generated thermal noise is close to zero, 
-%      ensuring no bias in the noise generation.
-%
-%   2. Autocorrelation Test:
-%      Ensures that the autocorrelation function values of both real and
-%      imaginary parts are close to 0, excluding it value at lag 0.
-%
-%   3. Variance Test:
-%      Verifies that the variance of the generated noise matches the theoretical 
-%      variance calculated from the input parameters.
-%
-% Inputs:
-%   None directly. The test parameters (e.g., simulation time, integration 
-%   time, mean power, carrier-to-noise ratio, and bandwidth) are defined within
-%   the test class.
-%
-% Outputs:
-%   None directly. The results of the tests are displayed in the MATLAB
-%   Unit Test Framework output.
-%
-% Example:
-%   % Run the test suite:
-%   results = runtests('test_get_thermal_noise');
-%   disp(results);
-%
-% Notes:
-%   - This class uses the MATLAB Unit Test Framework.
-%
-% Author: Rodrigo de Lima Florindo
-% Author's Orcid: https://orcid.org/0000-0003-0412-5583
-% Author's Email: rdlfresearch@gmail.com
-% Date: 03/01/2025 (Day, Month, Year)
-
 classdef test_get_thermal_noise < matlab.unittest.TestCase
+    % test_get_thermal_noise
+    % Unit tests for the `get_thermal_noise` function, validating its ability
+    % to generate additive white Gaussian noise (AWGN) accurately and handle
+    % various input scenarios.
+    %
+    % Tests:
+    %   1. Functional Tests:
+    %      - Validate that the mean of the generated thermal noise is close to zero,
+    %        ensuring no bias in the noise generation.
+    %      - Verify that the autocorrelation function of both the real and imaginary
+    %        parts is close to zero for all lags except lag 0, confirming that the
+    %        noise is uncorrelated.
+    %      - Ensure that the variance of the generated noise matches the theoretical
+    %        variance calculated from the input parameters.
+    %
+    %   2. Validation Tests:
+    %      - Verify the function handles edge cases and invalid inputs:
+    %        * Negative or zero simulation time.
+    %        * Negative or zero integration time.
+    %        * Negative or zero receiver mean power.
+    %        * Negative or zero bandwidth.
+    %        * Non-numeric or invalid scalar inputs for the carrier-to-noise ratio.
+    %
+    % Example Usage:
+    %   Run the test suite using MATLAB's Unit Test Framework:
+    %       results = runtests('test_get_thermal_noise');
+    %       disp(results);
+    %
+    % Author: Rodrigo de Lima Florindo
+    % Orcid: https://orcid.org/0000-0003-0412-5583
+    % Email: rdlfresearch@gmail.com
+    % Last Modification Date: 03/01/2025
+
     properties
         % Test parameters
         simulation_time = 300; % Total simulation time
@@ -68,6 +53,7 @@ classdef test_get_thermal_noise < matlab.unittest.TestCase
     end
     
     methods (Test)
+        %% Functional Tests
         function test_mean(testCase)
             % Test if the mean of the thermal noise is close to zero
             thermal_noise = get_thermal_noise(testCase.simulation_time, testCase.T_I, ...
@@ -109,6 +95,42 @@ classdef test_get_thermal_noise < matlab.unittest.TestCase
             % Check variance of generated noise
             testCase.assertLessThan(abs(variance - theoretical_variance), 1e-2, ...
                 "Generated thermal noise variance differs significantly from the theoretical value.");
+        end
+
+        %% Validation Tests
+        function test_invalid_simulation_time(testCase)
+            testCase.verifyError(@() get_thermal_noise(-1, testCase.T_I, testCase.rx_mean_power, ...
+                                                       testCase.C_over_N0_dBHz, testCase.B), ...
+                                 'get_thermal_noise:InvalidInput', ...
+                                 'The function did not raise the expected error for negative simulation time.');
+        end
+        
+        function test_invalid_integration_time(testCase)
+            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, -0.01, testCase.rx_mean_power, ...
+                                                       testCase.C_over_N0_dBHz, testCase.B), ...
+                                 'get_thermal_noise:InvalidInput', ...
+                                 'The function did not raise the expected error for negative integration time.');
+        end
+        
+        function test_invalid_rx_mean_power(testCase)
+            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, -1, ...
+                                                       testCase.C_over_N0_dBHz, testCase.B), ...
+                                 'get_thermal_noise:InvalidInput', ...
+                                 'The function did not raise the expected error for negative mean power.');
+        end
+        
+        function test_invalid_bandwidth(testCase)
+            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, testCase.rx_mean_power, ...
+                                                       testCase.C_over_N0_dBHz, -1), ...
+                                 'get_thermal_noise:InvalidInput', ...
+                                 'The function did not raise the expected error for negative bandwidth.');
+        end
+        
+        function test_invalid_C_over_N0_dBHz(testCase)
+            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, testCase.rx_mean_power, ...
+                                                       'invalid', testCase.B), ...
+                                 'get_thermal_noise:InvalidInput', ...
+                                 'The function did not raise the expected error for invalid C/N0.');
         end
     end
 end
