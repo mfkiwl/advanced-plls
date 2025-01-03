@@ -1,5 +1,30 @@
+% test_get_csm_data
+% Unit tests for the `get_csm_data` function, which simulates a Cornell
+% Scintillation Model (CSM) time series based on specified scintillation
+% parameters.
+%
+% This test class ensures that the function generates a valid complex field
+% time series and appropriately handles invalid input scenarios.
+%
+% Tests:
+%   - Valid Input Tests:
+%       * Ensure that valid inputs produce a non-empty output.
+%   - Invalid Input Tests:
+%       * Check for proper error handling when:
+%           - S4 index is negative, greater than 1, non-scalar, or non-numeric.
+%           - tau0 (decorrelation time) is negative, non-scalar, or non-numeric.
+%           - simulation_time is negative or non-numeric.
+%           - T_I (sampling time) is negative or non-numeric.
+%
+% Example:
+%   Run the test suite:
+%       results = runtests('test_get_csm_data');
+%       disp(results);
+%
+% Author 1: Rodrigo de Lima Florindo
+% Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
+% Author's 1 Email: rdlfresearch@gmail.com
 classdef test_get_csm_data < matlab.unittest.TestCase
-    % Unit tests for the get_csm_data function
     
     properties
         S4 = 0.8;                   % Valid S4 index

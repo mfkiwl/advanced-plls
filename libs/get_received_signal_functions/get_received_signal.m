@@ -96,7 +96,6 @@ function [received_signal, phi_LOS, psi, ps_realization] = ...
 % Author 1: Rodrigo de Lima Florindo
 % Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
 % Author's 1 Email: rdlfresearch@gmail.com
-% Date: 02/01/2025 (Day, Month, Year)
 
 if nargin < 7
     % Sets as true the default value for the flag to remove the ionospheric

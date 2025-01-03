@@ -40,7 +40,6 @@ function thermal_noise = get_thermal_noise(simulation_time, T_I, rx_mean_power, 
 % Author 1: Rodrigo de Lima Florindo
 % Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
 % Author's 1 Email: rdlfresearch@gmail.com
-% Last Modification Date: 03/01/2025 (Day, Month, Year)
 
 % Input validation
 validate_scalar_real_positive(simulation_time, 'get_thermal_noise', 'simulation_time');

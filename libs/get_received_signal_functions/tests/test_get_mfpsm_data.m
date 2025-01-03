@@ -1,42 +1,45 @@
+% test_get_mfpsm_data
+% Unit Test Class for the `get_mfpsm_data` function.
+%
+% This test class verifies the functionality and robustness of the `get_mfpsm_data` 
+% function, which generates Multi-Frequency Phase Screen Model (MFPSM) realizations 
+% based on input scintillation parameters. The tests ensure the function produces 
+% accurate results for valid inputs and handles invalid inputs gracefully.
+%
+% Tests:
+%   - Valid Input Tests:
+%       * Confirm the function produces non-empty outputs for valid inputs.
+%
+%   - Invalid Input Tests:
+%       * Check error handling for invalid S4 values:
+%           - Negative values.
+%           - Values greater than 1.
+%           - Non-scalar or non-numeric inputs.
+%       * Verify errors for invalid tau0 inputs:
+%           - Negative values.
+%           - Non-scalar or non-numeric inputs.
+%       * Test simulation_time for:
+%           - Negative values.
+%           - Non-numeric inputs.
+%       * Validate T_I for:
+%           - Negative values.
+%           - Non-numeric inputs.
+%
+% Example:
+%   Run the test suite:
+%       results = runtests('test_get_mfpsm_data');
+%       disp(results);
+%
+% Properties:
+%   - S4: Scintillation severity index (default: 0.8).
+%   - tau0: Decorrelation time in seconds (default: 0.7).
+%   - simulation_time: Total simulation duration in seconds (default: 300).
+%   - T_I: Sampling interval in seconds (default: 0.01).
+%
+% Author 1: Rodrigo de Lima Florindo
+% Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
+% Author's 1 Email: rdlfresearch@gmail.com
 classdef test_get_mfpsm_data < matlab.unittest.TestCase
-    % test_get_mfpsm_data
-    %
-    % Unit Test Class for the get_mfpsm_data Function
-    %
-    % This class provides unit tests for the `get_mfpsm_data` function, which
-    % generates Multi-Frequency Phase Screen Model (MFPSM) realizations 
-    % based on scintillation parameters such as the S4 index, decorrelation
-    % time (tau0), simulation duration, and sampling time.
-    %
-    % The tests include:
-    % - Validation of the function's behavior with valid inputs.
-    % - Verification of appropriate error handling for various invalid inputs.
-    %
-    % Example:
-    %   To run the test:
-    %       results = runtests('test_get_mfpsm_data');
-    %
-    % Properties:
-    % - S4 (0.8): Valid S4 index (scintillation severity).
-    % - tau0 (0.7): Valid decorrelation time in seconds.
-    % - simulation_time (300): Valid simulation duration in seconds.
-    % - T_I (0.01): Valid sampling time.
-    %
-    % Methods:
-    % - test_valid_inputs: Verifies the function produces results without error
-    %   for valid inputs.
-    % - test_invalid_S4_*: Tests invalid S4 inputs (negative, >1, non-scalar,
-    %   non-numeric).
-    % - test_invalid_tau0_*: Tests invalid tau0 inputs (negative, non-scalar,
-    %   non-numeric).
-    % - test_invalid_simulation_time_*: Tests invalid simulation_time inputs
-    %   (negative, non-numeric).
-    % - test_invalid_T_I_*: Tests invalid T_I inputs (negative, non-numeric).
-    %
-    % Author: Rodrigo de Lima Florindo
-    % Date: 03/01/2025
-    % Last Modified: 03/01/2025
-    % Email: rdlfresearch@gmail.com
     
     properties
         S4 = 0.8;                   % Valid S4 index

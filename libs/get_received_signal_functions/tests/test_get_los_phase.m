@@ -1,32 +1,29 @@
+% test_get_los_phase
+% Unit tests for the `get_los_phase` function, which computes the line-of-sight 
+% (LOS) phase time series based on Doppler frequency shift and Doppler drift.
+%
+% This test class verifies the correctness of the LOS phase calculations 
+% under various scenarios and ensures appropriate error handling for invalid inputs.
+%
+% Tests:
+%   - Functional Tests:
+%       * Validate LOS phase progression for constant Doppler shift (linear progression).
+%       * Validate LOS phase progression for Doppler shift with drift (quadratic progression).
+%   - Validation Tests:
+%       * Check for proper error handling when:
+%           - Simulation time is negative or zero.
+%           - Sampling interval is negative or zero.
+%           - Initial phase, Doppler shift, or Doppler drift are invalid (non-scalar or non-numeric).
+%
+% Example:
+%   Run the test suite:
+%       results = runtests('test_get_los_phase');
+%       disp(results);
+%
+% Author 1: Rodrigo de Lima Florindo
+% Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
+% Author's 1 Email: rdlfresearch@gmail.com
 classdef test_get_los_phase < matlab.unittest.TestCase
-    % test_get_los_phase
-    % Unit tests for the `get_los_phase` function, validating its ability
-    % to generate the line-of-sight (LOS) phase time series accurately and
-    % handle various input scenarios.
-    %
-    % Tests:
-    %   1. Functional Tests:
-    %      - Test constant Doppler shift with no drift, ensuring a linear
-    %        phase progression.
-    %      - Test Doppler shift with drift, ensuring a quadratic phase
-    %        progression.
-    %
-    %   2. Validation Tests:
-    %      - Verify the function raises appropriate errors for invalid inputs:
-    %        * Negative or zero simulation time.
-    %        * Negative or zero sampling interval.
-    %        * Non-numeric or invalid scalar inputs for the initial phase,
-    %          Doppler shift, and Doppler drift.
-    %
-    % Example Usage:
-    %   Run the test suite using MATLAB's Unit Test Framework:
-    %       results = runtests('test_get_los_phase');
-    %       disp(results);
-    %
-    % Author: Rodrigo de Lima Florindo
-    % Orcid: https://orcid.org/0000-0003-0412-5583
-    % Email: rdlfresearch@gmail.com
-    % Last Modification Date: 03/01/2025
 
     properties
         % Test parameters

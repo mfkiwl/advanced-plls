@@ -52,13 +52,11 @@ function [psi_mfpsm, ps_realization] = get_mfpsm_data(S4,tau0,simulation_time,T_
 % Author 1: Rodrigo de Lima Florindo
 % Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
 % Author's 1 Email: rdlfresearch@gmail.com
-% Last Modification Date: 03/01/2025 (Day, Month, Year)
 
 % Input validation
 validate_scalar_real_positive(simulation_time, 'get_csm_data', 'simulation_time');
 validate_scalar_real_positive(T_I, 'get_csm_data', 'T_I');
 validate_scalar_real_positive(tau0, 'get_csm_data', 'tau0');
-
 if ~isnumeric(S4) || ~isscalar(S4) || S4 < 0 || S4 > 1
     error('get_csm_data:InvalidInput', ...
           'The input "S4" must be a numeric scalar within the range [0, 1]. Received: %d.', num2str(S4));
@@ -93,7 +91,7 @@ ps_realization = ps_realization(1,1:simulation_time/T_I).';
 end
 
 function user_input = get_user_input(S4,tau0,simulation_time)
-    %% Simulation  Settings
+    %%% Simulation  Settings
     %Specify the date and time in [year, moth, day, hour, minutes, seconds]
     %format
     user_input.dateTime = [2014 01 02 10 00 00];
@@ -103,7 +101,7 @@ function user_input = get_user_input(S4,tau0,simulation_time)
     % scintillation intensity and phase? yes-1/no-0
     user_input.plotSign = 0;
     
-    %% Receiver Settings
+    %%% Receiver Settings
     % Please specify receiver position as [lat(rad), lon(rad), height(m)].'
     % OBS: The actual location is at Hong Kong.
     user_input.RXPos = [0.3876 1.9942 59.6780].';
@@ -113,14 +111,14 @@ function user_input = get_user_input(S4,tau0,simulation_time)
     % - V3 = up-down velocity (m/s, up +)
     user_input.RXVel = [0 0 0].';
     
-    %% Satellite settings
+    %%% Satellite settings
     % Please specify satellite PRN (0~32)
     user_input.PRN = 12;
     % Please specify how many GPS frequencies to simulate
     % (1- GPS L1 only; 2 - GPS L1 and L2; 3 - GPS L1,L2, and L5)
     user_input.frequencyNo = 1;
     
-    %% Scintillation settings
+    %%% Scintillation settings
     % Please specify the S4 index and tau0 for 
     % the ground observed scintillation.
     % S4 index (0~1)

@@ -36,10 +36,9 @@ function los_phase = get_los_phase(simulation_time, sampling_interval, los_phase
 %   % Generate an LOS phase time series for a 10-second simulation:
 %   los_phase = get_los_phase(10, 0.01, 0, 1000, 0.5);
 %
-% Author: Rodrigo de Lima Florindo
-% Orcid: https://orcid.org/0000-0003-0412-5583
-% Email: rdlfresearch@gmail.com
-% Last Modification Date: 03/01/2025
+% Author 1: Rodrigo de Lima Florindo
+% Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
+% Author's 1 Email: rdlfresearch@gmail.com
 
 % Input validation
 validate_scalar_real_positive(simulation_time, 'get_los_phase', 'simulation_time');

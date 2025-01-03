@@ -1,36 +1,34 @@
+% test_get_thermal_noise
+% Unit tests for the `get_thermal_noise` function, which generates additive
+% white Gaussian noise (AWGN) based on specified simulation parameters.
+%
+% This test class ensures that the function produces noise with the correct
+% statistical properties (mean, variance, and autocorrelation) and verifies
+% that it appropriately handles invalid inputs.
+%
+% Tests:
+%   - Functional Tests:
+%       * Validate that the mean of the generated noise is approximately zero.
+%       * Ensure that the variance matches the theoretical variance.
+%       * Verify that the autocorrelation of the noise (real and imaginary
+%         components) is negligible for lags other than zero.
+%   - Validation Tests:
+%       * Check for appropriate error handling for negative or zero values of:
+%           - Simulation time.
+%           - Integration time.
+%           - Receiver mean power.
+%           - Bandwidth.
+%       * Validate behavior with non-numeric or invalid carrier-to-noise ratio.
+%
+% Example:
+%   Run the test suite:
+%       results = runtests('test_get_thermal_noise');
+%       disp(results);
+%
+% Author 1: Rodrigo de Lima Florindo
+% Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
+% Author's 1 Email: rdlfresearch@gmail.com
 classdef test_get_thermal_noise < matlab.unittest.TestCase
-    % test_get_thermal_noise
-    % Unit tests for the `get_thermal_noise` function, validating its ability
-    % to generate additive white Gaussian noise (AWGN) accurately and handle
-    % various input scenarios.
-    %
-    % Tests:
-    %   1. Functional Tests:
-    %      - Validate that the mean of the generated thermal noise is close to zero,
-    %        ensuring no bias in the noise generation.
-    %      - Verify that the autocorrelation function of both the real and imaginary
-    %        parts is close to zero for all lags except lag 0, confirming that the
-    %        noise is uncorrelated.
-    %      - Ensure that the variance of the generated noise matches the theoretical
-    %        variance calculated from the input parameters.
-    %
-    %   2. Validation Tests:
-    %      - Verify the function handles edge cases and invalid inputs:
-    %        * Negative or zero simulation time.
-    %        * Negative or zero integration time.
-    %        * Negative or zero receiver mean power.
-    %        * Negative or zero bandwidth.
-    %        * Non-numeric or invalid scalar inputs for the carrier-to-noise ratio.
-    %
-    % Example Usage:
-    %   Run the test suite using MATLAB's Unit Test Framework:
-    %       results = runtests('test_get_thermal_noise');
-    %       disp(results);
-    %
-    % Author: Rodrigo de Lima Florindo
-    % Orcid: https://orcid.org/0000-0003-0412-5583
-    % Email: rdlfresearch@gmail.com
-    % Last Modification Date: 03/01/2025
 
     properties
         % Test parameters
