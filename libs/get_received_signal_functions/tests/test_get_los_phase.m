@@ -107,13 +107,13 @@ classdef test_get_los_phase < matlab.unittest.TestCase
     methods (Test)
         %% Edge Case Scenarios
 
-        %%% Test Case: simulation_time == T_I
+        %%% Test Case: simulation_time == sampling_interval
         function test_simulation_time_equals_sampling_interval(testCase)
             % simulation_time = sampling_interval; expect no warning
             test_simulation_time = 0.01;
             testCase.verifyWarningFree(@() get_los_phase(test_simulation_time, testCase.sampling_interval, testCase.los_phase_0, testCase.fd, testCase.fdr));
         end
-        %%% Test Case: simulation_time < T_I
+        %%% Test Case: simulation_time < sampling_interval
         function test_simulation_time_smaller_than_sampling_interval(testCase)
             % simulation_time < sampling_interval; expect error
             test_simulation_time = 0.001; test_sampling_interval = 0.01;
@@ -129,7 +129,7 @@ classdef test_get_los_phase < matlab.unittest.TestCase
         end
         %%% Test Case: sampling_interval == 0
         function test_sampling_interval_zero(testCase)
-            % T_I = 0; expect error
+            % sampling_interval = 0; expect error
             test_sampling_interval = 0;
             testCase.verifyError(@() get_los_phase(testCase.simulation_time,  test_sampling_interval, testCase.los_phase_0, testCase.fd, testCase.fdr), ...
                                  'MATLAB:get_los_phase:expectedPositive');
