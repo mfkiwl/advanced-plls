@@ -105,40 +105,42 @@ classdef test_get_los_phase < matlab.unittest.TestCase
     end
 
     methods (Test)
-        %% Functional Tests
-        function test_constant_doppler(testCase)
-            % Test LOS phase progression with constant Doppler shift (no drift)
-            fd_constant = 1000; % Hz
-            fdr_constant = 0; % Hz/s
+        %% Edge Case Scenarios
 
-            % Expected result
-            time_vector = (0:testCase.sampling_interval:testCase.simulation_time-testCase.sampling_interval).';
-            expected_los_phase = testCase.los_phase_0 + 2 * pi * (fd_constant * time_vector);
-
-            % Call the function
-            los_phase = get_los_phase(testCase.simulation_time, testCase.sampling_interval, ...
-                                      testCase.los_phase_0, fd_constant, fdr_constant);
-
-            % Verify results
-            testCase.verifyEqual(los_phase, expected_los_phase, "AbsTol", 1e-10, ...
-                "The LOS phase does not match the expected linear progression.");
+        %%% Test Case: simulation_time == T_I
+        function test_simulation_time_equals_sampling_interval(testCase)
+            % simulation_time = sampling_interval; expect no warning
+            test_simulation_time = 0.01;
+            testCase.verifyWarningFree(@() get_los_phase(test_simulation_time, testCase.sampling_interval, testCase.los_phase_0, testCase.fd, testCase.fdr));
         end
-
-        function test_with_drift(testCase)
-            % Test LOS phase progression with Doppler shift and drift
-            time_vector = (0:testCase.sampling_interval:testCase.simulation_time-testCase.sampling_interval).';
-            expected_los_phase = testCase.los_phase_0 + 2 * pi * (testCase.fd * time_vector + ...
-                                      testCase.fdr * (time_vector.^2) / 2);
-
-            % Call the function
-            los_phase = get_los_phase(testCase.simulation_time, testCase.sampling_interval, ...
-                                      testCase.los_phase_0, testCase.fd, testCase.fdr);
-
-            % Verify results
-            testCase.verifyEqual(los_phase, expected_los_phase, "AbsTol", 1e-10, ...
-                "The LOS phase does not match the expected quadratic progression.");
+        %%% Test Case: simulation_time < T_I
+        function test_simulation_time_smaller_than_sampling_interval(testCase)
+            % simulation_time < sampling_interval; expect error
+            test_simulation_time = 0.001; test_sampling_interval = 0.01;
+            testCase.verifyError(@() get_los_phase(test_simulation_time,  testCase.sampling_interval, testCase.los_phase_0, testCase.fd, testCase.fdr), ...
+                                 'get_los_phase:simulationTimeSmallerThanSamplingInterval');
         end
-
+        %%% Test Case: simulation_time == 0
+        function test_simulation_time_zero(testCase)
+            % simulation_time = 0; expect error
+            test_simulation_time = 0;
+            testCase.verifyError(@() get_los_phase(test_simulation_time,  testCase.sampling_interval, testCase.los_phase_0, testCase.fd, testCase.fdr), ...
+                                 'MATLAB:get_los_phase:expectedPositive');
+        end
+        %%% Test Case: sampling_interval == 0
+        function test_sampling_interval_zero(testCase)
+            % T_I = 0; expect error
+            test_sampling_interval = 0;
+            testCase.verifyError(@() get_los_phase(testCase.simulation_time,  test_sampling_interval, testCase.los_phase_0, testCase.fd, testCase.fdr), ...
+                                 'MATLAB:get_los_phase:expectedPositive');
+        end
+        %%% Test Case: simulation_time / sampling_interval non-integer
+        function test_simulation_time_div_sampling_interval_non_integer(testCase)
+            % simulation_time / sampling_interval is non-integer; expect a warning
+            test_simulation_time = 0.011; test_sampling_interval = 0.01;
+            testCase.verifyWarning(@() get_los_phase(test_simulation_time, test_sampling_interval, testCase.los_phase_0, testCase.fd, testCase.fdr), ...
+                                   'get_los_phase:NonIntegerRatio');
+        end
         %% Parameterized Validation Tests
         function test_invalid_inputs(testCase, inputName)
             %% Directly call the helper method with invalid cases

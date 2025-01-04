@@ -47,8 +47,24 @@ validateattributes(los_phase_0, {'numeric'}, {'scalar', 'real', 'finite', 'nonna
 validateattributes(fd, {'numeric'}, {'scalar', 'real', 'finite', 'nonnan'}, 'get_los_phase', 'fd');
 validateattributes(fdr, {'numeric'}, {'scalar', 'real', 'finite', 'nonnan'}, 'get_los_phase', 'fdr');
 
-% Create the time vector
-time_vector = (0:sampling_interval:simulation_time-sampling_interval).';
+if simulation_time < sampling_interval
+    error('get_los_phase:simulationTimeSmallerThanSamplingInterval', ...
+        'The inputed value of `simulation_time` was %g, which is smaller than the value of the `sampling interval`, %g', simulation_time, sampling_interval)
+end
+
+% Check if simulation_time / sampling_interval is an integer
+num_samples_exact = simulation_time / sampling_interval;
+num_samples_rounded = round(num_samples_exact);
+
+if abs(num_samples_exact - num_samples_rounded) > eps
+    % Issue a warning if rounding was needed
+    warning('get_los_phase:NonIntegerRatio', ...
+            'simulation_time / sampling_interval is not an integer. The number of samples was rounded from %.5g to %d.', ...
+            num_samples_exact, num_samples_rounded);
+end
+
+% Generate the time vector based on the rounded number of samples
+time_vector = (0:num_samples_rounded-1).' * sampling_interval;
 
 % Compute the LOS phase using vectorized operations
 los_phase = los_phase_0 + 2 * pi * (fd * time_vector + fdr * (time_vector.^2) / 2);
