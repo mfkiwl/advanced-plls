@@ -89,7 +89,7 @@ classdef test_get_los_phase < matlab.unittest.TestCase
                 300 + 1j, 'MATLAB:get_los_phase:expectedReal'
             };
 
-            testCase.runValidationTests('simulation_time', invalidCases);
+            testCase.run_validation_tests('simulation_time', invalidCases);
         end
 
         function test_invalid_sampling_interval(testCase)
@@ -109,7 +109,7 @@ classdef test_get_los_phase < matlab.unittest.TestCase
                 0.01 + 1j, 'MATLAB:get_los_phase:expectedReal'
             };
 
-            testCase.runValidationTests('sampling_interval', invalidCases);
+            testCase.run_validation_tests('sampling_interval', invalidCases);
         end
 
         function test_invalid_los_phase_0(testCase)
@@ -126,7 +126,7 @@ classdef test_get_los_phase < matlab.unittest.TestCase
                 [], 'MATLAB:get_los_phase:expectedScalar'
             };
 
-            testCase.runValidationTests('los_phase_0', invalidCases);
+            testCase.run_validation_tests('los_phase_0', invalidCases);
         end
 
         function test_invalid_fd(testCase)
@@ -143,7 +143,7 @@ classdef test_get_los_phase < matlab.unittest.TestCase
                 [], 'MATLAB:get_los_phase:expectedScalar'
             };
 
-            testCase.runValidationTests('fd', invalidCases);
+            testCase.run_validation_tests('fd', invalidCases);
         end
 
         function test_invalid_fdr(testCase)
@@ -160,12 +160,12 @@ classdef test_get_los_phase < matlab.unittest.TestCase
                 [], 'MATLAB:get_los_phase:expectedScalar'
             };
 
-            testCase.runValidationTests('fdr', invalidCases);
+            testCase.run_validation_tests('fdr', invalidCases);
         end
     end
 
     methods
-        function run(testCase, inputName, invalidCases)
+        function run_validation_tests(testCase, inputName, invalidCases)
             % Iterate through invalid cases and verify errors
             for k = 1:size(invalidCases, 1)
                 input = invalidCases{k, 1};
