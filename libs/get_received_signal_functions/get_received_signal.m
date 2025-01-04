@@ -1,4 +1,4 @@
-function [received_signal, phi_LOS, psi, ps_realization] = ...
+function [received_signal, los_phase, psi, ps_realization] = ...
     get_received_signal(C_over_N0_dBHz,S4,tau0,simulation_time, ...
     settling_time,scint_model, is_refractive_effects_removed)
 % get_received_signal
@@ -8,15 +8,15 @@ function [received_signal, phi_LOS, psi, ps_realization] = ...
 %
 % Syntax:
 %   [received_signal] = get_received_signal(C_over_N0_dBHz, S4,
-%       tau0, simulation_time, settling_time, scint_model)
+%       tau0, simulation_time, settling_time, scint_model, is_refractive_effects_removed)
 %   [received_signal, phi_LOS] = get_received_signal(C_over_N0_dBHz, S4,
-%       tau0, simulation_time, settling_time, scint_model)
+%       tau0, simulation_time, settling_time, scint_model, is_refractive_effects_removed)
 %   [received_signal, phi_LOS, psi] = ...
 %       get_received_signal(C_over_N0_dBHz, S4,tau0, simulation_time, ...
 %       settling_time, scint_model)
 %   [received_signal, phi_LOS, psi, ps_realization] = ...
 %       get_received_signal(C_over_N0_dBHz, S4,tau0, simulation_time, ...
-%       settling_time, scint_model)
+%       settling_time, scint_model, is_refractive_effects_removed)
 %
 % Description:
 %   This function generates a baseband received signal by combining:
@@ -33,6 +33,9 @@ function [received_signal, phi_LOS, psi, ps_realization] = ...
 %     returned.
 %   - When `MFPSM` is chosen, both the scintillation field (`psi`) and the 
 %     phase screen realization (`ps_realization`) are returned.
+%   - When 'none' is chosen, the signal is generated without ionospheric 
+%     scintillation effects. Only thermal noise and LOS phase dynamics 
+%     are applied.
 %
 % Inputs:
 %   C_over_N0_dBHz   - Carrier-to-noise density ratio (C/N₀) in dB-Hz.
@@ -49,16 +52,17 @@ function [received_signal, phi_LOS, psi, ps_realization] = ...
 %   scint_model      - Scintillation model to use. Must be either:
 %                      - 'CSM': Cornell Scintillation Model.
 %                      - 'MFPSM': Multi-Frequency Phase Screen Model.
-%
-%   is_refractive_effects_removed
-%                    - (Optional) Logical flag to toggle the removal of 
-%                      refractive effects (true/false). Defaults to true
-%                      if not provided.
+%                      - 'none': No scintillation effects are applied.
+%   is_refractive_effects_removed (Optional)
+%                    - Logical flag to toggle the removal of 
+%                      refractive effects (true/false). Defaults to `false` 
+%                      if not provided. Not applicable for 
+%                      scint_model = 'CSM' or 'none'.
 % Outputs:
 %   received_signal  - Baseband received signal (complex-valued), 
 %                      incorporating ionospheric scintillation effects, 
 %                      thermal noise, and LOS phase dynamics.
-%   phi_LOS          - Line-of-sight phase time series (radians) for the 
+%   los_phase          - Line-of-sight phase time series (radians) for the 
 %                      simulated signal.
 %   psi              - Complex scintillation field. For 'CSM', it contains 
 %                      only diffractive effects. For 'MFPSM', it may also 
@@ -76,6 +80,10 @@ function [received_signal, phi_LOS, psi, ps_realization] = ...
 %   - Thermal noise is computed based on receiver bandwidth (B = 20 MHz).
 %   - Currently, this function supports single-frequency simulation only. 
 %     Future updates will extend it to handle multi-frequency scenarios.
+%   - The settling period (`settling_time`) is used to ensure convergence of the
+%     signal dynamics before introducing scintillation effects. For `'none'`, 
+%     this period will still produce thermal noise and LOS phase dynamics without 
+%     scintillation effects.
 %
 % Example 1:
 %   % Simulate a received signal with:
@@ -97,28 +105,47 @@ function [received_signal, phi_LOS, psi, ps_realization] = ...
 % Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
 % Author's 1 Email: rdlfresearch@gmail.com
 
-validateattributes(C_over_N0_dBHz, {'numeric'}, {'scalar', 'real'}, 'get_received_signal', 'C_over_N0_dBHz');
-validateattributes(S4, {'numeric'}, {'scalar', '>=', 0, '<=', 1}, 'get_received_signal', 'S4');
-validateattributes(tau0, {'numeric'}, {'scalar', 'real', 'positive'}, 'get_received_signal', 'tau0');
-validateattributes(simulation_time, {'numeric'}, {'scalar', 'real', 'positive'}, 'get_received_signal', 'simulation_time');
-validateattributes(settling_time, {'numeric'}, {'scalar', 'real', 'positive'}, 'get_received_signal', 'settling_time');
+% Input Validation
+validateattributes(C_over_N0_dBHz, {'numeric'}, ...
+    {'scalar', 'real', 'positive', 'finite', 'nonnan', 'nonempty'}, ...
+    'get_received_signal', 'C_over_N0_dBHz');
+validateattributes(S4, {'numeric'}, {'scalar', '>=', 0, '<=', 1}, ...
+    'get_received_signal', 'S4');
+validateattributes(tau0, {'numeric'}, {'scalar', 'real', 'positive', ...
+    'finite', 'nonnan'}, 'get_received_signal', 'tau0');
+validateattributes(simulation_time, {'numeric'}, ...
+    {'scalar', 'real', 'positive', 'finite', 'nonnan', 'nonempty'}, ...
+    'get_received_signal', 'simulation_time');
+validateattributes(settling_time, {'numeric'}, {'scalar', 'real', ...
+    'positive', 'finite', 'nonnan'}, 'get_received_signal', 'settling_time');
 
 % Ensure settling time does not exceed simulation time
 if settling_time > simulation_time
     error('get_received_signal:InvalidInput', ...
-        'Settling time (%g) must not exceed simulation time (%g).', settling_time, simulation_time);
+        'Settling time (%g) must not exceed simulation time (%g).', ...
+        settling_time, simulation_time);
 end
 
 % Validate scintillation model
-validateattributes(scint_model, {'char', 'string'}, {'nonempty'}, 'get_received_signal', 'scint_model');
-if ~ismember(scint_model, {'CSM', 'MFPSM'})
-    error('get_received_signal:InvalidScintModel', ...
-        'Invalid scintillation model. Must be ''CSM'' or ''MFPSM''.');
+validateattributes(scint_model, {'char', 'string'}, {'nonempty'}, ...
+    'get_received_signal', 'scint_model');
+if ~ismember(scint_model, {'CSM', 'MFPSM', 'none'})
+    error('get_received_signal:InvalidScintModel', ['Invalid scintillation ' ...
+        'model. Must be ''CSM'', ''MFPSM'', or ''none''.']);
 end
 
-% Validate is_refractive_effects_removed (optional, default = true)
+% Validate is_refractive_effects_removed (optional, default = false)
 if nargin >= 7
-    validateattributes(is_refractive_effects_removed, {'logical', 'numeric'}, {'scalar'}, 'get_received_signal', 'is_refractive_effects_removed');
+    validateattributes(is_refractive_effects_removed, {'logical'}, {'scalar','nonnan'}, ...
+    'get_received_signal', 'is_refractive_effects_removed');
+else
+    is_refractive_effects_removed = false;
+end
+
+if ismember(scint_model, {'CSM', 'none'}) && is_refractive_effects_removed == true
+    warning('get_received_signal:UnusedFlag', ...
+        ['The flag "is_refractive_effects_removed" is not applicable ' ...
+        'for the selected scintillation model ("%s").'], scint_model);
 end
 
 % Fixed Parameters
@@ -126,7 +153,7 @@ end
 % dump.
 T_I = 0.01;
 % Initial phase of the line-of-sight (LOS) signal dynamics.
-phi_LOS_0 = 0;
+los_phase_0 = 0;
 % Doppler frequency shift in Hz.
 fd = 0;
 % Doppler frequency drift rate in Hz/s
@@ -139,7 +166,7 @@ B = 2e7;
 % Get the values of the line-of-sight phase shift for a given simulation 
 % time, sampling time, initial phase, Doppler frequency shift and Doppler 
 % frequency drift rate.
-phi_LOS = get_phi_LOS(simulation_time,T_I,phi_LOS_0,fd,fdr);
+los_phase = get_los_phase(simulation_time,T_I,los_phase_0,fd,fdr);
 % Generate discrete thermal noise based on simulation time, sampling time, 
 % receiver mean power, carrier-to-noise ratio, and receiver bandwidth.
 thermal_noise = get_thermal_noise(simulation_time,T_I,rx_mean_power, ...
@@ -165,7 +192,6 @@ switch scint_model
         % The refractive effects, modeled in the MFPSM as phase screen 
         % realizations, are not included in the CSM and are set to zero.
         ps_realization = [];
-        
     case 'MFPSM'
         % Get a complex field that represents the ionospheric scintillation
         % effects using the multi-frequency phase screen model, as well as
@@ -179,12 +205,10 @@ switch scint_model
         if is_refractive_effects_removed
             psi = psi .* exp(-1j * ps_realization);
         end
-        
-    otherwise
-        % Raise an error if the specified scintillation model is invalid.
-        error(['Invalid scintillation model. Use one of the following ' ...
-            'options: `CSM` for the Cornell Scintillation Model or ' ...
-            '`MFPSM for the Multi-Frequency Phase Screen Model.']);
+     case 'none'
+        % No scintillation effects
+        psi = ones(simulation_time / T_I, 1);
+        ps_realization = [];
 end
 
 % Add an initial settling period with no ionospheric scintillation effects.
@@ -194,6 +218,6 @@ psi_settled(settling_time / T_I + 1:end) = ...
     psi(settling_time / T_I + 1:end);
 
 % Construct the baseband received signal
-received_signal = sqrt(rx_mean_power)*psi_settled .* exp(1j*phi_LOS) + ...
+received_signal = sqrt(rx_mean_power)*psi_settled .* exp(1j*los_phase) + ...
     thermal_noise;
 end
