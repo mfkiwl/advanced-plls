@@ -42,11 +42,11 @@ function thermal_noise = get_thermal_noise(simulation_time, T_I, rx_mean_power, 
 % Author's 1 Email: rdlfresearch@gmail.com
 
 % Input validation
-validate_scalar_real_positive(simulation_time, 'get_thermal_noise', 'simulation_time');
-validate_scalar_real_positive(T_I, 'get_thermal_noise', 'T_I');
-validate_scalar_real_positive(rx_mean_power, 'get_thermal_noise', 'rx_mean_power');
-validate_scalar_real_positive(B, 'get_thermal_noise', 'B');
-validate_scalar_numeric(C_over_N0_dBHz, 'get_thermal_noise', 'C_over_N0_dBHz');
+validateattributes(simulation_time, {'numeric'}, {'scalar', 'real', 'positive'}, 'get_thermal_noise', 'simulation_time');
+validateattributes(T_I, {'numeric'}, {'scalar', 'real', 'positive'}, 'get_thermal_noise', 'T_I');
+validateattributes(rx_mean_power, {'numeric'}, {'scalar', 'real', 'positive'}, 'get_thermal_noise', 'rx_mean_power');
+validateattributes(B, {'numeric'}, {'scalar', 'real', 'positive'}, 'get_thermal_noise', 'B');
+validateattributes(C_over_N0_dBHz, {'numeric'}, {'scalar'}, 'get_thermal_noise', 'C_over_N0_dBHz');
 
 % Convert CN0 from dB-Hz to linear scale
 C_over_N0_linear = 10^(C_over_N0_dBHz / 10);

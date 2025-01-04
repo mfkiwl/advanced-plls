@@ -85,28 +85,28 @@ classdef test_get_mfpsm_data < matlab.unittest.TestCase
             % Test invalid negative S4
             testCase.verifyError(@() get_mfpsm_data(-0.1, testCase.tau0, ...
                                                     testCase.simulation_time, testCase.T_I), ...
-                                 'get_csm_data:InvalidInput');
+                                 'MATLAB:get_mfpsm_data:notGreaterEqual');
         end
         
         function test_invalid_S4_greater_than_one(testCase)
             % Test invalid S4 greater than 1
             testCase.verifyError(@() get_mfpsm_data(1.1, testCase.tau0, ...
                                                     testCase.simulation_time, testCase.T_I), ...
-                                 'get_csm_data:InvalidInput');
+                                 'MATLAB:get_mfpsm_data:notLessEqual');
         end
 
         function test_invalid_S4_non_scalar(testCase)
             % Test non-scalar S4
             testCase.verifyError(@() get_mfpsm_data([0.8, 0.9], testCase.tau0, ...
                                                     testCase.simulation_time, testCase.T_I), ...
-                                 'get_csm_data:InvalidInput');
+                                 'MATLAB:get_mfpsm_data:expectedScalar');
         end
 
         function test_invalid_S4_non_numeric(testCase)
             % Test non-numeric S4
             testCase.verifyError(@() get_mfpsm_data('invalid', testCase.tau0, ...
                                                     testCase.simulation_time, testCase.T_I), ...
-                                 'get_csm_data:InvalidInput');
+                                 'MATLAB:get_mfpsm_data:invalidType');
         end
         
         %%% tau0 tests
@@ -114,21 +114,21 @@ classdef test_get_mfpsm_data < matlab.unittest.TestCase
             % Test invalid negative tau0
             testCase.verifyError(@() get_mfpsm_data(testCase.S4, -0.5, ...
                                                     testCase.simulation_time, testCase.T_I), ...
-                                 'get_csm_data:InvalidInput');
+                                 'MATLAB:get_mfpsm_data:expectedPositive');
         end
 
         function test_invalid_tau0_non_numeric(testCase)
             % Test non-numeric tau0
             testCase.verifyError(@() get_mfpsm_data(testCase.S4, 'invalid', ...
                                                     testCase.simulation_time, testCase.T_I), ...
-                                 'get_csm_data:InvalidInput');
+                                 'MATLAB:get_mfpsm_data:invalidType');
         end
 
         function test_invalid_tau0_non_scalar(testCase)
             % Test non-scalar tau0
             testCase.verifyError(@() get_mfpsm_data(testCase.S4, [0.7, 0.8], ...
                                                     testCase.simulation_time, testCase.T_I), ...
-                                 'get_csm_data:InvalidInput');
+                                 'MATLAB:get_mfpsm_data:expectedScalar');
         end
         
         %%% simulation_time tests
@@ -136,14 +136,14 @@ classdef test_get_mfpsm_data < matlab.unittest.TestCase
             % Test invalid negative simulation_time
             testCase.verifyError(@() get_mfpsm_data(testCase.S4, testCase.tau0, ...
                                                     -10, testCase.T_I), ...
-                                 'get_csm_data:InvalidInput');
+                                 'MATLAB:get_mfpsm_data:expectedPositive');
         end
         
         function test_invalid_simulation_time_non_numeric(testCase)
             % Test non-numeric simulation_time
             testCase.verifyError(@() get_mfpsm_data(testCase.S4, testCase.tau0, ...
                                                     'invalid', testCase.T_I), ...
-                                 'get_csm_data:InvalidInput');
+                                 'MATLAB:get_mfpsm_data:invalidType');
         end
         
         %%% T_I tests
@@ -151,14 +151,14 @@ classdef test_get_mfpsm_data < matlab.unittest.TestCase
             % Test invalid negative T_I
             testCase.verifyError(@() get_mfpsm_data(testCase.S4, testCase.tau0, ...
                                                     testCase.simulation_time, -0.01), ...
-                                 'get_csm_data:InvalidInput');
+                                 'MATLAB:get_mfpsm_data:expectedPositive');
         end
         
         function test_invalid_T_I_non_numeric(testCase)
             % Test non-numeric T_I
             testCase.verifyError(@() get_mfpsm_data(testCase.S4, testCase.tau0, ...
                                                     testCase.simulation_time, 'invalid'), ...
-                                 'get_csm_data:InvalidInput');
+                                 'MATLAB:get_mfpsm_data:invalidType');
         end
     end
 end

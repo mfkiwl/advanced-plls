@@ -41,11 +41,11 @@ function los_phase = get_los_phase(simulation_time, sampling_interval, los_phase
 % Author's 1 Email: rdlfresearch@gmail.com
 
 % Input validation
-validate_scalar_real_positive(simulation_time, 'get_los_phase', 'simulation_time');
-validate_scalar_real_positive(sampling_interval, 'get_los_phase', 'sampling_interval');
-validate_scalar_numeric(los_phase_0, 'get_los_phase', 'los_phase_0');
-validate_scalar_numeric(fd, 'get_los_phase', 'fd');
-validate_scalar_numeric(fdr, 'get_los_phase', 'fdr');
+validateattributes(simulation_time, {'numeric'}, {'scalar', 'real', 'positive'}, 'get_los_phase', 'simulation_time');
+validateattributes(sampling_interval, {'numeric'}, {'scalar', 'real', 'positive'}, 'get_los_phase', 'sampling_interval');
+validateattributes(los_phase_0, {'numeric'}, {'scalar', 'real'}, 'get_los_phase', 'los_phase_0');
+validateattributes(fd, {'numeric'}, {'scalar', 'real'}, 'get_los_phase', 'fd');
+validateattributes(fdr, {'numeric'}, {'scalar', 'real'}, 'get_los_phase', 'fdr');
 
 % Create the time vector
 time_vector = (0:sampling_interval:simulation_time-sampling_interval).';

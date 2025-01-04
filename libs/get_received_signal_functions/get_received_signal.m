@@ -97,15 +97,28 @@ function [received_signal, phi_LOS, psi, ps_realization] = ...
 % Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
 % Author's 1 Email: rdlfresearch@gmail.com
 
-if nargin < 7
-    % Sets as true the default value for the flag to remove the ionospheric
-    % refractive effects.
-    is_refractive_effects_removed = true;
+validateattributes(C_over_N0_dBHz, {'numeric'}, {'scalar', 'real'}, 'get_received_signal', 'C_over_N0_dBHz');
+validateattributes(S4, {'numeric'}, {'scalar', '>=', 0, '<=', 1}, 'get_received_signal', 'S4');
+validateattributes(tau0, {'numeric'}, {'scalar', 'real', 'positive'}, 'get_received_signal', 'tau0');
+validateattributes(simulation_time, {'numeric'}, {'scalar', 'real', 'positive'}, 'get_received_signal', 'simulation_time');
+validateattributes(settling_time, {'numeric'}, {'scalar', 'real', 'positive'}, 'get_received_signal', 'settling_time');
+
+% Ensure settling time does not exceed simulation time
+if settling_time > simulation_time
+    error('get_received_signal:InvalidInput', ...
+        'Settling time (%g) must not exceed simulation time (%g).', settling_time, simulation_time);
 end
 
-% Validate settling time
-if settling_time > simulation_time
-    error('Settling time must not exceed simulation time.');
+% Validate scintillation model
+validateattributes(scint_model, {'char', 'string'}, {'nonempty'}, 'get_received_signal', 'scint_model');
+if ~ismember(scint_model, {'CSM', 'MFPSM'})
+    error('get_received_signal:InvalidScintModel', ...
+        'Invalid scintillation model. Must be ''CSM'' or ''MFPSM''.');
+end
+
+% Validate is_refractive_effects_removed (optional, default = true)
+if nargin >= 7
+    validateattributes(is_refractive_effects_removed, {'logical', 'numeric'}, {'scalar'}, 'get_received_signal', 'is_refractive_effects_removed');
 end
 
 % Fixed Parameters

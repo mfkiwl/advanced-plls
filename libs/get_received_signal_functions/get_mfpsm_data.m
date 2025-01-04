@@ -54,13 +54,12 @@ function [psi_mfpsm, ps_realization] = get_mfpsm_data(S4,tau0,simulation_time,T_
 % Author's 1 Email: rdlfresearch@gmail.com
 
 % Input validation
-validate_scalar_real_positive(simulation_time, 'get_csm_data', 'simulation_time');
-validate_scalar_real_positive(T_I, 'get_csm_data', 'T_I');
-validate_scalar_real_positive(tau0, 'get_csm_data', 'tau0');
-if ~isnumeric(S4) || ~isscalar(S4) || S4 < 0 || S4 > 1
-    error('get_csm_data:InvalidInput', ...
-          'The input "S4" must be a numeric scalar within the range [0, 1]. Received: %d.', num2str(S4));
-end
+% Input validation
+validateattributes(simulation_time, {'numeric'}, {'scalar', 'real', 'positive'}, 'get_mfpsm_data', 'simulation_time');
+validateattributes(T_I, {'numeric'}, {'scalar', 'real', 'positive'}, 'get_mfpsm_data', 'T_I');
+validateattributes(tau0, {'numeric'}, {'scalar', 'real', 'positive'}, 'get_mfpsm_data', 'tau0');
+validateattributes(S4, {'numeric'}, {'scalar', '>=', 0, '<=', 1}, 'get_mfpsm_data', 'S4');
+
 
 % Get the user_input settings considered the inputted S4,tau0 and
 % simulation_time, as well as other fixed parameters, such as the satellite
