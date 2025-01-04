@@ -46,12 +46,12 @@ properties
     B = 2e7; % Bandwidth (Hz)
 
     % Invalid input cases, initialized in the TestClassSetup
-    InvalidInputs
+    invalid_inputs
 end
 
 properties (TestParameter)
     % Parameterized property for input names
-    inputName = struct(...
+    input_name = struct(...
         'simulation_time', 'simulation_time', ...
         'sampling_interval', 'sampling_interval', ...
         'rx_mean_power', 'rx_mean_power', ...
@@ -69,7 +69,7 @@ methods (TestClassSetup)
             testCase.addTeardown(@() rmpath(pathToAdd));
         end
         % Define invalid input cases
-        testCase.InvalidInputs = struct(...
+        testCase.invalid_inputs = struct(...
             'simulation_time', { ...
                 { 'invalid', 'MATLAB:get_thermal_noise:invalidType'; ...
                   true, 'MATLAB:get_thermal_noise:invalidType'; ...
@@ -220,14 +220,14 @@ methods (Test)
                              'The function failed to warn about non-integer value of `N_int = B * T_I`.');
     end
     %% Validation Tests
-    function test_invalid_inputs(testCase, inputName)
+    function test_invalid_inputs(testCase, input_name)
         % Dynamically validate inputs using helper functions
-        testCase.run_validation_tests(inputName, testCase.InvalidInputs.(inputName));
+        testCase.run_validation_tests(input_name, testCase.invalid_inputs.(input_name));
     end
 end
 
 methods
-    function run_validation_tests(testCase, inputName, invalidCases)
+    function run_validation_tests(testCase, input_name, invalidCases)
         % Iterate through invalid cases and verify expected errors
         for invalidCase = invalidCases.'
             % Extract invalid input and expected error message ID
@@ -235,12 +235,12 @@ methods
             expectedError = invalidCase{2};
             
             % Generate function inputs with the invalid argument
-            functionInputs = testCase.generate_inputs(inputName, invalidInput);
+            functionInputs = testCase.generate_inputs(input_name, invalidInput);
             invalidInputStr = testCase.safe_input_strings(invalidInput);
             
             % Validate the function throws the expected error
             testCase.verifyError(@() get_thermal_noise(functionInputs{:}), expectedError, ...
-                sprintf('Validation failed for %s with input: %s', inputName, invalidInputStr));
+                sprintf('Validation failed for %s with input: %s', input_name, invalidInputStr));
         end
     end
 

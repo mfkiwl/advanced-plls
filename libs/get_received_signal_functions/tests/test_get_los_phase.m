@@ -47,12 +47,12 @@ properties
     fdr = 0.94; % Hz/s
 
     % Invalid input cases, initialized in the TestClassSetup
-    InvalidInputs
+    invalid_inputs
 end
 
 properties (TestParameter)
     % Parameterized property for input names
-    inputName = struct(...
+    input_name = struct(...
         'simulation_time', 'simulation_time', ...
         'sampling_interval', 'sampling_interval', ...
         'los_phase_0', 'los_phase_0', ...
@@ -71,7 +71,7 @@ methods (TestClassSetup)
         end
 
         % Define invalid input cases as cell arrays to avoid dimension mismatch
-        testCase.InvalidInputs = struct(...
+        testCase.invalid_inputs = struct(...
             'simulation_time', { ...
                 { 'invalid', 'MATLAB:get_los_phase:invalidType'; ...
                   true, 'MATLAB:get_los_phase:invalidType'; ...
@@ -180,14 +180,14 @@ methods (Test)
                                'get_los_phase:NonIntegerRatio');
     end
     %% Parameterized Validation Tests
-    function test_invalid_inputs(testCase, inputName)
+    function test_invalid_inputs(testCase, input_name)
         %% Directly call the helper method with invalid cases
-        testCase.run_validation_tests(inputName, testCase.InvalidInputs.(inputName));
+        testCase.run_validation_tests(input_name, testCase.invalid_inputs.(input_name));
     end
 end
 
 methods
-    function run_validation_tests(testCase, inputName, invalidCases)
+    function run_validation_tests(testCase, input_name, invalidCases)
         % Iterate through invalid cases and verify errors
         for invalidCase = invalidCases.'
             % Extract invalid input and expected error
@@ -195,12 +195,12 @@ methods
             expectedError = invalidCase{2, 1};
         
             % Generate function inputs and convert invalid input to string for messages
-            functionInputs = testCase.generate_inputs(inputName, invalidInput);
+            functionInputs = testCase.generate_inputs(input_name, invalidInput);
             invalidInputStr = testCase.safe_input_strings(invalidInput);
         
             % Run the validation test and check for expected error
             testCase.verifyError(@() get_los_phase(functionInputs{:}), expectedError, ...
-                sprintf('Validation failed for %s with input: %s', inputName, invalidInputStr));
+                sprintf('Validation failed for %s with input: %s', input_name, invalidInputStr));
         end
     end
 
