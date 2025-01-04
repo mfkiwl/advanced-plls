@@ -3,32 +3,28 @@ classdef test_get_los_phase < matlab.unittest.TestCase
 % Unit tests for the `get_los_phase` function, which computes the line-of-sight 
 % (LOS) phase time series based on Doppler frequency shift and Doppler drift.
 %
-% Purpose:
-%   This test suite validates the correctness and robustness of the `get_los_phase` 
-%   function by testing its behavior under various scenarios, including:
-%   - Functional tests for expected LOS phase progression.
-%   - Edge cases for parameter limits (e.g., zero, negative, and boundary values).
-%   - Validation tests to ensure proper error handling for invalid inputs.
-%   - Warnings for specific cases, such as non-integer sampling intervals.
+% This test suite validates the correctness and robustness of the `get_los_phase` 
+% function by testing its behavior under various scenarios, including:
 %
-% Key Features:
-%   - Tests parameterized to handle various input names and cases dynamically.
-%   - Structured invalid input tests for comprehensive error handling.
-%   - Edge case handling, such as mismatched `simulation_time` and `sampling_interval`.
+% **Functional Tests**:
+%   - Validate the correct progression of the LOS phase time series.
+%   - Ensure numerical stability in the computation of LOS phase.
 %
-% Test Cases:
-%   Edge Case Tests:
-%     1. `simulation_time == sampling_interval`: No warnings or errors expected.
-%     2. `simulation_time < sampling_interval`: Function must throw an error.
-%     3. `simulation_time == 0`: Function must throw an error.
-%     4. `sampling_interval == 0`: Function must throw an error.
-%     5. Non-integer `simulation_time / sampling_interval`: 
-%         - Validate that a warning is issued.
-%         - Ensure rounding behavior is correct for such cases.
-%   Validation Tests:
-%     6. Invalid Input Handling:
-%         - Dynamically iterates over all possible invalid inputs for parameters:
-%           `simulation_time`, `sampling_interval`, `los_phase_0`, `fd`, and `fdr`.
+% **Edge Case Tests**:
+%   1. `simulation_time == sampling_interval`: No warnings or errors expected.
+%   2. `simulation_time < sampling_interval`: Function must throw an error.
+%   3. `simulation_time == 0`: Function must throw an error.
+%   4. `sampling_interval == 0`: Function must throw an error.
+%   5. Non-integer `simulation_time / sampling_interval` ratio:
+%       - Validate that a warning is issued.
+%       - Ensure rounding behavior is correct for such cases.
+%
+% **Validation Tests**:
+%   - Dynamically validate error handling for invalid inputs, including:
+%       1. Negative or zero values for `simulation_time`, `sampling_interval`, 
+%          `los_phase_0`, `fd`, or `fdr`.
+%       2. Non-numeric, complex, or non-scalar values for the parameters.
+%       3. Boundary conditions, such as empty or infinite inputs.
 %
 % Example:
 %   To run the test suite:
@@ -38,10 +34,6 @@ classdef test_get_los_phase < matlab.unittest.TestCase
 %   To debug specific test cases:
 %       results = runtests('test_get_los_phase', 'ProcedureName', 'test_invalid_inputs');
 %       disp(results);
-%
-% Usage:
-%   - Run the tests using the MATLAB Unit Testing Framework.
-%   - Interpret the results using the summary provided by the `runtests` function.
 %
 % Author 1: Rodrigo de Lima Florindo
 % Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583

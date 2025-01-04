@@ -1,369 +1,273 @@
+classdef test_get_thermal_noise < matlab.unittest.TestCase
 % test_get_thermal_noise
 % Unit tests for the `get_thermal_noise` function, which generates additive
 % white Gaussian noise (AWGN) based on specified simulation parameters.
 %
-% This test class ensures that the function produces noise with the correct
-% statistical properties (mean, variance, and autocorrelation) and verifies
-% that it appropriately handles invalid inputs.
+% This test suite validates the correctness and robustness of the `get_thermal_noise` 
+% function by testing its behavior under various scenarios, including:
 %
-% Tests:
-%   - Functional Tests:
-%       * Validate that the mean of the generated noise is approximately zero.
-%       * Ensure that the variance matches the theoretical variance.
-%       * Verify that the autocorrelation of the noise (real and imaginary
-%         components) is negligible for lags other than zero.
-%   - Validation Tests:
-%       * Check for appropriate error handling for negative or zero values of:
-%           - Simulation time.
-%           - Integration time.
-%           - Receiver mean power.
-%           - Bandwidth.
-%       * Validate behavior with non-numeric or invalid carrier-to-noise ratio.
+% **Functional Tests**:
+%   - Validate that the mean of the generated noise is approximately zero.
+%   - Verify that the variance of the noise matches the theoretical variance.
+%   - Ensure that the autocorrelation of the noise (real and imaginary components) 
+%     is negligible for lags other than zero.
+%
+% **Edge Case Tests**:
+%   1. Rounding errors in the `simulation_time / sampling_interval` ratio:
+%       - Validate that a warning is issued when the ratio is non-integer.
+%   2. `sampling_interval > simulation_time`: Function must throw an error.
+%   3. Unexpected or extreme input values to assess robustness.
+%
+% **Validation Tests**:
+%   - Dynamically validate error handling for invalid inputs, including:
+%       1. Negative or zero values for `simulation_time`, `sampling_interval`, 
+%          `rx_mean_power`, `C_over_N0_dBHz`, or `B`.
+%       2. Non-numeric, complex, or non-scalar values for the parameters.
+%       3. Boundary conditions, such as empty or infinite inputs.
 %
 % Example:
-%   Run the test suite:
+%   To run the test suite:
 %       results = runtests('test_get_thermal_noise');
+%       disp(results);
+%
+%   To debug specific test cases:
+%       results = runtests('test_get_thermal_noise', 'ProcedureName', 'test_invalid_inputs');
 %       disp(results);
 %
 % Author 1: Rodrigo de Lima Florindo
 % Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
 % Author's 1 Email: rdlfresearch@gmail.com
-classdef test_get_thermal_noise < matlab.unittest.TestCase
+properties
+    % Test parameters
+    simulation_time = 300; % Total simulation time
+    sampling_interval = 0.01; % Integration time
+    rx_mean_power = 1; % Receiver mean power
+    C_over_N0_dBHz = 35; % Carrier-to-noise ratio (dB-Hz)
+    B = 2e7; % Bandwidth (Hz)
 
-    properties
-        % Test parameters
-        simulation_time = 300; % Total simulation time
-        T_I = 0.01; % Integration time
-        rx_mean_power = 1; % Receiver mean power
-        C_over_N0_dBHz = 35; % Carrier-to-noise ratio (dB-Hz)
-        B = 2e7; % Bandwidth (Hz)
+    % Invalid input cases, initialized in the TestClassSetup
+    InvalidInputs
+end
+
+properties (TestParameter)
+    % Parameterized property for input names
+    inputName = struct(...
+        'simulation_time', 'simulation_time', ...
+        'sampling_interval', 'sampling_interval', ...
+        'rx_mean_power', 'rx_mean_power', ...
+        'C_over_N0_dBHz', 'C_over_N0_dBHz', ...
+        'B', 'B' ...
+    );
+end
+
+methods (TestClassSetup)
+    function classSetup(testCase)
+        % Add the directory containing the function to the path
+        pathToAdd = fullfile(pwd, '..');
+        if ~contains(path, pathToAdd)
+            addpath(pathToAdd);
+            testCase.addTeardown(@() rmpath(pathToAdd));
+        end
+        % Define invalid input cases
+        testCase.InvalidInputs = struct(...
+            'simulation_time', { ...
+                { 'invalid', 'MATLAB:get_thermal_noise:invalidType'; ...
+                  true, 'MATLAB:get_thermal_noise:invalidType'; ...
+                  {300}, 'MATLAB:get_thermal_noise:invalidType'; ...
+                  [300, 400], 'MATLAB:get_thermal_noise:expectedScalar'; ...
+                  zeros(3, 3), 'MATLAB:get_thermal_noise:expectedScalar'; ...
+                  -300, 'MATLAB:get_thermal_noise:expectedPositive'; ...
+                  0, 'MATLAB:get_thermal_noise:expectedPositive'; ...
+                  Inf, 'MATLAB:get_thermal_noise:expectedFinite'; ...
+                  -Inf, 'MATLAB:get_thermal_noise:expectedPositive'; ...
+                  NaN, 'MATLAB:get_thermal_noise:expectedFinite'; ...
+                  [], 'MATLAB:get_thermal_noise:expectedScalar'; ...
+                  300 + 1j, 'MATLAB:get_thermal_noise:expectedReal' ...
+                } ...
+            }, ...
+            'sampling_interval', { ...
+                { 'invalid', 'MATLAB:get_thermal_noise:invalidType'; ...
+                  true, 'MATLAB:get_thermal_noise:invalidType'; ...
+                  {0.01}, 'MATLAB:get_thermal_noise:invalidType'; ...
+                  [0.01, 0.02], 'MATLAB:get_thermal_noise:expectedScalar'; ...
+                  zeros(3, 3), 'MATLAB:get_thermal_noise:expectedScalar'; ...
+                  -0.01, 'MATLAB:get_thermal_noise:expectedPositive'; ...
+                  0, 'MATLAB:get_thermal_noise:expectedPositive'; ...
+                  Inf, 'MATLAB:get_thermal_noise:expectedFinite'; ...
+                  -Inf, 'MATLAB:get_thermal_noise:expectedPositive'; ...
+                  NaN, 'MATLAB:get_thermal_noise:expectedFinite'; ...
+                  [], 'MATLAB:get_thermal_noise:expectedScalar'; ...
+                  0.01 + 1j, 'MATLAB:get_thermal_noise:expectedReal'; ...
+                } ...
+            }, ...
+            'rx_mean_power', { ...
+                { 'invalid', 'MATLAB:get_thermal_noise:invalidType'; ...
+                  true, 'MATLAB:get_thermal_noise:invalidType'; ...
+                  {1}, 'MATLAB:get_thermal_noise:invalidType'; ...
+                  [1, 2], 'MATLAB:get_thermal_noise:expectedScalar'; ...
+                  zeros(3, 3), 'MATLAB:get_thermal_noise:expectedScalar'; ...
+                  -1, 'MATLAB:get_thermal_noise:expectedPositive'; ...
+                  0, 'MATLAB:get_thermal_noise:expectedPositive'; ...
+                  Inf, 'MATLAB:get_thermal_noise:expectedFinite'; ...
+                  -Inf, 'MATLAB:get_thermal_noise:expectedPositive'; ...
+                  NaN, 'MATLAB:get_thermal_noise:expectedFinite'; ...
+                  [], 'MATLAB:get_thermal_noise:expectedScalar'; ...
+                  1 + 1j, 'MATLAB:get_thermal_noise:expectedReal' ...
+                } ...
+            }, ...
+            'C_over_N0_dBHz', { ...
+                { 'invalid', 'MATLAB:get_thermal_noise:invalidType'; ...
+                  true, 'MATLAB:get_thermal_noise:invalidType'; ...
+                  {40}, 'MATLAB:get_thermal_noise:invalidType'; ...
+                  [40, 45], 'MATLAB:get_thermal_noise:expectedScalar'; ...
+                  zeros(3, 3), 'MATLAB:get_thermal_noise:expectedScalar'; ...
+                  Inf, 'MATLAB:get_thermal_noise:expectedFinite'; ...
+                  -Inf, 'MATLAB:get_thermal_noise:expectedPositive'; ...
+                  NaN, 'MATLAB:get_thermal_noise:expectedFinite'; ...
+                  [], 'MATLAB:get_thermal_noise:expectedScalar'; ...
+                  40 + 1j, 'MATLAB:get_thermal_noise:expectedReal'; ...
+                  -40, 'MATLAB:get_thermal_noise:expectedPositive' ...
+                } ...
+            }, ...
+            'B', { ...
+                { 'invalid', 'MATLAB:get_thermal_noise:invalidType'; ...
+                  true, 'MATLAB:get_thermal_noise:invalidType'; ...
+                  {2e7}, 'MATLAB:get_thermal_noise:invalidType'; ...
+                  [2e7, 3e7], 'MATLAB:get_thermal_noise:expectedScalar'; ...
+                  zeros(3, 3), 'MATLAB:get_thermal_noise:expectedScalar'; ...
+                  -2e7, 'MATLAB:get_thermal_noise:expectedPositive'; ...
+                  0, 'MATLAB:get_thermal_noise:expectedPositive'; ...
+                  Inf, 'MATLAB:get_thermal_noise:expectedFinite'; ...
+                  -Inf, 'MATLAB:get_thermal_noise:expectedPositive'; ...
+                  NaN, 'MATLAB:get_thermal_noise:expectedFinite'; ...
+                  [], 'MATLAB:get_thermal_noise:expectedScalar'; ...
+                  2e7 + 1j, 'MATLAB:get_thermal_noise:expectedReal' ...
+                } ...
+            } ...
+        );
+    end
+end
+
+methods (Test)
+    %% Functional Tests
+    function test_mean(testCase)
+        % Test if the mean of the thermal noise is close to zero
+        thermal_noise = get_thermal_noise(testCase.simulation_time, testCase.sampling_interval, ...
+                                          testCase.rx_mean_power, testCase.C_over_N0_dBHz, ...
+                                          testCase.B);
+        testCase.assertLessThan(abs(mean(thermal_noise)), 1e-2, ...
+            "The mean of the generated thermal noise is not sufficiently " + ...
+            "close to zero, indicating a possible bias.");
     end
     
-    methods (TestClassSetup)
-        function classSetup(testCase)
-            % Add the directory containing the function to the path
-            pathToAdd = fullfile(pwd, '..');
-            if ~contains(path, pathToAdd)
-                addpath(pathToAdd);
-                testCase.addTeardown(@() rmpath(pathToAdd));
-            end
-        end
-    end
-    
-    methods (Test)
-        %% Functional Tests
-        function test_mean(testCase)
-            % Test if the mean of the thermal noise is close to zero
-            thermal_noise = get_thermal_noise(testCase.simulation_time, testCase.T_I, ...
-                                              testCase.rx_mean_power, testCase.C_over_N0_dBHz, ...
-                                              testCase.B);
-            testCase.assertLessThan(abs(mean(thermal_noise)), 1e-2, ...
-                "The mean of the generated thermal noise is not sufficiently " + ...
-                "close to zero, indicating a possible bias.");
-        end
+    function test_acf(testCase)
+        % Test if the autocorrelation of thermal noise (real and imaginary parts)
+        % is significant only at lag 0
+        thermal_noise = get_thermal_noise(testCase.simulation_time, testCase.sampling_interval, ...
+                                          testCase.rx_mean_power, testCase.C_over_N0_dBHz, ...
+                                          testCase.B);
+        real_acf = autocorr(real(thermal_noise), NumLags=min(20, length(real(thermal_noise)) - 1));
+        imag_acf = autocorr(imag(thermal_noise), NumLags=min(20, length(imag(thermal_noise)) - 1));
         
-        function test_acf(testCase)
-            % Test if the autocorrelation of thermal noise (real and imaginary parts)
-            % is significant only at lag 0
-            thermal_noise = get_thermal_noise(testCase.simulation_time, testCase.T_I, ...
-                                              testCase.rx_mean_power, testCase.C_over_N0_dBHz, ...
-                                              testCase.B);
-            real_acf = autocorr(real(thermal_noise), NumLags=min(20, length(real(thermal_noise)) - 1));
-            imag_acf = autocorr(imag(thermal_noise), NumLags=min(20, length(imag(thermal_noise)) - 1));
+        testCase.verifyTrue(all(abs(real_acf(2:end)) < 5e-2), ...
+            "Real part of thermal noise has significant autocorrelation beyond lag 0.");
+        testCase.verifyTrue(all(abs(imag_acf(2:end)) < 5e-2), ...
+            "Imaginary part of thermal noise has significant autocorrelation beyond lag 0.");
+    end
+    
+    function test_variance(testCase)
+        % Test if the variance of the generated noise matches the theoretical value
+        thermal_noise = get_thermal_noise(testCase.simulation_time, testCase.sampling_interval, ...
+                                          testCase.rx_mean_power, testCase.C_over_N0_dBHz, ...
+                                          testCase.B);
+        variance = var(thermal_noise);
+
+        % Compute theoretical variance
+        C_over_N0_linear = 10^(testCase.C_over_N0_dBHz / 10);
+        sigma2_eta = 2 * testCase.B * (testCase.rx_mean_power / C_over_N0_linear);
+        N_int = testCase.B * testCase.sampling_interval;
+        theoretical_variance = sigma2_eta / N_int;
+
+        % Check variance of generated noise
+        testCase.assertLessThan(abs(variance - theoretical_variance), 1e-2, ...
+            "Generated thermal noise variance differs significantly from the theoretical value.");
+    end
+
+    %% Edge Cases Tests
+    function test_simulation_time_divided_by_sampling_interval_not_integer(testCase)
+    % Simulation time slightly off an exact multiple of sampling_interval
+        test_simulation_time = 0.011; % Slightly more than the default testing value of `sampling_interval`
+        testCase.verifyWarning(@() get_thermal_noise(test_simulation_time, testCase.sampling_interval, testCase.rx_mean_power, testCase.C_over_N0_dBHz, testCase.B), ...
+                             'get_thermal_noise:NonIntegerRatioSamples', ['The function failed to handle the warning that should appears' ...
+                             'when the ratio simulation_time / sampling_interval is not an integer value']);
+    end
+
+    function test_sampling_time_multiplied_by_B_not_integer(testCase)
+        % sampling_interval greater than simulation_time
+        test_simulation_time = 0.009; % 10 ms
+        testCase.verifyError(@() get_thermal_noise(test_simulation_time, testCase.sampling_interval, ...
+                                                  testCase.rx_mean_power, testCase.C_over_N0_dBHz, testCase.B), ...
+                             'get_thermal_noise:simulationTimeSmallerThanSamplingInterval', ...
+                             'The function failed to handle sampling_interval greater than simulation_time.');
+    end
+
+    function test_sampling_interval_greater_than_simulation_time(testCase)
+        % sampling_interval greater than simulation_time
+        test_B = 2e7 - 0.001;
+        testCase.verifyWarning(@() get_thermal_noise(testCase.simulation_time, testCase.sampling_interval, ...
+                                                  testCase.rx_mean_power, testCase.C_over_N0_dBHz, test_B), ...
+                             'get_thermal_noise:NonIntegerRatioAmountOfIntegrationSamples', ...
+                             'The function failed to warn about non-integer value of `N_int = B * T_I`.');
+    end
+    %% Validation Tests
+    function test_invalid_inputs(testCase, inputName)
+        % Dynamically validate inputs using helper functions
+        testCase.run_validation_tests(inputName, testCase.InvalidInputs.(inputName));
+    end
+end
+
+methods
+    function run_validation_tests(testCase, inputName, invalidCases)
+        % Iterate through invalid cases and verify expected errors
+        for invalidCase = invalidCases.'
+            % Extract invalid input and expected error message ID
+            invalidInput = invalidCase{1};
+            expectedError = invalidCase{2};
             
-            testCase.verifyTrue(all(abs(real_acf(2:end)) < 5e-2), ...
-                "Real part of thermal noise has significant autocorrelation beyond lag 0.");
-            testCase.verifyTrue(all(abs(imag_acf(2:end)) < 5e-2), ...
-                "Imaginary part of thermal noise has significant autocorrelation beyond lag 0.");
-        end
-        
-        function test_variance(testCase)
-            % Test if the variance of the generated noise matches the theoretical value
-            thermal_noise = get_thermal_noise(testCase.simulation_time, testCase.T_I, ...
-                                              testCase.rx_mean_power, testCase.C_over_N0_dBHz, ...
-                                              testCase.B);
-            variance = var(thermal_noise);
-
-            % Compute theoretical variance
-            C_over_N0_linear = 10^(testCase.C_over_N0_dBHz / 10);
-            sigma2_eta = 2 * testCase.B * (testCase.rx_mean_power / C_over_N0_linear);
-            N_int = testCase.B * testCase.T_I;
-            theoretical_variance = sigma2_eta / N_int;
-
-            % Check variance of generated noise
-            testCase.assertLessThan(abs(variance - theoretical_variance), 1e-2, ...
-                "Generated thermal noise variance differs significantly from the theoretical value.");
-        end
-
-        %% Validation Tests
-
-        %%% simulation_time
-
-        % Non-numeric inputs
-        function test_invalid_simulation_time_string(testCase)
-            testCase.verifyError(@() get_thermal_noise('invalid', testCase.T_I, testCase.rx_mean_power, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:invalidType');
-        end
-
-        function test_invalid_simulation_time_logical(testCase)
-            testCase.verifyError(@() get_thermal_noise(true, testCase.T_I, testCase.rx_mean_power, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:invalidType');
-        end
-
-        function test_invalid_simulation_time_cell(testCase)
-            testCase.verifyError(@() get_thermal_noise({42}, testCase.T_I, testCase.rx_mean_power, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:invalidType');
-        end
-
-        % Non-scalar inputs
-        function test_invalid_simulation_time_vector(testCase)
-            testCase.verifyError(@() get_thermal_noise([600, 700], testCase.T_I, testCase.rx_mean_power, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:expectedScalar');
-        end
-
-        function test_invalid_simulation_time_matrix(testCase)
-            testCase.verifyError(@() get_thermal_noise(zeros(3, 3), testCase.T_I, testCase.rx_mean_power, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:expectedScalar');
-        end
-
-        % Negative values
-        function test_invalid_simulation_time_negative(testCase)
-            testCase.verifyError(@() get_thermal_noise(-600, testCase.T_I, testCase.rx_mean_power, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:expectedPositive');
-        end
-
-        function test_invalid_simulation_time_negative_small(testCase)
-            testCase.verifyError(@() get_thermal_noise(-0.01, testCase.T_I, testCase.rx_mean_power, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:expectedPositive');
-        end
-
-        % Zero value
-        function test_invalid_simulation_time_zero(testCase)
-            testCase.verifyError(@() get_thermal_noise(0, testCase.T_I, testCase.rx_mean_power, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:expectedPositive');
-        end
-
-        % Non-finite values
-        function test_invalid_simulation_time_infinite(testCase)
-            testCase.verifyError(@() get_thermal_noise(Inf, testCase.T_I, testCase.rx_mean_power, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:expectedFinite');
-            testCase.verifyError(@() get_thermal_noise(-Inf, testCase.T_I, testCase.rx_mean_power, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:expectedPositive');
-        end
-
-        % NaN value
-        function test_invalid_simulation_time_nan(testCase)
-            testCase.verifyError(@() get_thermal_noise(NaN, testCase.T_I, testCase.rx_mean_power, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:expectedFinite');
-        end
-
-        % Empty input
-        function test_invalid_simulation_time_empty(testCase)
-            testCase.verifyError(@() get_thermal_noise([], testCase.T_I, testCase.rx_mean_power, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:expectedScalar');
-        end
-
-        % Complex input
-        function test_invalid_simulation_time_complex(testCase)
-            testCase.verifyError(@() get_thermal_noise(600 + 1j, testCase.T_I, testCase.rx_mean_power, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:expectedReal');
-        end
-        
-        %%% T_I
-
-        % Non-numeric inputs
-        function test_invalid_T_I_string(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, 'invalid', testCase.rx_mean_power, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:invalidType');
-        end
-
-        function test_invalid_T_I_logical(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, true, testCase.rx_mean_power, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:invalidType');
-        end
-
-        function test_invalid_T_I_cell(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, {0.01}, testCase.rx_mean_power, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:invalidType');
-        end
-
-        % Non-scalar inputs
-        function test_invalid_T_I_vector(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, [0.01, 0.02], testCase.rx_mean_power, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:expectedScalar');
-        end
-
-        function test_invalid_T_I_matrix(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, zeros(3, 3), testCase.rx_mean_power, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:expectedScalar');
-        end
-
-        % Negative values
-        function test_invalid_T_I_negative(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, -0.01, testCase.rx_mean_power, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:expectedPositive');
-        end
-
-        % Zero value
-        function test_invalid_T_I_zero(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, 0, testCase.rx_mean_power, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:expectedPositive');
-        end
-
-        % Non-finite values
-        function test_invalid_T_I_infinite(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, Inf, testCase.rx_mean_power, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:expectedFinite');
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, -Inf, testCase.rx_mean_power, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:expectedPositive');
-        end
-
-        % NaN value
-        function test_invalid_T_I_nan(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, NaN, testCase.rx_mean_power, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:expectedFinite');
-        end
-
-        % Empty input
-        function test_invalid_T_I_empty(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, [], testCase.rx_mean_power, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:expectedScalar');
-        end
-
-        % Complex input
-        function test_invalid_T_I_complex(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, 0.01 + 1j, testCase.rx_mean_power, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:expectedReal');
-        end
-        
-        %%% rx_mean_power
-
-        % Non-numeric inputs
-        function test_invalid_rx_mean_power_string(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, 'invalid', testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:invalidType');
-        end
-
-        function test_invalid_rx_mean_power_logical(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, true, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:invalidType');
-        end
-
-        function test_invalid_rx_mean_power_cell(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, {1}, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:invalidType');
-        end
-
-        % Non-scalar inputs
-        function test_invalid_rx_mean_power_vector(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, [1, 2], testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:expectedScalar');
-        end
-
-        function test_invalid_rx_mean_power_matrix(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, zeros(3, 3), testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:expectedScalar');
-        end
-
-        % Negative values
-        function test_invalid_rx_mean_power_negative(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, -1, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:expectedPositive');
-        end
-
-        % Zero value
-        function test_invalid_rx_mean_power_zero(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, 0, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:expectedPositive');
-        end
-
-        % Non-finite values
-        function test_invalid_rx_mean_power_infinite(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, Inf, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:expectedFinite');
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, -Inf, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:expectedPositive');
-        end
-
-        % NaN value
-        function test_invalid_rx_mean_power_nan(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, NaN, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:expectedFinite');
-        end
-
-        % Empty input
-        function test_invalid_rx_mean_power_empty(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, [], testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:expectedScalar');
-        end
-
-        % Complex input
-        function test_invalid_rx_mean_power_complex(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, 1 + 1j, testCase.C_over_N0_dBHz, testCase.B), 'MATLAB:get_thermal_noise:expectedReal');
-        end
-        
-        %%% C_over_N0_dBHz
-
-        % Non-numeric inputs
-        function test_invalid_C_over_N0_dBHz_string(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, testCase.rx_mean_power, 'invalid', testCase.B), 'MATLAB:get_thermal_noise:invalidType');
-        end
-
-        function test_invalid_C_over_N0_dBHz_logical(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, testCase.rx_mean_power, true, testCase.B), 'MATLAB:get_thermal_noise:invalidType');
-        end
-
-        function test_invalid_C_over_N0_dBHz_cell(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, testCase.rx_mean_power, {40}, testCase.B), 'MATLAB:get_thermal_noise:invalidType');
-        end
-
-        % Non-scalar inputs
-        function test_invalid_C_over_N0_dBHz_vector(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, testCase.rx_mean_power, [40, 45], testCase.B), 'MATLAB:get_thermal_noise:expectedScalar');
-        end
-
-        function test_invalid_C_over_N0_dBHz_matrix(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, testCase.rx_mean_power, zeros(3, 3), testCase.B), 'MATLAB:get_thermal_noise:expectedScalar');
-        end
-
-        % Non-finite values
-        function test_invalid_C_over_N0_dBHz_infinite(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, testCase.rx_mean_power, Inf, testCase.B), 'MATLAB:get_thermal_noise:expectedFinite');
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, testCase.rx_mean_power, -Inf, testCase.B), 'MATLAB:get_thermal_noise:expectedPositive');
-        end
-
-        % NaN value
-        function test_invalid_C_over_N0_dBHz_nan(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, testCase.rx_mean_power, NaN, testCase.B), 'MATLAB:get_thermal_noise:expectedFinite');
-        end
-
-        % Empty input
-        function test_invalid_C_over_N0_dBHz_empty(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, testCase.rx_mean_power, [], testCase.B), 'MATLAB:get_thermal_noise:expectedScalar');
-        end
-
-        % Complex input
-        function test_invalid_C_over_N0_dBHz_complex(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, testCase.rx_mean_power, 40 + 1j, testCase.B), 'MATLAB:get_thermal_noise:expectedReal');
-        end
-
-        %%% B
-
-        % Non-numeric inputs
-        function test_invalid_B_string(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, testCase.rx_mean_power, testCase.C_over_N0_dBHz, 'invalid'), 'MATLAB:get_thermal_noise:invalidType');
-        end
-
-        function test_invalid_B_logical(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, testCase.rx_mean_power, testCase.C_over_N0_dBHz, true), 'MATLAB:get_thermal_noise:invalidType');
-        end
-
-        function test_invalid_B_cell(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, testCase.rx_mean_power, testCase.C_over_N0_dBHz, {2e7}), 'MATLAB:get_thermal_noise:invalidType');
-        end
-
-        % Non-scalar inputs
-        function test_invalid_B_vector(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, testCase.rx_mean_power, testCase.C_over_N0_dBHz, [2e7, 3e7]), 'MATLAB:get_thermal_noise:expectedScalar');
-        end
-
-        function test_invalid_B_matrix(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, testCase.rx_mean_power, testCase.C_over_N0_dBHz, zeros(3, 3)), 'MATLAB:get_thermal_noise:expectedScalar');
-        end
-
-        % Negative values
-        function test_invalid_B_negative(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, testCase.rx_mean_power, testCase.C_over_N0_dBHz, -2e7), 'MATLAB:get_thermal_noise:expectedPositive');
-        end
-
-        % Zero value
-        function test_invalid_B_zero(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, testCase.rx_mean_power, testCase.C_over_N0_dBHz, 0), 'MATLAB:get_thermal_noise:expectedPositive');
-        end
-
-        % Non-finite values
-        function test_invalid_B_infinite(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, testCase.rx_mean_power, testCase.C_over_N0_dBHz, Inf), 'MATLAB:get_thermal_noise:expectedFinite');
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, testCase.rx_mean_power, testCase.C_over_N0_dBHz, -Inf), 'MATLAB:get_thermal_noise:expectedPositive');
-        end
-
-        % NaN value
-        function test_invalid_B_nan(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, testCase.rx_mean_power, testCase.C_over_N0_dBHz, NaN), 'MATLAB:get_thermal_noise:expectedFinite');
-        end
-
-        % Empty input
-        function test_invalid_B_empty(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, testCase.rx_mean_power, testCase.C_over_N0_dBHz, []), 'MATLAB:get_thermal_noise:expectedScalar');
-        end
-
-        % Complex input
-        function test_invalid_B_complex(testCase)
-            testCase.verifyError(@() get_thermal_noise(testCase.simulation_time, testCase.T_I, testCase.rx_mean_power, testCase.C_over_N0_dBHz, 2e7 + 1j), 'MATLAB:get_thermal_noise:expectedReal');
+            % Generate function inputs with the invalid argument
+            functionInputs = testCase.generate_inputs(inputName, invalidInput);
+            invalidInputStr = testCase.safe_input_strings(invalidInput);
+            
+            % Validate the function throws the expected error
+            testCase.verifyError(@() get_thermal_noise(functionInputs{:}), expectedError, ...
+                sprintf('Validation failed for %s with input: %s', inputName, invalidInputStr));
         end
     end
+
+    function inputs = generate_inputs(testCase, fieldName, value)
+        % Generate inputs for get_thermal_noise, replacing specified field
+        inputs = {
+            testCase.simulation_time, ...
+            testCase.sampling_interval, ...
+            testCase.rx_mean_power, ...
+            testCase.C_over_N0_dBHz, ...
+            testCase.B
+        };
+        % Replace the specified field with the invalid value
+        fieldNames = {'simulation_time', 'sampling_interval', 'rx_mean_power', 'C_over_N0_dBHz', 'B'};
+        inputs(strcmp(fieldNames, fieldName)) = {value};
+    end
+
+    function str = safe_input_strings(~, input)
+        % Safely convert input to string for error messages
+        if ischar(input) || isstring(input)
+            str = char(input);
+        elseif isnumeric(input) || islogical(input)
+            str = mat2str(input);
+        else
+            str = '<unconvertible input>';
+        end
+    end
+end
+
 end

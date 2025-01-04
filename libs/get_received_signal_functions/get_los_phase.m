@@ -33,8 +33,10 @@ function los_phase = get_los_phase(simulation_time, sampling_interval, los_phase
 %       - `fdr` is the Doppler drift rate.
 %
 % Examples:
-%   % Generate an LOS phase time series for a 10-second simulation:
-%   los_phase = get_los_phase(10, 0.01, 0, 1000, 0.5);
+%   % Generate an LOS phase time series for a 300-second simulation, with
+%   0.01 s sampling interval, 1000 Hz of Doppler frequency shift and 0.94
+%   Hz/s of Doppler frequency drift.
+%   los_phase = get_los_phase(300, 0.01, 0, 1000, 0.94);
 %
 % Author 1: Rodrigo de Lima Florindo
 % Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
@@ -49,7 +51,7 @@ validateattributes(fdr, {'numeric'}, {'scalar', 'real', 'finite', 'nonnan'}, 'ge
 
 if simulation_time < sampling_interval
     error('get_los_phase:simulationTimeSmallerThanSamplingInterval', ...
-        'The inputed value of `simulation_time` was %g, which is smaller than the value of the `sampling interval`, %g', simulation_time, sampling_interval)
+        'The inputed value of `simulation_time` was %g, which is smaller than the value of the `sampling_interval`, %g', simulation_time, sampling_interval)
 end
 
 % Check if simulation_time / sampling_interval is an integer
