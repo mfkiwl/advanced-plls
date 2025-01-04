@@ -41,11 +41,11 @@ function los_phase = get_los_phase(simulation_time, sampling_interval, los_phase
 % Author's 1 Email: rdlfresearch@gmail.com
 
 % Input validation
-validateattributes(simulation_time, {'numeric'}, {'scalar', 'real', 'positive'}, 'get_los_phase', 'simulation_time');
-validateattributes(sampling_interval, {'numeric'}, {'scalar', 'real', 'positive'}, 'get_los_phase', 'sampling_interval');
-validateattributes(los_phase_0, {'numeric'}, {'scalar', 'real'}, 'get_los_phase', 'los_phase_0');
-validateattributes(fd, {'numeric'}, {'scalar', 'real'}, 'get_los_phase', 'fd');
-validateattributes(fdr, {'numeric'}, {'scalar', 'real'}, 'get_los_phase', 'fdr');
+validateattributes(simulation_time, {'numeric'}, {'scalar', 'real', 'positive', 'finite', 'nonnan'}, 'get_los_phase', 'simulation_time');
+validateattributes(sampling_interval, {'numeric'}, {'scalar', 'real', 'positive', 'finite', 'nonnan'}, 'get_los_phase', 'sampling_interval');
+validateattributes(los_phase_0, {'numeric'}, {'scalar', 'real', 'finite', 'nonnan'}, 'get_los_phase', 'los_phase_0');
+validateattributes(fd, {'numeric'}, {'scalar', 'real', 'finite', 'nonnan'}, 'get_los_phase', 'fd');
+validateattributes(fdr, {'numeric'}, {'scalar', 'real', 'finite', 'nonnan'}, 'get_los_phase', 'fdr');
 
 % Create the time vector
 time_vector = (0:sampling_interval:simulation_time-sampling_interval).';
