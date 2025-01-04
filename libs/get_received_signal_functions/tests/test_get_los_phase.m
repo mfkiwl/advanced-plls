@@ -1,27 +1,26 @@
-% test_get_los_phase
-% Unit tests for the `get_los_phase` function, which computes the line-of-sight 
-% (LOS) phase time series based on Doppler frequency shift and Doppler drift.
-%
-% This test class verifies the correctness of the LOS phase calculations 
-% under various scenarios and ensures appropriate error handling for invalid inputs.
-%
-% Example:
-%   Run the test suite:
-%       results = runtests('test_get_los_phase');
-%       disp(results);
-%
-% Author: Rodrigo de Lima Florindo
-% ORCID: https://orcid.org/0000-0003-0412-5583
-% Email: rdlfresearch@gmail.com
 classdef test_get_los_phase < matlab.unittest.TestCase
 
     properties
-        % Test parameters
+        % Test parameters (valid inputs)
         simulation_time = 300; % seconds
         sampling_interval = 0.01; % seconds
         los_phase_0 = 0; % radians
         fd = 1000; % Hz
         fdr = 0.94; % Hz/s
+
+        % Invalid input cases, initialized in the TestClassSetup
+        InvalidInputs
+    end
+
+    properties (TestParameter)
+        % Parameterized property for input names
+        inputName = struct(...
+            'simulation_time', 'simulation_time', ...
+            'sampling_interval', 'sampling_interval', ...
+            'los_phase_0', 'los_phase_0', ...
+            'fd', 'fd', ...
+            'fdr', 'fdr' ...
+        );
     end
 
     methods (TestClassSetup)
@@ -32,6 +31,76 @@ classdef test_get_los_phase < matlab.unittest.TestCase
                 addpath(pathToAdd);
                 testCase.addTeardown(@() rmpath(pathToAdd));
             end
+    
+            % Define invalid input cases as cell arrays to avoid dimension mismatch
+            testCase.InvalidInputs = struct(...
+                'simulation_time', { ...
+                    { 'invalid', 'MATLAB:get_los_phase:invalidType'; ...
+                      true, 'MATLAB:get_los_phase:invalidType'; ...
+                      {300}, 'MATLAB:get_los_phase:invalidType'; ...
+                      [300, 400], 'MATLAB:get_los_phase:expectedScalar'; ...
+                      zeros(3, 3), 'MATLAB:get_los_phase:expectedScalar'; ...
+                      -300, 'MATLAB:get_los_phase:expectedPositive'; ...
+                      0, 'MATLAB:get_los_phase:expectedPositive'; ...
+                      Inf, 'MATLAB:get_los_phase:expectedFinite'; ...
+                      -Inf, 'MATLAB:get_los_phase:expectedPositive'; ...
+                      NaN, 'MATLAB:get_los_phase:expectedFinite'; ...
+                      [], 'MATLAB:get_los_phase:expectedScalar'; ...
+                      300 + 1j, 'MATLAB:get_los_phase:expectedReal' ...
+                    } ...
+                }, ...
+                'sampling_interval', { ...
+                    { 'invalid', 'MATLAB:get_los_phase:invalidType'; ...
+                      true, 'MATLAB:get_los_phase:invalidType'; ...
+                      {0.01}, 'MATLAB:get_los_phase:invalidType'; ...
+                      [0.01, 0.02], 'MATLAB:get_los_phase:expectedScalar'; ...
+                      zeros(3, 3), 'MATLAB:get_los_phase:expectedScalar'; ...
+                      -0.01, 'MATLAB:get_los_phase:expectedPositive'; ...
+                      0, 'MATLAB:get_los_phase:expectedPositive'; ...
+                      Inf, 'MATLAB:get_los_phase:expectedFinite'; ...
+                      -Inf, 'MATLAB:get_los_phase:expectedPositive'; ...
+                      NaN, 'MATLAB:get_los_phase:expectedFinite'; ...
+                      [], 'MATLAB:get_los_phase:expectedScalar'; ...
+                      0.01 + 1j, 'MATLAB:get_los_phase:expectedReal' ...
+                    } ...
+                }, ...
+                'los_phase_0', { ...
+                    { 'invalid', 'MATLAB:get_los_phase:invalidType'; ...
+                      true, 'MATLAB:get_los_phase:invalidType'; ...
+                      {0}, 'MATLAB:get_los_phase:invalidType'; ...
+                      [0, 1], 'MATLAB:get_los_phase:expectedScalar'; ...
+                      zeros(3, 3), 'MATLAB:get_los_phase:expectedScalar'; ...
+                      Inf, 'MATLAB:get_los_phase:expectedFinite'; ...
+                      -Inf, 'MATLAB:get_los_phase:expectedFinite'; ...
+                      NaN, 'MATLAB:get_los_phase:expectedFinite'; ...
+                      [], 'MATLAB:get_los_phase:expectedScalar' ...
+                    } ...
+                }, ...
+                'fd', { ...
+                    { 'invalid', 'MATLAB:get_los_phase:invalidType'; ...
+                      true, 'MATLAB:get_los_phase:invalidType'; ...
+                      {1000}, 'MATLAB:get_los_phase:invalidType'; ...
+                      [1000, 2000], 'MATLAB:get_los_phase:expectedScalar'; ...
+                      zeros(2, 2), 'MATLAB:get_los_phase:expectedScalar'; ...
+                      Inf, 'MATLAB:get_los_phase:expectedFinite'; ...
+                      -Inf, 'MATLAB:get_los_phase:expectedFinite'; ...
+                      NaN, 'MATLAB:get_los_phase:expectedFinite'; ...
+                      [], 'MATLAB:get_los_phase:expectedScalar' ...
+                    } ...
+                }, ...
+                'fdr', { ...
+                    { 'invalid', 'MATLAB:get_los_phase:invalidType'; ...
+                      true, 'MATLAB:get_los_phase:invalidType'; ...
+                      {0.94}, 'MATLAB:get_los_phase:invalidType'; ...
+                      [0.94, 1.0], 'MATLAB:get_los_phase:expectedScalar'; ...
+                      zeros(3, 3), 'MATLAB:get_los_phase:expectedScalar'; ...
+                      Inf, 'MATLAB:get_los_phase:expectedFinite'; ...
+                      -Inf, 'MATLAB:get_los_phase:expectedFinite'; ...
+                      NaN, 'MATLAB:get_los_phase:expectedFinite'; ...
+                      [], 'MATLAB:get_los_phase:expectedScalar' ...
+                    } ...
+                } ...
+            );
         end
     end
 
@@ -70,116 +139,31 @@ classdef test_get_los_phase < matlab.unittest.TestCase
                 "The LOS phase does not match the expected quadratic progression.");
         end
 
-        %% Validation Tests
-
-        function test_invalid_simulation_time(testCase)
-            % Invalid simulation_time cases
-            invalidCases = {
-                'invalid', 'MATLAB:get_los_phase:invalidType';
-                true, 'MATLAB:get_los_phase:invalidType';
-                {300}, 'MATLAB:get_los_phase:invalidType';
-                [300, 400], 'MATLAB:get_los_phase:expectedScalar';
-                zeros(3, 3), 'MATLAB:get_los_phase:expectedScalar';
-                -300, 'MATLAB:get_los_phase:expectedPositive';
-                0, 'MATLAB:get_los_phase:expectedPositive';
-                Inf, 'MATLAB:get_los_phase:expectedFinite';
-                -Inf, 'MATLAB:get_los_phase:expectedPositive';
-                NaN, 'MATLAB:get_los_phase:expectedFinite';
-                [], 'MATLAB:get_los_phase:expectedScalar';
-                300 + 1j, 'MATLAB:get_los_phase:expectedReal'
-            };
-
-            testCase.run_validation_tests('simulation_time', invalidCases);
-        end
-
-        function test_invalid_sampling_interval(testCase)
-            % Invalid sampling_interval cases
-            invalidCases = {
-                'invalid', 'MATLAB:get_los_phase:invalidType';
-                true, 'MATLAB:get_los_phase:invalidType';
-                {0.01}, 'MATLAB:get_los_phase:invalidType';
-                [0.01, 0.02], 'MATLAB:get_los_phase:expectedScalar';
-                zeros(3, 3), 'MATLAB:get_los_phase:expectedScalar';
-                -0.01, 'MATLAB:get_los_phase:expectedPositive';
-                0, 'MATLAB:get_los_phase:expectedPositive';
-                Inf, 'MATLAB:get_los_phase:expectedFinite';
-                -Inf, 'MATLAB:get_los_phase:expectedPositive';
-                NaN, 'MATLAB:get_los_phase:expectedFinite';
-                [], 'MATLAB:get_los_phase:expectedScalar';
-                0.01 + 1j, 'MATLAB:get_los_phase:expectedReal'
-            };
-
-            testCase.run_validation_tests('sampling_interval', invalidCases);
-        end
-
-        function test_invalid_los_phase_0(testCase)
-            % Invalid los_phase_0 cases
-            invalidCases = {
-                'invalid', 'MATLAB:get_los_phase:invalidType';
-                true, 'MATLAB:get_los_phase:invalidType';
-                {0}, 'MATLAB:get_los_phase:invalidType';
-                [0, 1], 'MATLAB:get_los_phase:expectedScalar';
-                zeros(3, 3), 'MATLAB:get_los_phase:expectedScalar';
-                Inf, 'MATLAB:get_los_phase:expectedFinite';
-                -Inf, 'MATLAB:get_los_phase:expectedFinite';
-                NaN, 'MATLAB:get_los_phase:expectedFinite';
-                [], 'MATLAB:get_los_phase:expectedScalar'
-            };
-
-            testCase.run_validation_tests('los_phase_0', invalidCases);
-        end
-
-        function test_invalid_fd(testCase)
-            % Invalid fd cases
-            invalidCases = {
-                'invalid', 'MATLAB:get_los_phase:invalidType';
-                true, 'MATLAB:get_los_phase:invalidType';
-                {1000}, 'MATLAB:get_los_phase:invalidType';
-                [1000, 2000], 'MATLAB:get_los_phase:expectedScalar';
-                zeros(2, 2), 'MATLAB:get_los_phase:expectedScalar';
-                Inf, 'MATLAB:get_los_phase:expectedFinite';
-                -Inf, 'MATLAB:get_los_phase:expectedFinite';
-                NaN, 'MATLAB:get_los_phase:expectedFinite';
-                [], 'MATLAB:get_los_phase:expectedScalar'
-            };
-
-            testCase.run_validation_tests('fd', invalidCases);
-        end
-
-        function test_invalid_fdr(testCase)
-            % Invalid fdr cases
-            invalidCases = {
-                'invalid', 'MATLAB:get_los_phase:invalidType';
-                true, 'MATLAB:get_los_phase:invalidType';
-                {0.94}, 'MATLAB:get_los_phase:invalidType';
-                [0.94, 1.0], 'MATLAB:get_los_phase:expectedScalar';
-                zeros(3, 3), 'MATLAB:get_los_phase:expectedScalar';
-                Inf, 'MATLAB:get_los_phase:expectedFinite';
-                -Inf, 'MATLAB:get_los_phase:expectedFinite';
-                NaN, 'MATLAB:get_los_phase:expectedFinite';
-                [], 'MATLAB:get_los_phase:expectedScalar'
-            };
-
-            testCase.run_validation_tests('fdr', invalidCases);
+        %% Parameterized Validation Tests
+        function test_invalid_inputs(testCase, inputName)
+            %% Directly call the helper method with invalid cases
+            testCase.run_validation_tests(inputName, testCase.InvalidInputs.(inputName));
         end
     end
 
     methods
         function run_validation_tests(testCase, inputName, invalidCases)
             % Iterate through invalid cases and verify errors
-            for k = 1:size(invalidCases, 1)
-                input = invalidCases{k, 1};
-                expectedError = invalidCases{k, 2};
-        
-                % Generate inputs and run test
-                inputs = testCase.generate_inputs(inputName, input);
-                inputStr = testCase.safe_input_strings(input);
-                testCase.verifyError(@() get_los_phase(inputs{:}), ...
-                                     expectedError, ...
-                                     sprintf('Failed for %s with input: %s', inputName, inputStr));
+            for invalidCase = invalidCases.'
+                % Extract invalid input and expected error
+                invalidInput = invalidCase{1, 1};
+                expectedError = invalidCase{2, 1};
+            
+                % Generate function inputs and convert invalid input to string for messages
+                functionInputs = testCase.generate_inputs(inputName, invalidInput);
+                invalidInputStr = testCase.safe_input_strings(invalidInput);
+            
+                % Run the validation test and check for expected error
+                testCase.verifyError(@() get_los_phase(functionInputs{:}), expectedError, ...
+                    sprintf('Validation failed for %s with input: %s', inputName, invalidInputStr));
             end
         end
-        
+
         function inputs = generate_inputs(testCase, fieldName, value)
             % Create inputs for the get_los_phase function
             inputs = {...
@@ -188,11 +172,9 @@ classdef test_get_los_phase < matlab.unittest.TestCase
                 testCase.los_phase_0, ...
                 testCase.fd, ...
                 testCase.fdr};
-            % Replace the appropriate field using logical indexing
-            fieldNames = {'simulation_time', 'sampling_interval', 'los_phase_0', 'fd', 'fdr'};
-            inputs(strcmp(fieldName, fieldNames)) = {value};
+            inputs(strcmp(fieldName, {'simulation_time', 'sampling_interval', 'los_phase_0', 'fd', 'fdr'})) = {value};
         end
-        
+
         function str = safe_input_strings(~, input)
             % Convert input to string safely for error messages
             if ischar(input) || isstring(input)
