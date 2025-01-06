@@ -1,164 +1,166 @@
+classdef test_get_mfpsm_data < matlab.unittest.TestCase
 % test_get_mfpsm_data
-% Unit Test Class for the `get_mfpsm_data` function.
+% Unit tests for the `get_mfpsm_data` function, which simulates 
+% Multi-frequency Phase Screen Model (MFPSM) time series based on 
+% specified scintillation parameters.
 %
-% This test class verifies the functionality and robustness of the `get_mfpsm_data` 
-% function, which generates Multi-Frequency Phase Screen Model (MFPSM) realizations 
-% based on input scintillation parameters. The tests ensure the function produces 
-% accurate results for valid inputs and handles invalid inputs gracefully.
+% This test suite validates the correctness and robustness of the `get_mfpsm_data` 
+% function by testing its behavior under various scenarios, including:
 %
-% Tests:
-%   - Valid Input Tests:
-%       * Confirm the function produces non-empty outputs for valid inputs.
+% **Functional Tests**:
+%   - Ensure valid inputs produce a non-empty, complex output.
 %
-%   - Invalid Input Tests:
-%       * Check error handling for invalid S4 values:
-%           - Negative values.
-%           - Values greater than 1.
-%           - Non-scalar or non-numeric inputs.
-%       * Verify errors for invalid tau0 inputs:
-%           - Negative values.
-%           - Non-scalar or non-numeric inputs.
-%       * Test simulation_time for:
-%           - Negative values.
-%           - Non-numeric inputs.
-%       * Validate T_I for:
-%           - Negative values.
-%           - Non-numeric inputs.
+% **Validation Tests**:
+%   - Dynamically validate error handling for invalid inputs, including:
+%       1. Negative or out-of-range values for `S4`.
+%       2. Non-numeric, non-scalar, or invalid `tau0`, `simulation_time`, 
+%          and `sampling_interval`.
 %
 % Example:
-%   Run the test suite:
-%       results = runtests('test_get_mfpsm_data');
+%   To run the test suite:
+%       results = runtests('test_get_csm_data');
 %       disp(results);
 %
-% Properties:
-%   - S4: Scintillation severity index (default: 0.8).
-%   - tau0: Decorrelation time in seconds (default: 0.7).
-%   - simulation_time: Total simulation duration in seconds (default: 300).
-%   - T_I: Sampling interval in seconds (default: 0.01).
-%
-% Author 1: Rodrigo de Lima Florindo
-% Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
-% Author's 1 Email: rdlfresearch@gmail.com
-classdef test_get_mfpsm_data < matlab.unittest.TestCase
-    
-    properties
-        S4 = 0.8;                   % Valid S4 index
-        tau0 = 0.7;                 % Valid decorrelation time
-        simulation_time = 300;      % Valid total simulation time
-        T_I = 0.01;                 % Valid sampling time
-    end
+% Author:
+%   Rodrigo de Lima Florindo
+%   ORCID: https://orcid.org/0000-0003-0412-5583
+%   Email: rdlfresearch@gmail.com
 
-    methods (TestClassSetup)
-        function classSetup(testCase)
-            % Add parent directories to path
-            pathToAdd_1 = fullfile(pwd, '..');
-            if ~contains(path, pathToAdd_1)
-                addpath(pathToAdd_1);
-                testCase.addTeardown(@() rmpath(pathToAdd_1));
-            end
-            pathToAdd_2 = genpath(fullfile(pwd, '..', '..', ['scintillation_models' ...
-                '/gnss-scintillation-simulator_2-param']));
-            if ~contains(path, pathToAdd_2)
-                addpath(pathToAdd_2);
-                testCase.addTeardown(@() rmpath(pathToAdd_2));
-            end
-        end
-    end
+properties
+    % Valid Test Parameters
+    S4 = 0.8;                   % Valid S4 index
+    tau0 = 0.7;                 % Valid decorrelation time
+    simulation_time = 300;      % Valid total simulation time
+    sampling_interval = 0.01;   % Valid sampling time
+    invalid_inputs              % Dynamically generated invalid input cases
+end
 
-    methods (Test)
-        %% Valid Input Tests
-        function test_valid_inputs(testCase)
-            % Test that valid inputs produce results without error
-            try
-                [psi_mfpsm, ps_realization] = get_mfpsm_data(testCase.S4, testCase.tau0, ...
-                                                            testCase.simulation_time, testCase.T_I);
-                testCase.verifyNotEmpty(psi_mfpsm);
-                testCase.verifyNotEmpty(ps_realization);
-            catch ME
-                testCase.verifyFail(['Unexpected error: ', ME.message]);
+properties (TestParameter)
+    % Parameterized input names for dynamic testing
+    input_name = struct(...
+        'S4', 'S4', ...
+        'tau0', 'tau0', ...
+        'simulation_time', 'simulation_time', ...
+        'sampling_interval', 'sampling_interval' ...
+    );
+end
+
+methods (TestClassSetup)
+    function classSetup(testCase)
+        % Add parent directory and dependencies to the path
+        paths = {fullfile(pwd, '..'), ...
+                 fullfile(pwd, '..', '..', 'scintillation_models', 'cornell_scintillation_model')};
+        for pathToAdd = paths
+            if ~contains(path, pathToAdd{1})
+                addpath(pathToAdd{1});
+                testCase.addTeardown(@() rmpath(pathToAdd{1}));
             end
         end
-        
-        %% Invalid Input Tests
-        %%% S4 tests
-        function test_invalid_S4_negative(testCase)
-            % Test invalid negative S4
-            testCase.verifyError(@() get_mfpsm_data(-0.1, testCase.tau0, ...
-                                                    testCase.simulation_time, testCase.T_I), ...
-                                 'MATLAB:get_mfpsm_data:notGreaterEqual');
-        end
-        
-        function test_invalid_S4_greater_than_one(testCase)
-            % Test invalid S4 greater than 1
-            testCase.verifyError(@() get_mfpsm_data(1.1, testCase.tau0, ...
-                                                    testCase.simulation_time, testCase.T_I), ...
-                                 'MATLAB:get_mfpsm_data:notLessEqual');
-        end
 
-        function test_invalid_S4_non_scalar(testCase)
-            % Test non-scalar S4
-            testCase.verifyError(@() get_mfpsm_data([0.8, 0.9], testCase.tau0, ...
-                                                    testCase.simulation_time, testCase.T_I), ...
-                                 'MATLAB:get_mfpsm_data:expectedScalar');
-        end
+        % Define invalid input cases dynamically
+        testCase.invalid_inputs = struct(...
+            'S4', { ...
+                {'invalid', 'MATLAB:get_mfpsm_data:invalidType'; ...
+                 true, 'MATLAB:get_mfpsm_data:invalidType'; ...
+                 {0.8}, 'MATLAB:get_mfpsm_data:invalidType'; ...
+                 [0.8, 0.9], 'MATLAB:get_mfpsm_data:expectedScalar'; ...
+                 zeros(2, 2), 'MATLAB:get_mfpsm_data:expectedScalar'; ...
+                 -0.1, 'MATLAB:get_mfpsm_data:expectedPositive'; ...
+                 1.1, 'MATLAB:get_mfpsm_data:notLessEqual'; ...
+                 Inf, 'MATLAB:get_mfpsm_data:expectedFinite'; ...
+                 -Inf, 'MATLAB:get_mfpsm_data:expectedPositive'; ...
+                 NaN, 'MATLAB:get_mfpsm_data:expectedFinite'; ...
+                 [], 'MATLAB:get_mfpsm_data:expectedScalar'; ...
+                 0.8 + 1j, 'MATLAB:get_mfpsm_data:expectedReal' ...
+                }}, ...
+            'tau0', { ...
+                {'invalid', 'MATLAB:get_mfpsm_data:invalidType'; ...
+                 true, 'MATLAB:get_mfpsm_data:invalidType'; ...
+                 {0.7}, 'MATLAB:get_mfpsm_data:invalidType'; ...
+                 [0.7, 0.8], 'MATLAB:get_mfpsm_data:expectedScalar'; ...
+                 zeros(2, 2), 'MATLAB:get_mfpsm_data:expectedScalar'; ...
+                 -0.5, 'MATLAB:get_mfpsm_data:expectedPositive'; ...
+                 Inf, 'MATLAB:get_mfpsm_data:expectedFinite'; ...
+                 -Inf, 'MATLAB:get_mfpsm_data:expectedPositive'; ...
+                 NaN, 'MATLAB:get_mfpsm_data:expectedFinite'; ...
+                 [], 'MATLAB:get_mfpsm_data:expectedScalar'; ...
+                 0.7 + 1j, 'MATLAB:get_mfpsm_data:expectedReal' ...
+                }}, ...
+            'simulation_time', { ...
+                {'invalid', 'MATLAB:get_mfpsm_data:invalidType'; ...
+                 true, 'MATLAB:get_mfpsm_data:invalidType'; ...
+                 {300}, 'MATLAB:get_mfpsm_data:invalidType'; ...
+                 [300, 400], 'MATLAB:get_mfpsm_data:expectedScalar'; ...
+                 zeros(3, 3), 'MATLAB:get_mfpsm_data:expectedScalar'; ...
+                 -300, 'MATLAB:get_mfpsm_data:expectedPositive'; ...
+                 0, 'MATLAB:get_mfpsm_data:expectedPositive'; ...
+                 Inf, 'MATLAB:get_mfpsm_data:expectedFinite'; ...
+                 -Inf, 'MATLAB:get_mfpsm_data:expectedPositive'; ...
+                 NaN, 'MATLAB:get_mfpsm_data:expectedFinite'; ...
+                 [], 'MATLAB:get_mfpsm_data:expectedScalar'; ...
+                 300 + 1j, 'MATLAB:get_mfpsm_data:expectedReal' ...
+                }}, ...
+            'sampling_interval', { ...
+                {'invalid', 'MATLAB:get_mfpsm_data:invalidType'; ...
+                 true, 'MATLAB:get_mfpsm_data:invalidType'; ...
+                 {0.01}, 'MATLAB:get_mfpsm_data:invalidType'; ...
+                 [0.01, 0.02], 'MATLAB:get_mfpsm_data:expectedScalar'; ...
+                 zeros(3, 3), 'MATLAB:get_mfpsm_data:expectedScalar'; ...invalid_inputs
+                 -0.01, 'MATLAB:get_mfpsm_data:expectedPositive'; ...
+                 0, 'MATLAB:get_mfpsm_data:expectedPositive'; ...
+                 Inf, 'MATLAB:get_mfpsm_data:expectedFinite'; ...
+                 -Inf, 'MATLAB:get_mfpsm_data:expectedPositive'; ...
+                 NaN, 'MATLAB:get_mfpsm_data:expectedFinite'; ...
+                 [], 'MATLAB:get_mfpsm_data:expectedScalar'; ...
+                 0.01 + 1j, 'MATLAB:get_mfpsm_data:expectedReal' ...
+                }} ...
+        );
+    end
+end
 
-        function test_invalid_S4_non_numeric(testCase)
-            % Test non-numeric S4
-            testCase.verifyError(@() get_mfpsm_data('invalid', testCase.tau0, ...
-                                                    testCase.simulation_time, testCase.T_I), ...
-                                 'MATLAB:get_mfpsm_data:invalidType');
-        end
-        
-        %%% tau0 tests
-        function test_invalid_tau0_negative(testCase)
-            % Test invalid negative tau0
-            testCase.verifyError(@() get_mfpsm_data(testCase.S4, -0.5, ...
-                                                    testCase.simulation_time, testCase.T_I), ...
-                                 'MATLAB:get_mfpsm_data:expectedPositive');
-        end
+methods (Test)
 
-        function test_invalid_tau0_non_numeric(testCase)
-            % Test non-numeric tau0
-            testCase.verifyError(@() get_mfpsm_data(testCase.S4, 'invalid', ...
-                                                    testCase.simulation_time, testCase.T_I), ...
-                                 'MATLAB:get_mfpsm_data:invalidType');
-        end
+    %% Validation Tests
+    function test_invalid_inputs(testCase, input_name)
+        % Dynamically validate invalid inputs
+        testCase.run_validation_tests(input_name, testCase.invalid_inputs.(input_name));
+    end
+end
 
-        function test_invalid_tau0_non_scalar(testCase)
-            % Test non-scalar tau0
-            testCase.verifyError(@() get_mfpsm_data(testCase.S4, [0.7, 0.8], ...
-                                                    testCase.simulation_time, testCase.T_I), ...
-                                 'MATLAB:get_mfpsm_data:expectedScalar');
-        end
-        
-        %%% simulation_time tests
-        function test_invalid_simulation_time_negative(testCase)
-            % Test invalid negative simulation_time
-            testCase.verifyError(@() get_mfpsm_data(testCase.S4, testCase.tau0, ...
-                                                    -10, testCase.T_I), ...
-                                 'MATLAB:get_mfpsm_data:expectedPositive');
-        end
-        
-        function test_invalid_simulation_time_non_numeric(testCase)
-            % Test non-numeric simulation_time
-            testCase.verifyError(@() get_mfpsm_data(testCase.S4, testCase.tau0, ...
-                                                    'invalid', testCase.T_I), ...
-                                 'MATLAB:get_mfpsm_data:invalidType');
-        end
-        
-        %%% T_I tests
-        function test_invalid_T_I_negative(testCase)
-            % Test invalid negative T_I
-            testCase.verifyError(@() get_mfpsm_data(testCase.S4, testCase.tau0, ...
-                                                    testCase.simulation_time, -0.01), ...
-                                 'MATLAB:get_mfpsm_data:expectedPositive');
-        end
-        
-        function test_invalid_T_I_non_numeric(testCase)
-            % Test non-numeric T_I
-            testCase.verifyError(@() get_mfpsm_data(testCase.S4, testCase.tau0, ...
-                                                    testCase.simulation_time, 'invalid'), ...
-                                 'MATLAB:get_mfpsm_data:invalidType');
+methods
+    function run_validation_tests(testCase, input_name, invalidCases)
+        % Iterate through invalid cases and verify errors
+        for invalidCase = invalidCases.'
+            invalidInput = invalidCase{1}; % Extract invalid value
+            expectedError = invalidCase{2}; % Extract expected error ID
+
+            % Generate function inputs
+            inputs = testCase.generate_inputs(input_name, invalidInput);
+            invalidInputStr = testCase.safe_input_strings(invalidInput);
+
+            % Validate the function throws the expected error
+            testCase.verifyError(@() get_mfpsm_data(inputs{:}), expectedError, ...
+                sprintf('Validation failed for %s with input: %s', input_name, invalidInputStr));
         end
     end
+
+    function inputs = generate_inputs(testCase, fieldName, value)
+        % Generate inputs for get_mfpsm_data, replacing specified field
+        inputs = {testCase.S4, testCase.tau0, testCase.simulation_time, testCase.sampling_interval};
+        fieldNames = {'S4', 'tau0', 'simulation_time', 'sampling_interval'};
+        inputs(strcmp(fieldNames, fieldName)) = {value};
+    end
+
+    function str = safe_input_strings(~, input)
+        % Safely convert input to string for error messages
+        if ischar(input) || isstring(input)
+            str = char(input);
+        elseif isnumeric(input) || islogical(input)
+            str = mat2str(input);
+        else
+            str = '<unconvertible input>';
+        end
+    end
+end
+
 end

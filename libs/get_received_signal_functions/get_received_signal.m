@@ -73,7 +73,7 @@ function [received_signal, los_phase, psi, ps_realization] = ...
 %
 % Notes:
 %   - Some parameters are fixed:
-%       - Integration time (T_I): 0.01 seconds.
+%       - Integration time (sampling_interval): 0.01 seconds.
 %       - Doppler frequency shift (fd): 1000 Hz.
 %       - Doppler drift rate (fdr): 0.94 Hz/s.
 %   - The receiver mean signal power is set to 1.
@@ -151,13 +151,13 @@ end
 % Fixed Parameters
 % Sampling time of the prompt correlator signal after the integrate and
 % dump.
-T_I = 0.01;
+sampling_interval = 0.01;
 % Initial phase of the line-of-sight (LOS) signal dynamics.
 los_phase_0 = 0;
 % Doppler frequency shift in Hz.
-fd = 0;
+fd = 1000;
 % Doppler frequency drift rate in Hz/s
-fdr = 0;
+fdr = 0.94;
 % Mean power of the received signal
 rx_mean_power = 1;
 % Receiver Bandwidth
@@ -166,10 +166,10 @@ B = 2e7;
 % Get the values of the line-of-sight phase shift for a given simulation 
 % time, sampling time, initial phase, Doppler frequency shift and Doppler 
 % frequency drift rate.
-los_phase = get_los_phase(simulation_time,T_I,los_phase_0,fd,fdr);
+los_phase = get_los_phase(simulation_time,sampling_interval,los_phase_0,fd,fdr);
 % Generate discrete thermal noise based on simulation time, sampling time, 
 % receiver mean power, carrier-to-noise ratio, and receiver bandwidth.
-thermal_noise = get_thermal_noise(simulation_time,T_I,rx_mean_power, ...
+thermal_noise = get_thermal_noise(simulation_time,sampling_interval,rx_mean_power, ...
     C_over_N0_dBHz,B);
 
 % Select the scintillation model for generating the received baseband 
@@ -184,38 +184,38 @@ thermal_noise = get_thermal_noise(simulation_time,T_I,rx_mean_power, ...
 % only. Future updates will extend it to handle multi-frequency 
 % scenarios.
 switch scint_model
-    case 'CSM'
-        % Generate the ionospheric scintillation effects using the 
-        % Cornell Scintillation Model (CSM). This model captures only 
-        % the diffractive effects of ionospheric scintillation.
-        psi = get_csm_data(S4,tau0,simulation_time,T_I);
-        % The refractive effects, modeled in the MFPSM as phase screen 
-        % realizations, are not included in the CSM and are set to zero.
-        ps_realization = [];
     case 'MFPSM'
         % Get a complex field that represents the ionospheric scintillation
         % effects using the multi-frequency phase screen model, as well as
         % the phase screen realization used to generate the aforementioned
         % complex field.
         [psi, ps_realization] = get_mfpsm_data(S4,tau0, ...
-            simulation_time,T_I);
+            simulation_time,sampling_interval);
         % Remove refractive effects if `is_refractive_effects_removed` 
         % is true by applying the negative phase screen realization
         % to `psi`.
         if is_refractive_effects_removed
             psi = psi .* exp(-1j * ps_realization);
         end
+    case 'CSM'
+        % Generate the ionospheric scintillation effects using the 
+        % Cornell Scintillation Model (CSM). This model captures only 
+        % the diffractive effects of ionospheric scintillation.
+        psi = get_csm_data(S4,tau0,simulation_time,sampling_interval);
+        % The refractive effects, modeled in the MFPSM as phase screen 
+        % realizations, are not included in the CSM and are set to zero.
+        ps_realization = [];
      case 'none'
         % No scintillation effects
-        psi = ones(simulation_time / T_I, 1);
+        psi = ones(simulation_time / sampling_interval, 1);
         ps_realization = [];
 end
 
 % Add an initial settling period with no ionospheric scintillation effects.
-psi_settled = zeros(simulation_time / T_I, 1);
-psi_settled(1:settling_time / T_I) = 1 + 0j;
-psi_settled(settling_time / T_I + 1:end) = ...
-    psi(settling_time / T_I + 1:end);
+psi_settled = zeros(simulation_time / sampling_interval, 1);
+psi_settled(1:settling_time / sampling_interval) = 1 + 0j;
+psi_settled(settling_time / sampling_interval + 1:end) = ...
+    psi(settling_time / sampling_interval + 1:end);
 
 % Construct the baseband received signal
 received_signal = sqrt(rx_mean_power)*psi_settled .* exp(1j*los_phase) + ...

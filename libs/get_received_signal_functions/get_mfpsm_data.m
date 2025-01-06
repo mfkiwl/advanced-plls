@@ -1,4 +1,4 @@
-function [psi_mfpsm, ps_realization] = get_mfpsm_data(S4,tau0,simulation_time,T_I)
+function [psi_mfpsm, ps_realization] = get_mfpsm_data(S4,tau0,simulation_time,sampling_interval)
 % get_mfpsm_data
 % Generates Multi-Frequency Phase Screen Model (MFPSM) realizations based
 % on specified scintillation parameters.
@@ -17,7 +17,8 @@ function [psi_mfpsm, ps_realization] = get_mfpsm_data(S4,tau0,simulation_time,T_
 %   S4              - Scintillation index (0 <= S4 <= 1)
 %   tau0            - Signal intensity decorrelation time in seconds
 %   simulation_time - Duration of the simulation in seconds
-%   T_I             - Sampling time
+%   sampling_interval             
+%                   - Sampling time
 %
 % Outputs:
 %   psi_mfpsm       - Output complex field timeseries (refractive + 
@@ -38,7 +39,7 @@ function [psi_mfpsm, ps_realization] = get_mfpsm_data(S4,tau0,simulation_time,T_
 %
 % Examples:
 %   % Generate MFPSM data for S4 = 0.8, tau0 = 0.7 seconds, a 
-%   simulation time of 600 seconds, and a sampling time T_I = 0.01:
+%   simulation time of 600 seconds, and a sampling time sampling_interval = 0.01:
 %   [psi_mfpsm, ps_realization] = get_mfpsm_data(0.8, 0.7, 600, 0.01);
 %
 % References:
@@ -54,12 +55,29 @@ function [psi_mfpsm, ps_realization] = get_mfpsm_data(S4,tau0,simulation_time,T_
 % Author's 1 Email: rdlfresearch@gmail.com
 
 % Input validation
-% Input validation
-validateattributes(simulation_time, {'numeric'}, {'scalar', 'real', 'positive'}, 'get_mfpsm_data', 'simulation_time');
-validateattributes(T_I, {'numeric'}, {'scalar', 'real', 'positive'}, 'get_mfpsm_data', 'T_I');
-validateattributes(tau0, {'numeric'}, {'scalar', 'real', 'positive'}, 'get_mfpsm_data', 'tau0');
-validateattributes(S4, {'numeric'}, {'scalar', '>=', 0, '<=', 1}, 'get_mfpsm_data', 'S4');
+validateattributes(simulation_time, {'numeric'}, {'scalar', 'real', 'positive', 'finite', 'nonnan'}, 'get_mfpsm_data', 'simulation_time');
+validateattributes(sampling_interval, {'numeric'}, {'scalar', 'real', 'positive', 'finite', 'nonnan'}, 'get_mfpsm_data', 'sampling_interval');
+validateattributes(tau0, {'numeric'}, {'scalar', 'real', 'positive', 'finite', 'nonnan'}, 'get_mfpsm_data', 'tau0');
+validateattributes(S4, {'numeric'}, {'scalar', 'real', 'positive', 'finite', 'nonnan', '>=', 0, '<=', 1}, 'get_mfpsm_data', 'S4');
 
+if simulation_time < sampling_interval
+    error('get_mfpsm_data:simulationTimeSmallerThanSamplingInterval', ...
+        ['The inputed value of `simulation_time` was %g, which is smaller ' ...
+        'than the value of the `sampling_interval`, %g'], simulation_time, ...
+        sampling_interval)
+end
+
+% Check if simulation_time / sampling_interval is an integer
+num_samples_exact = simulation_time / sampling_interval;
+num_samples_rounded = round(num_samples_exact);
+
+if abs(num_samples_exact - num_samples_rounded) > eps
+    % Issue a warning if rounding was needed
+    warning('get_mfpsm_data:NonIntegerRatioSamples', ...
+            ['simulation_time / sampling_interval is not an integer. ' ...
+            'The number of samples was rounded from %.5g to %d.'], ...
+            num_samples_exact, num_samples_rounded);
+end
 
 % Get the user_input settings considered the inputted S4,tau0 and
 % simulation_time, as well as other fixed parameters, such as the satellite
@@ -84,9 +102,9 @@ end
 % The original code was slightly modified to output the phase screen
 % realization directly.
 [psi_mfpsm, ps_realization] = RunGenScintFieldRealization( ...
-    user_input,satGEOM,U_mapped,rhoFVeff_mapped,T_I);
-psi_mfpsm = psi_mfpsm(1,1:simulation_time/T_I).';
-ps_realization = ps_realization(1,1:simulation_time/T_I).';
+    user_input,satGEOM,U_mapped,rhoFVeff_mapped,sampling_interval);
+psi_mfpsm = psi_mfpsm(1,1:num_samples_rounded).';
+ps_realization = ps_realization(1,1:num_samples_rounded).';
 end
 
 function user_input = get_user_input(S4,tau0,simulation_time)
