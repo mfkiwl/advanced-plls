@@ -76,8 +76,6 @@ function [received_signal, los_phase, psi, ps_realization] = ...
 % Notes:
 %   - Some parameters are fixed:
 %       - Integration time (sampling_interval): 0.01 seconds.
-%       - Doppler frequency shift (fd): 1000 Hz.
-%       - Doppler drift rate (fdr): 0.94 Hz/s.
 %   - The receiver mean signal power is set to 1.
 %   - Thermal noise is computed based on receiver bandwidth (B = 20 MHz).
 %   - Currently, this function supports single-frequency simulation only. 
@@ -137,7 +135,7 @@ if ~ismember(scint_model, {'CSM', 'MFPSM', 'none'})
 end
 
 % Validate is_refractive_effects_removed (optional, default = false)
-if nargin >= 7
+if nargin >= 8
     validateattributes(is_refractive_effects_removed, {'logical'}, {'scalar','nonnan'}, ...
     'get_received_signal', 'is_refractive_effects_removed');
 else
