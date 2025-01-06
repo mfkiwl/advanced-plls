@@ -1,14 +1,15 @@
-function [FD, QD] = get_discrete_wiener_model(L, M, sampling_interval, sigma, delta)
+function [state_transition_matrix, covariance_matrix] = get_discrete_wiener_model(L, M, sampling_interval, ...
+    sigma_array, delta_array)
 % get_discrete_wiener_model
 % Generates the state transition matrix and noise covariance matrix for
 % line-of-sight (LOS) dynamics in a multi-frequency system.
 %
 % Syntax:
-%   [FD, QD] = get_discrete_wiener_model(L, M, sampling_interval, sigma, delta)
+%   [state_transition_matrix, covariance_matrix] = get_discrete_wiener_model(L, M, sampling_interval, sigma, delta)
 %
 % Description:
-%   This function computes the state transition matrix (FD) and the noise
-%   covariance matrix (QD) for a generic multi-frequency LOS dynamics model
+%   This function computes the state transition matrix (state_transition_matrix) and the noise
+%   covariance matrix (covariance_matrix) for a generic multi-frequency LOS dynamics model
 %   based on the mathematical framework described in [Section 2, 1],
 %   which has been inspired in the mathematical development prosed in 
 %   [Section 2.4, 2].
@@ -18,32 +19,33 @@ function [FD, QD] = get_discrete_wiener_model(L, M, sampling_interval, sigma, de
 %   M                 - Order of the Wiener process, indicating the degree
 %                       of dynamics considered in the model.
 %   sampling_interval - Time interval between samples (in seconds).
-%   sigma             - Vector containing variances for the noise covariance
+%   sigma_array       - Vector containing variances for the noise covariance
 %                       matrix. Each variance reflects uncertainty related
 %                       to clock drift and LOS dynamics for both satellite
 %                       and receiver.
-%   delta             - Vector of normalized frequencies for each carrier
+%   delta_array         - Vector of normalized frequencies for each carrier
 %                       relative to the reference carrier. For example:
 %                       delta = [f_L1/f_L1, f_L2/f_L1, f_L5/f_L1] for 
 %                       multi-frequency tracking, or delta = 1 for 
 %                       single-frequency tracking.
 %
 % Outputs:
-%   FD                - State transition matrix of size (M+L-1) x (M+L-1),
+%   state_transition_matrix                - State transition matrix of size (M+L-1) x (M+L-1),
 %                       representing the dynamics of the state over time.
-%   QD                - Noise covariance matrix of size (M+L-1) x (M+L-1),
+%   covariance_matrix                - Noise covariance matrix of size (M+L-1) x (M+L-1),
 %                       capturing the uncertainty in the system's states.
 %
 % Notes:
-%   - FD is derived using the matrix exponential of the system dynamics
-%     matrix (Fw) scaled by the sampling interval.
-%   - QD is computed using the integral of the state transition matrix over 
-%     time, incorporating the Wiener process noise covariance.
+%   - state_transition_matrix is derived using the matrix exponential of 
+%     the system dynamics matrix (Fw) scaled by the sampling interval.
+%   - covariance_matrix is computed using the integral of the state 
+%     transition matrix over time, incorporating the Wiener process noise
+%     covariance.
 %   - The reference carrier frequency used in `delta` normalization must 
 %     match the system's chosen base frequency (e.g., L1).
 %
 % Example:
-% % Generate FD and QD for a 3-carrier system with:
+% % Generate state_transition_matrix and covariance_matrix for a 3-carrier system with:
 % % - Second-order Wiener process
 % % - Sampling interval of 0.01 seconds
 % % - Variances: [0, 0, 0, 0, 1e-2]
@@ -51,9 +53,10 @@ function [FD, QD] = get_discrete_wiener_model(L, M, sampling_interval, sigma, de
 % L = 3;             % Number of carriers
 % M = 3;             % Order of the Wiener process
 % sampling_interval = 0.01; % Sampling interval in seconds
-% sigma = [0, 0, 0, 0, 1e-2]; % Variances for QD matrix
-% delta = [1, 0.9, 0.8];      % Normalized frequencies
-% [FD, QD] = get_discrete_wiener_model(L, M, sampling_interval, sigma, delta);
+% sigma_array = [0, 0, 0, 0, 1e-2]; % Variances for covariance_matrix matrix
+% delta_array = [1, 0.9, 0.8];      % Normalized frequencies
+% [state_transition_matrix, covariance_matrix] = get_discrete_wiener_model(L, ...
+%       M, sampling_interval, sigma, delta);
 %
 % References:
 %   - [1] Florindo, Rodrigo de Lima, Antreich, Felix, "Multi-Frequency Kalman 
@@ -79,38 +82,38 @@ validateattributes(M, {'numeric'}, ...
 validateattributes(sampling_interval, {'numeric'}, ...
     {'scalar', 'positive', 'finite', 'nonnan'}, ...
     'get_discrete_wiener_model', 'sampling_interval');
-validateattributes(sigma, {'numeric'}, ...
+validateattributes(sigma_array, {'numeric'}, ...
     {'vector', 'numel', L + M - 1, 'nonnegative', 'finite', 'nonnan'}, ...
     'get_discrete_wiener_model', 'sigma');
-validateattributes(delta, {'numeric'}, ...
+validateattributes(delta_array, {'numeric'}, ...
     {'vector', 'numel', L, 'positive', 'finite', 'nonnan'}, ...
     'get_discrete_wiener_model', 'delta');
 
 % Construct F1: Transition dynamics between carriers
-F1 = [zeros(L-1, 1), 2 * pi * delta(1:L-1).', zeros(L-1, M-2)];
+F1 = [zeros(L-1, 1), 2 * pi * delta_array(1:L-1).', zeros(L-1, M-2)];
 
 % Construct F2: Dynamics for the Wiener process components
 F2 = [[zeros(M-1, 1), eye(M-1)]; zeros(1, M)];
-F2(1, 2) = 2 * pi * delta(L);
+F2(1, 2) = 2 * pi * delta_array(L);
 
 % Combine F1 and F2 into the full state transition matrix (Fw)
 Fw = [[zeros(L-1, L-1), F1]; [zeros(M, L-1), F2]];
 
-% Compute State Transition Matrix (FD)
-FD = expm(Fw * sampling_interval);
+% Compute State Transition Matrix (state_transition_matrix)
+state_transition_matrix = expm(Fw * sampling_interval);
 
-% Calculate Covariance Matrix (QD)
-Q_xi = diag(sigma);
-% Equation (15):
+% Calculate Covariance Matrix (covariance_matrix)
+Q_xi = diag(sigma_array);
+% Equation (15) of [1]:
 % $$\int^{T_I}_{0}{e^{\mathbf{F}_w(T_I-\tau)} \mathbf{Q_{\boldsymbol{\xi}}}
 % (e^{\mathbf{F}_w(T_I-\tau)})^T d\tau}$$
 state_transition_exp = expm(Fw * (sampling_interval - sym('tau', 'real')));
 
-% Compute QD: Noise covariance matrix via symbolic integration
-QD = int(state_transition_exp * Q_xi * state_transition_exp', ...
+% Compute covariance_matrix: Noise covariance matrix via symbolic integration
+covariance_matrix = int(state_transition_exp * Q_xi * state_transition_exp', ...
     sym('tau', 'real'), 0, sampling_interval);
 
 % Convert to Double
-FD = double(FD);
-QD = double(QD);
+state_transition_matrix = double(state_transition_matrix);
+covariance_matrix = double(covariance_matrix);
 end
