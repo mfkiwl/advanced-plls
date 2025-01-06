@@ -26,6 +26,14 @@
 %   Run the test suite:
 %       results = runtests('test_get_received_signal');
 %       disp(results);
+%
+% TODO: We could improve the redability of this test suite as it was 
+% implemented in the other test suites, using the functions
+% `run_validation_tests`, `generate_inputs` and `safe_input_strings`.
+%
+% Author 1: Rodrigo de Lima Florindo
+% Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
+% Author's 1 Email: rdlfresearch@gmail.com
 
 classdef test_get_received_signal < matlab.unittest.TestCase
     
