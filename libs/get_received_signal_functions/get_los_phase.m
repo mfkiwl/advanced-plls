@@ -38,6 +38,9 @@ function los_phase = get_los_phase(simulation_time, sampling_interval, los_phase
 %   Hz/s of Doppler frequency drift.
 %   los_phase = get_los_phase(300, 0.01, 0, 1000, 0.94);
 %
+% TODO: Extend this code to enable the user to simulate the LOS dynamics
+% using higher orders Taylor series expansions.
+%
 % Author 1: Rodrigo de Lima Florindo
 % Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
 % Author's 1 Email: rdlfresearch@gmail.com
