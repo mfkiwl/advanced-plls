@@ -1,9 +1,7 @@
 [submodule "libs/scintillation_models/gnss-scintillation-simulator_2-param"]
 	path = libs/scintillation_models/gnss-scintillation-simulator_2-param
 	url = https://github.com/rodrigodelimaf/gnss-scintillation-simulator_2-param
-[submodule "libs/utilities/arfit"]
-	path = libs/utilities/arfit
+
+[submodule "libs/arfit"]
+	path = libs/arfit
 	url = https://github.com/rodrigodelimaf/arfit
-[submodule "kalman_pll/arfit"]
-	path = kalman_pll/arfit
-	url = https://github.com/tapios/arfit
