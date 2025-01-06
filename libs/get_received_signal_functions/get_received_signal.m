@@ -1,22 +1,16 @@
 function [received_signal, los_phase, psi, ps_realization] = ...
     get_received_signal(C_over_N0_dBHz,S4,tau0,simulation_time, ...
-    settling_time,scint_model, is_refractive_effects_removed)
+    settling_time,scint_model, doppler_profile, is_refractive_effects_removed)
 % get_received_signal
 % Simulates the baseband received signal, including ionospheric 
 % scintillation effects, thermal noise, and line-of-sight (LOS) phase 
 % dynamics, for a given scintillation model.
 %
 % Syntax:
-%   [received_signal] = get_received_signal(C_over_N0_dBHz, S4,
-%       tau0, simulation_time, settling_time, scint_model, is_refractive_effects_removed)
-%   [received_signal, phi_LOS] = get_received_signal(C_over_N0_dBHz, S4,
-%       tau0, simulation_time, settling_time, scint_model, is_refractive_effects_removed)
-%   [received_signal, phi_LOS, psi] = ...
-%       get_received_signal(C_over_N0_dBHz, S4,tau0, simulation_time, ...
-%       settling_time, scint_model)
 %   [received_signal, phi_LOS, psi, ps_realization] = ...
 %       get_received_signal(C_over_N0_dBHz, S4,tau0, simulation_time, ...
-%       settling_time, scint_model, is_refractive_effects_removed)
+%       settling_time, scint_model, doppler_profile, ...
+%       is_refractive_effects_removed)
 %
 % Description:
 %   This function generates a baseband received signal by combining:
@@ -58,6 +52,14 @@ function [received_signal, los_phase, psi, ps_realization] = ...
 %                      refractive effects (true/false). Defaults to `false` 
 %                      if not provided. Not applicable for 
 %                      scint_model = 'CSM' or 'none'.
+%   doppler_profile  - Array whose elements represents the coefficients of
+%                      Taylor Series expansion used to denote the synthetic
+%                      LOS dynamics (e.g., [0,1000,0.94,0.01] denotes a 
+%                      Doppler profile with an initial phase of 0 radians,
+%                      a Doppler frequency shift of 1000 Hz, a Doppler 
+%                      frequency drift of 0.94 Hz/s and a Doppler frequency
+%                      drift rate of 0.01 Hz/(s^2). The user may input any 
+%                      amount of coefficients.).
 % Outputs:
 %   received_signal  - Baseband received signal (complex-valued), 
 %                      incorporating ionospheric scintillation effects, 
@@ -152,12 +154,6 @@ end
 % Sampling time of the prompt correlator signal after the integrate and
 % dump.
 sampling_interval = 0.01;
-% Initial phase of the line-of-sight (LOS) signal dynamics.
-los_phase_0 = 0;
-% Doppler frequency shift in Hz.
-fd = 1000;
-% Doppler frequency drift rate in Hz/s
-fdr = 0.94;
 % Mean power of the received signal
 rx_mean_power = 1;
 % Receiver Bandwidth
@@ -166,7 +162,7 @@ B = 2e7;
 % Get the values of the line-of-sight phase shift for a given simulation 
 % time, sampling time, initial phase, Doppler frequency shift and Doppler 
 % frequency drift rate.
-los_phase = get_los_phase(simulation_time,sampling_interval,los_phase_0,fd,fdr);
+los_phase = get_los_phase(simulation_time,sampling_interval,doppler_profile);
 % Generate discrete thermal noise based on simulation time, sampling time, 
 % receiver mean power, carrier-to-noise ratio, and receiver bandwidth.
 thermal_noise = get_thermal_noise(simulation_time,sampling_interval,rx_mean_power, ...

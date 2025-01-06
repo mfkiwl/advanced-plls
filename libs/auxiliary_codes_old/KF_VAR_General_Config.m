@@ -10,7 +10,7 @@
 % of the KF-VAR for each topology.
 
 % Its output are:
-% 1 - The full initial error covariance matrix - Px_0_0; 
+% 1 - The full initial error covariance matrix - Px_0_0;
 % 2 - The initial States - x_hat_0_0;
 % 3 - the full process noise covariance matrix - Qk;
 % 4 - the full process state transition matrix - Fk;
