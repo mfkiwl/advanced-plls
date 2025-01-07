@@ -1,10 +1,10 @@
 % Clear workspace and command window
-clear; clc;
+clear all; clc;
 
 % Define discrete Wiener model configuration
 discrete_wiener_model_config = {1,3,0.01,[0,0,1],1}; % Example: L, M, sampling_interval, sigma_array, delta_array
 % Define scintillation training data configuration
-scintillation_training_data_config = {0.8, 0.7, 1500, 0.01}; % Example: S4, tau0, simulation_time, sampling_interval
+scintillation_training_data_config = {0.8, 0.7, 300, 0.01}; % Example: S4, tau0, simulation_time, sampling_interval
 
 % Set VAR model parameters
 var_minimum_order = 1; % Minimum VAR model order
@@ -14,7 +14,7 @@ var_maximum_order = 6; % Maximum VAR model order
 C_over_N0_array_dBHz = 35; % Example values in dB-Hz
 
 % Choose scintillation model: 'CSM', 'MFPSM', or 'none'
-scint_model = 'none';
+scint_model = 'CSM';
 
 % Set flag to remove refractive effects for MFPSM (not applicable for CSM or none)
 is_refractive_effects_removed = true;
