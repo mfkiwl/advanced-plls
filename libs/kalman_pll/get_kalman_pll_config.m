@@ -117,6 +117,80 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(config)
 end
 
 function kalman_pll_config = handle_kalman_pll_config(config, cache_file, sampling_interval, kalman_pll_config, is_cache_used)
+    % handle_kalman_pll_config
+    % Computes or retrieves Kalman filter-based Phase-Locked Loop (PLL) settings.
+    %
+    % Syntax:
+    %   kalman_pll_config = handle_kalman_pll_config(config, cache_file, sampling_interval, kalman_pll_config, is_cache_used)
+    %
+    % Description:
+    %   This function either computes or retrieves from cache the Kalman filter settings required for PLL operation.
+    %   It supports caching to reuse previously computed parameters for efficient performance. If caching is disabled,
+    %   the function computes new settings, updates the Kalman PLL configuration structure, and saves it to the cache.
+    %
+    % Inputs:
+    %   config - Struct containing all configuration details with the following fields:
+    %       - training_scint_model: Specifies the scintillation model ('CSM', 'MFPSM', or 'none').
+    %       - discrete_wiener_model_config: Cell array for LOS dynamics parameters to 
+    %                                       be used by `get_discrete_wiener_model`.
+    %         Example: {1, 3, 0.01, [0, 0, 1], 1}, where:
+    %           * 1  - Number of frequency bands (`L`),
+    %           * 3  - Third-order LOS dynamics (`M`),
+    %           * 0.01 - Sampling time (`sampling_time`),
+    %           * [0,0,1] - Sigma array for noise levels (`sigma_array`),
+    %           * 1  - Ratio of its frequency to a reference frequency (`delta_array`).
+    %       - scintillation_training_data_config: Cell array for scintillation model parameters.
+    %         Example: {0.8, 0.7, 600, 0.01}, where:
+    %           * 0.8  - S4 index (`S4`),
+    %           * 0.7  - τ₀ (`tau0`),
+    %           * 600  - Total simulation time (`simulation_time`),
+    %           * 0.01 - Sampling time (`sampling_time`).
+    %       - var_minimum_order: Minimum VAR (Vector Autoregressive) model order.
+    %       - var_maximum_order: Maximum VAR model order.
+    %       - C_over_N0_array_dBHz: Array of average C/N0 values for each frequency band (in dB-Hz).
+    %       - is_refractive_effects_removed: Boolean flag indicating whether refractive effects are removed.
+    %   cache_file - String specifying the file path for caching Kalman PLL settings.
+    %   sampling_interval - Numeric value specifying the sampling interval (in seconds).
+    %   kalman_pll_config - Struct to hold or update Kalman PLL settings.
+    %   is_cache_used - Boolean flag indicating whether cached settings should be used.
+    %
+    % Outputs:
+    %   kalman_pll_config - Struct containing the computed or retrieved Kalman filter settings, with the following fields:
+    %       * F  - Full state transition matrix.
+    %       * Q  - Full process noise covariance matrix.
+    %       * H  - Measurement matrix.
+    %       * R  - Measurement noise covariance matrix.
+    %       * F_los, Q_los - LOS dynamics matrices.
+    %       * F_var, Q_var - VAR model matrices (if applicable).
+    %       * intercept_vector - VAR model intercept vector (if applicable).
+    %       * var_states_amount - Number of VAR model states (if applicable).
+    %       * var_model_order - Order of the VAR model (if applicable).
+    %
+    % Notes:
+    %   - Caching is used to improve performance by avoiding repeated computations.
+    %   - If `training_scint_model` is set to 'none', the function only computes LOS dynamics settings.
+    %
+    % Examples:
+    %   % Example configuration for Kalman PLL:
+    %   config = struct( ...
+    %       'training_scint_model', 'CSM', ...
+    %       'discrete_wiener_model_config', {1, 3, 0.01, [0, 0, 1], 1}, ...
+    %       'scintillation_training_data_config', {0.8, 0.7, 300, 0.01}, ...
+    %       'var_minimum_order', 1, ...
+    %       'var_maximum_order', 6, ...
+    %       'C_over_N0_array_dBHz', 35, ...
+    %       'is_refractive_effects_removed', false ...
+    %   );
+    %   cache_file = 'kalman_pll_cache.mat';
+    %   sampling_interval = 0.01;
+    %   kalman_pll_config = struct();
+    %   is_cache_used = false;
+    %   kalman_pll_config = handle_kalman_pll_config(config, cache_file, sampling_interval, kalman_pll_config, is_cache_used);
+    %
+    % Author 1: Rodrigo de Lima Florindo
+    % Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
+    % Author's 1 Email: rdlfresearch@gmail.com
+
     % Handle computation or retrieval of Kalman PLL configuration
     if is_cache_used
         fprintf('Using cached Kalman filter based PLL settings for %s.\n', config.training_scint_model);
@@ -162,6 +236,61 @@ function kalman_pll_config = handle_kalman_pll_config(config, cache_file, sampli
 end
 
 function initial_estimates = handle_initial_estimates(config, kalman_pll_config)
+    % handle_initial_estimates
+    % Generates initial state estimates and covariance matrices for Kalman filter-based PLL.
+    %
+    % Syntax:
+    %   initial_estimates = handle_initial_estimates(config, kalman_pll_config)
+    %
+    % Description:
+    %   This function generates initial estimates for the state vector and covariance matrix
+    %   used by the Kalman filter. It supports two modes: 
+    %   1. Generating random initial estimates based on uniform distributions.
+    %   2. Using perfect estimates for the initial state.
+    %   The function accounts for line-of-sight (LOS) dynamics and VAR (Vector Autoregressive) states,
+    %   with appropriate variances based on the configuration.
+    %
+    % Inputs:
+    %   config - Struct containing configuration details with the following fields:
+    %       - is_generate_random_initial_estimates: Boolean flag indicating whether to generate random
+    %         initial estimates based on `initial_states_distributions_boundaries`.
+    %       - initial_states_distributions_boundaries: Cell array of boundaries for uniform distributions 
+    %         to generate random initial estimates of the Doppler profile. Example:
+    %           {{[-pi, pi]}, {[-5, 5]}, {[-0.1, 0.1]}, {[-0.001, 0.001]}}
+    %       - real_doppler_profile: Vector containing the real Doppler profile values.
+    %       - training_scint_model: String specifying the scintillation model ('CSM', 'MFPSM', or 'none').
+    %
+    %   kalman_pll_config - Struct containing Kalman filter settings, which must include:
+    %       - var_states_amount: Number of VAR model states.
+    %       - var_model_order: Order of the VAR model.
+    %
+    % Outputs:
+    %   initial_estimates - Struct containing:
+    %       * x_hat_init: Initial state vector estimate, with LOS dynamics states followed by VAR states.
+    %       * P_hat_init: Initial covariance matrix, with LOS variances and uniform variance for VAR states.
+    %
+    % Notes:
+    %   - LOS dynamics variances are computed using the uniform distributions specified in
+    %     `initial_states_distributions_boundaries`.
+    %   - The variance for VAR phase states is assumed to be \((\pi^2 / 3)\), corresponding to a uniform
+    %     distribution within \([- \pi, \pi]\).
+    %
+    % Examples:
+    %   % Example configuration for initial estimates:
+    %   config = struct( ...
+    %       'is_generate_random_initial_estimates', true, ...
+    %       'initial_states_distributions_boundaries', {{[-pi, pi], [-5, 5], [-0.1, 0.1]}}, ...
+    %       'real_doppler_profile', [0.01, -0.02, 0.03], ...
+    %       'training_scint_model', 'CSM' ...
+    %   );
+    %   kalman_pll_config = struct( ...
+    %       'CSM', struct('var_states_amount', 2, 'var_model_order', 1) ...
+    %   );
+    %   initial_estimates = handle_initial_estimates(config, kalman_pll_config);
+    %
+    % Author 1: Rodrigo de Lima Florindo
+    % Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
+    % Author's 1 Email: rdlfresearch@gmail.com
     initial_estimates = struct('x_hat_init', [], 'P_hat_init', []);
     if config.is_generate_random_initial_estimates
         %%%% Generate an error vector for the initial state estimates.
