@@ -1,45 +1,56 @@
 function kalman_pll_config = get_kalman_pll_config(config)
     % get_kalman_pll_config
-    % Generates or retrieves Kalman filter parameters based on the provided configuration.
+    % Generates or retrieves Kalman filter settings based on the provided configuration.
     %
     % Syntax:
     %   kalman_pll_config = get_kalman_pll_config(config)
     %
     % Description:
-    %   This function computes or retrieves the Kalman filter parameters, including 
-    %   state-space matrices and noise covariance matrices. It supports caching to 
-    %   reuse previously computed parameters for efficient performance. If caching is 
-    %   not enabled or the cache is invalid, it computes new parameters and updates the cache.
+    %   This function computes or retrieves the Kalman filter settings, including 
+    %   state-space matrices and noise covariance matrices and its initial estimates. 
+    %   It supports caching to reuse previously computed parameters for efficient 
+    %   performance. If caching is not enabled or the cache is invalid, 
+    %   it computes new parameters and updates the cache.
     %
     % Inputs:
     %   config - Struct containing all configuration details with the following fields:
-    %       - discrete_wiener_model_config: Cell array for LOS dynamics parameters.
+    %       - discrete_wiener_model_config: Cell array for LOS dynamics parameters to 
+    %                                       be used by `get_los_phase` function.
     %         Example: {1,3,0.01,[0,0,1],1}, where:
-    %           * 1  - Number of frequency bands (L = 1),
-    %           * 3  - Third-order LOS dynamics (M = 3),
-    %           * 0.01 - Sampling time (in seconds),
-    %           * [0,0,1] - Sigma array for noise levels,
-    %           * 1  - Ratio of its frequency to a reference frequency (delta_array).
+    %           * 1  - Number of frequency bands (`L`),
+    %           * 3  - Third-order LOS dynamics (`M`),
+    %           * 0.01 - Sampling time (`sampling_time`),
+    %           * [0,0,1] - Sigma array for noise levels (`sigma_array`),
+    %           * 1  - Ratio of its frequency to a reference frequency (`delta_array`).
     %
     %       - scintillation_training_data_config: Cell array for scintillation model parameters.
     %         Example: {0.8, 0.7, 600, 0.01}, where:
-    %           * 0.8  - S4 index,
-    %           * 0.7  - Tau0 (decorrelation time, in seconds),
-    %           * 600  - Total simulation time (in seconds),
-    %           * 0.01 - Sampling time (in seconds).
+    %           * 0.8  - S4 index (`S4`),
+    %           * 0.7  - τ₀ (`tau0`),
+    %           * 600  - Total simulation time (`simulation_time`),
+    %           * 0.01 - Sampling time (`sampling_time`).
     %
-    %       - var_minimum_order: Minimum VAR (Vector Autoregressive) model order.
+    %       - var_minimum_order: Minimum VAR (Vector Autoregressive) model
+    %       order. The `arfit` function automatically estimates the vector
+    %       autoregressive model order that lies withing a minimum and 
+    %       maximum orders provided by the user that minimizes the 
+    %       Schwarz Bayesian Criterion (SBC). It is important to comment
+    %       that for time series with extremely large samples amount, the
+    %       model order estimated by this function is generally close to
+    %       the maximum one, since the SBC only starts to increase again at
+    %       larger orders in this case.
     %       - var_maximum_order: Maximum VAR model order.
     %       - C_over_N0_array_dBHz: Array representing the average C/N0 values for each 
     %         frequency band (in dB-Hz).
-    %       - scint_model: Selected scintillation model ('CSM', 'MFPSM', or 'none').
+    %       - training_scint_model: Selected scintillation model ('CSM', 'MFPSM', or 'none').
     %       - is_refractive_effects_removed: Boolean flag indicating whether refractive 
     %         effects are removed for MFPSM.
-    %       - is_use_cached_model: Boolean flag indicating whether cached configurations 
+    %       - is_use_cached_settings: Boolean flag indicating whether cached configurations 
     %         should be used.
     %
     % Outputs:
-    %   kalman_pll_config - Struct containing the computed Kalman filter parameters, with the following fields:
+    %   kalman_pll_config - Struct containing the computed Kalman filter 
+    %                       settings, with the following fields:
     %       * F  - Full state transition matrix.
     %       * Q  - Full process noise covariance matrix.
     %       * H  - Measurement matrix.
@@ -62,9 +73,9 @@ function kalman_pll_config = get_kalman_pll_config(config)
     %       'var_minimum_order', 1, ...
     %       'var_maximum_order', 6, ...
     %       'C_over_N0_array_dBHz', 35, ...
-    %       'scint_model', 'CSM', ...
+    %       'training_scint_model', 'CSM', ...
     %       'is_refractive_effects_removed', false, ...
-    %       'is_use_cached_model', false);
+    %       'is_use_cached_settings', false);
     %   kalman_pll_config = get_kalman_pll_config(config);
     %
     % Author 1: Rodrigo de Lima Florindo
@@ -90,36 +101,31 @@ function kalman_pll_config = get_kalman_pll_config(config)
 
     % Handle computation or retrieval of Kalman PLL configuration
     if is_cache_used
-        fprintf('Using cached Kalman filter based PLL settings for %s.\n', config.scint_model);
+        fprintf('Using cached Kalman filter based PLL settings for %s.\n', config.training_scint_model);
     else
-        fprintf('Computing Kalman filter based PLL settings for %s.\n', config.scint_model);
+        fprintf('Computing Kalman filter based PLL settings for %s.\n', config.training_scint_model);
         
         % Compute the LOS dynamics model
         [F_los, Q_los] = get_discrete_wiener_model(config.discrete_wiener_model_config{:});
 
-        if strcmp(config.scint_model, 'none')
+        if strcmp(config.training_scint_model, 'none')
             % Get the settings for the case where the autoregressive model
             % is not used. Thus, only the LOS dynamics state-space model is
             % outputed.
-            [F_var, Q_var, F, Q, H, R, intercept_vector, var_states_amount, var_model_order] = ...
-                deal([], [], F_los, Q_los, [1, zeros(1, size(F_los, 1) - 1)], ...
-                diag(compute_phase_variances(config.C_over_N0_array_dBHz, sampling_interval)), [], [], []);
+            kalman_pll_config.(config.training_scint_model) = struct('F_los', F_los, 'Q_los', Q_los, ...
+                'F_var', [], 'Q_var', [], 'F', F_los, 'Q', Q_los, ...
+                'H', [1, zeros(1, size(F_los, 1) - 1)], 'R', ...
+                diag(compute_phase_variances(config.C_over_N0_array_dBHz, sampling_interval)), ...
+                'intercept_vector', [], 'var_model_order', [], 'var_states_amount', []);
         else
             % Get the settings for the case when the autoregressive model
             % is considered.
-            [F_var, Q_var, F, Q, H, R, intercept_vector, var_states_amount, var_model_order] = compute_settings( ...
-                config.scint_model, config.scintillation_training_data_config, ...
+            kalman_pll_config = compute_settings( ...
+                config.training_scint_model, config.scintillation_training_data_config, ...
                 config.var_minimum_order, config.var_maximum_order, ...
                 config.C_over_N0_array_dBHz, sampling_interval, F_los, ...
                 Q_los, config.is_refractive_effects_removed);
         end
-
-        % Store results in `kalman_pll_config` struct
-        kalman_pll_config.(config.scint_model) = struct('F_los', F_los, 'Q_los', Q_los, ...
-            'F_var', F_var, 'Q_var', Q_var, 'F', F, 'Q', Q, ...
-            'H', H, 'R', R, 'intercept_vector', intercept_vector, 'var_model_order', ...
-            var_model_order, 'var_states_amount', var_states_amount);
-
         % Save updated kalman_pll_config to cache
         save(cache_file, 'kalman_pll_config');
     end
@@ -131,9 +137,9 @@ function validate_config(config)
     required_fields = {'discrete_wiener_model_config', ...
                        'scintillation_training_data_config', ...
                        'var_minimum_order', 'var_maximum_order', ...
-                       'C_over_N0_array_dBHz', 'scint_model', ...
+                       'C_over_N0_array_dBHz', 'training_scint_model', ...
                        'is_refractive_effects_removed', ...
-                       'is_use_cached_model'};
+                       'is_use_cached_settings'};
     missing_fields = setdiff(required_fields, fieldnames(config));
     if ~isempty(missing_fields)
         error('get_kalman_pll_config:MissingFields', ...
@@ -164,6 +170,7 @@ function sampling_interval = validate_sampling_interval(sampling_interval_los, s
     %
     % Examples:
     %   sampling_interval = validate_sampling_interval(0.01, 0.01);
+    %
     % Author 1: Rodrigo de Lima Florindo
     % Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
     % Author's 1 Email: rdlfresearch@gmail.com
@@ -203,6 +210,7 @@ function [kalman_pll_config, is_cache_used] = load_or_initialize_models(config, 
     %
     % Examples:
     %   [kalman_pll_config, is_cache_used] = load_or_initialize_models(config, 'kalman_pll_cache.mat');
+    %
     % Author 1: Rodrigo de Lima Florindo
     % Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
     % Author's 1 Email: rdlfresearch@gmail.com
@@ -217,18 +225,18 @@ function [kalman_pll_config, is_cache_used] = load_or_initialize_models(config, 
         load(cache_file, 'kalman_pll_config');
 
         % Check if the specific scintillation model in the cache is non-empty
-        if isfield(kalman_pll_config, config.scint_model) && ...
-           ~isempty(fieldnames(kalman_pll_config.(config.scint_model)))
-            if config.is_use_cached_model
-                fprintf('Using cached values for %s.\n', config.scint_model);
+        if isfield(kalman_pll_config, config.training_scint_model) && ...
+           ~isempty(fieldnames(kalman_pll_config.(config.training_scint_model)))
+            if config.is_use_cached_settings
+                fprintf('Using cached values for %s.\n', config.training_scint_model);
                 is_cache_used = true; % Indicate cache was used
                 return; % Use cached values
             else
-                fprintf('Recomputing values for %s and updating cache.\n', config.scint_model);
+                fprintf('Recomputing values for %s and updating cache.\n', config.training_scint_model);
             end
         else
             fprintf(['Cache found but missing settings inside %s. ' ...
-                'Computing and caching new values.\n'], config.scint_model);
+                'Computing and caching new values.\n'], config.training_scint_model);
         end
     else
         fprintf('No cache file found. Initializing kalman_pll_config.\n');
@@ -237,17 +245,17 @@ function [kalman_pll_config, is_cache_used] = load_or_initialize_models(config, 
     end
 end
 
-function [F_var, Q_var, F, Q, H, R, intercept_vector, var_states_amount, var_model_order] = compute_settings( ...
-    scint_model, scintillation_training_data_config, var_minimum_order, ...
+function kalman_pll_config = compute_settings( ...
+    training_scint_model, scintillation_training_data_config, var_minimum_order, ...
     var_maximum_order, C_over_N0_array_dBHz, sampling_interval, ...
     F_los, Q_los, is_refractive_effects_removed)
     % compute_settings
-    % Computes the Kalman filter parameters and VAR model matrices based on
+    % Computes the Kalman filter settings and VAR model matrices based on
     % the selected scintillation model and input configuration.
     %
     % Syntax:
     %   [F_var, Q_var, F, Q, H, R, intercept_vector, var_states_amount, var_model_order] = ...
-    %       compute_settings(scint_model, scintillation_training_data_config, var_minimum_order, ...
+    %       compute_settings(training_scint_model, scintillation_training_data_config, var_minimum_order, ...
     %       var_maximum_order, C_over_N0_array_dBHz, sampling_interval, F_los, Q_los, is_refractive_effects_removed)
     %
     % Description:
@@ -258,8 +266,8 @@ function [F_var, Q_var, F, Q, H, R, intercept_vector, var_states_amount, var_mod
     %   (number of states and order) are also computed.
     %
     % Inputs:
-    %   scint_model                      - Selected scintillation model ('CSM', 'MFPSM').
-    %   scintillation_training_data_config - Cell array of scintillation model parameters, such as:
+    %   training_scint_model                      - Selected scintillation model ('CSM', 'MFPSM').
+    %   scintillation_training_data_config - Cell array of scintillation model settings, such as:
     %                                         {S4, tau0, simulation_time, sampling_interval}.
     %   var_minimum_order                - Minimum VAR model order.
     %   var_maximum_order                - Maximum VAR model order.
@@ -295,7 +303,7 @@ function [F_var, Q_var, F, Q, H, R, intercept_vector, var_states_amount, var_mod
     % Author's 1 Email: rdlfresearch@gmail.com
 
     % Preprocess the training data based on the scintillation model
-    training_data = preprocess_training_data(scint_model, ...
+    training_data = preprocess_training_data(training_scint_model, ...
         scintillation_training_data_config, is_refractive_effects_removed);
 
     % Fit VAR model
@@ -310,14 +318,19 @@ function [F_var, Q_var, F, Q, H, R, intercept_vector, var_states_amount, var_mod
     % Construct full Kalman filter matrices
     [F, Q, H, R] = construct_kalman_matrices(F_los, Q_los, F_var, Q_var, ...
         var_states_amount, var_model_order, C_over_N0_array_dBHz, sampling_interval);
+    % Store results in `kalman_pll_config` struct
+    kalman_pll_config.(config.training_scint_model) = struct('F_los', F_los, 'Q_los', Q_los, ...
+        'F_var', F_var, 'Q_var', Q_var, 'F', F, 'Q', Q, ...
+        'H', H, 'R', R, 'intercept_vector', intercept_vector, 'var_model_order', ...
+        var_model_order, 'var_states_amount', var_states_amount);
 end
 
-function training_data = preprocess_training_data(scint_model, scintillation_training_data_config, is_refractive_effects_removed)
+function training_data = preprocess_training_data(training_scint_model, scintillation_training_data_config, is_refractive_effects_removed)
     % preprocess_training_data
     % Prepares the training data based on the selected scintillation model.
     %
     % Syntax:
-    %   training_data = preprocess_training_data(scint_model, scintillation_training_data_config, is_refractive_effects_removed)
+    %   training_data = preprocess_training_data(training_scint_model, scintillation_training_data_config, is_refractive_effects_removed)
     %
     % Description:
     %   This function generates training data for a given scintillation model. It extracts the 
@@ -325,8 +338,8 @@ function training_data = preprocess_training_data(scint_model, scintillation_tra
     %   for the MFPSM model.
     %
     % Inputs:
-    %   scint_model                      - Scintillation model ('CSM', 'MFPSM').
-    %   scintillation_training_data_config - Cell array containing scintillation model parameters.
+    %   training_scint_model                      - Scintillation model ('CSM', 'MFPSM').
+    %   scintillation_training_data_config - Cell array containing scintillation model settings.
     %   is_refractive_effects_removed    - Boolean indicating whether to remove refractive effects (applies to MFPSM only).
     %
     % Outputs:
@@ -346,7 +359,7 @@ function training_data = preprocess_training_data(scint_model, scintillation_tra
     % Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
     % Author's 1 Email: rdlfresearch@gmail.com
 
-    switch scint_model
+    switch training_scint_model
         case 'CSM'
             scint_complex_field = get_csm_data(scintillation_training_data_config{:});
             training_data = angle(scint_complex_field); % Extract phase data
@@ -361,7 +374,7 @@ function training_data = preprocess_training_data(scint_model, scintillation_tra
             training_data = angle(scint_complex_field); % Extract phase data
 
         otherwise
-            error('Unsupported scintillation model: %s', scint_model);
+            error('Unsupported scintillation model: %s', training_scint_model);
     end
 end
 
