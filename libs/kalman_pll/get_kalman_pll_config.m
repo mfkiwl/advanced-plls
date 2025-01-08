@@ -277,15 +277,17 @@ function kalman_pll_config = compute_settings( ...
     %   is_refractive_effects_removed    - Boolean flag indicating whether to remove refractive effects for MFPSM.
     %
     % Outputs:
-    %   F_var          - VAR model state transition matrix.
-    %   Q_var          - VAR model process noise covariance matrix.
-    %   F              - Full state transition matrix for the Kalman filter.
-    %   Q              - Full process noise covariance matrix for the Kalman filter.
-    %   H              - Measurement matrix for the Kalman filter.
-    %   R              - Measurement noise covariance matrix for the Kalman filter.
-    %   intercept_vector - Intercept vector for the VAR model.
-    %   var_states_amount - Number of states in the VAR model.
-    %   var_model_order  - Order of the VAR model.
+    %   kalman_pll_config - Struct containing the computed Kalman filter 
+    %                       settings, with the following fields:
+    %       * F  - Full state transition matrix.
+    %       * Q  - Full process noise covariance matrix.
+    %       * H  - Measurement matrix.
+    %       * R  - Measurement noise covariance matrix.
+    %       * F_los, Q_los - LOS dynamics matrices.
+    %       * F_var, Q_var - VAR model matrices.
+    %       * intercept_vector - VAR model intercept vector.
+    %       * var_states_amount - Number of VAR model states.
+    %       * var_model_order - Order of the VAR model.
     %
     % Notes:
     %   - The function preprocesses training data based on the selected scintillation model
