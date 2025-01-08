@@ -111,6 +111,12 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(config)
     % Load or initialize kalman_pll_config
     [kalman_pll_config, is_cache_used] = load_or_initialize_models(config, cache_file);
 
+    kalman_pll_config = handle_kalman_pll_config(config, cache_file, sampling_interval, kalman_pll_config, is_cache_used);
+
+    initial_estimates = handle_initial_estimates(config, kalman_pll_config);
+end
+
+function kalman_pll_config = handle_kalman_pll_config(config, cache_file, sampling_interval, kalman_pll_config, is_cache_used)
     % Handle computation or retrieval of Kalman PLL configuration
     if is_cache_used
         fprintf('Using cached Kalman filter based PLL settings for %s.\n', config.training_scint_model);
@@ -139,6 +145,7 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(config)
             % Get the settings for the case when the autoregressive model
             % is considered.
             kalman_pll_config = compute_settings( ...
+                kalman_pll_config, ...
                 config.training_scint_model, ...
                 config.scintillation_training_data_config, ...
                 config.var_minimum_order, ...
@@ -152,7 +159,9 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(config)
         % Save updated kalman_pll_config to cache
         save(cache_file, 'kalman_pll_config');
     end
+end
 
+function initial_estimates = handle_initial_estimates(config, kalman_pll_config)
     initial_estimates = struct('x_hat_init', [], 'P_hat_init', []);
     if config.is_generate_random_initial_estimates
         %%%% Generate an error vector for the initial state estimates.
@@ -201,7 +210,7 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(config)
         initial_estimates.x_hat_init = [ ...
             config.real_doppler_profile.'; ...
             zeros(kalman_pll_config.(config.training_scint_model).var_states_amount * ...
-            kalman_pll_config.(config.training_scint_model).var_model_order - 1, 1)
+            kalman_pll_config.(config.training_scint_model).var_model_order, 1)
         ];
         % Build P_hat_init considering that the doppler profile is
         % perfectly known, i.e., they have covariances elements equal to 
@@ -212,65 +221,6 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(config)
             kalman_pll_config.(config.training_scint_model).var_model_order) ...
         );
     end
-end
-
-function validate_config(config)
-    % TODO: Work on error handling inside this validation function
-    % Ensure required fields are present in the configuration struct
-    required_fields = {'discrete_wiener_model_config', ...
-                       'scintillation_training_data_config', ...
-                       'var_minimum_order', ...
-                       'var_maximum_order', ...
-                       'C_over_N0_array_dBHz', ...
-                       'training_scint_model', ...
-                       'initial_states_distributions_boundaries', ...
-                       'real_doppler_profile', ...
-                       'is_refractive_effects_removed', ...
-                       'is_use_cached_settings', ...
-                       'is_generate_random_initial_estimates' ...
-                       };
-    missing_fields = setdiff(required_fields, fieldnames(config));
-    if ~isempty(missing_fields)
-        error('get_kalman_pll_config:MissingFields', ...
-              'The following required fields are missing: %s', strjoin(missing_fields, ', '));
-    end
-end
-
-function sampling_interval = validate_sampling_interval(sampling_interval_los, sampling_interval_scint)
-    % validate_sampling_interval
-    % Validates consistency of sampling intervals between LOS dynamics and scintillation models.
-    %
-    % Syntax:
-    %   sampling_interval = validate_sampling_interval(sampling_interval_los, sampling_interval_scint)
-    %
-    % Description:
-    %   This function ensures that the sampling intervals for LOS dynamics and 
-    %   scintillation models match. If they differ, an error is raised.
-    %
-    % Inputs:
-    %   sampling_interval_los   - Sampling interval for LOS dynamics (seconds).
-    %   sampling_interval_scint - Sampling interval for scintillation model (seconds).
-    %
-    % Outputs:
-    %   sampling_interval - The validated and consistent sampling interval.
-    %
-    % Notes:
-    %   - The function assumes both intervals are scalars and checks for equality.
-    %
-    % Examples:
-    %   sampling_interval = validate_sampling_interval(0.01, 0.01);
-    %
-    % Author 1: Rodrigo de Lima Florindo
-    % Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
-    % Author's 1 Email: rdlfresearch@gmail.com
-
-    % Validate consistency of sampling_interval between los and scintillation kalman_pll_config
-    if sampling_interval_los ~= sampling_interval_scint
-        error(['Inconsistent sampling_interval values: los (%f) vs. ' ...
-               'scintillation model (%f).'], sampling_interval_los, ...
-               sampling_interval_scint);
-    end
-    sampling_interval = sampling_interval_los; % Return consistent value
 end
 
 function [kalman_pll_config, is_cache_used] = load_or_initialize_models(config, cache_file)
@@ -331,10 +281,11 @@ function [kalman_pll_config, is_cache_used] = load_or_initialize_models(config, 
         fprintf('No cache file found. Initializing kalman_pll_config.\n');
         % Initialize the kalman_pll_config struct
         kalman_pll_config = struct('CSM', struct(), 'MFPSM', struct(), 'none', struct());
+        bp = 1;
     end
 end
 
-function kalman_pll_config = compute_settings( ...
+function kalman_pll_config = compute_settings(kalman_pll_config, ...
     training_scint_model, scintillation_training_data_config, var_minimum_order, ...
     var_maximum_order, C_over_N0_array_dBHz, sampling_interval, ...
     F_los, Q_los, is_refractive_effects_removed)
@@ -476,8 +427,7 @@ function training_data = preprocess_training_data(training_scint_model, scintill
     end
 end
 
-function [F_var, Q_var, var_states_amount, var_model_order] = ...
-    construct_var_matrices(var_coefficient_matrices, var_covariance_matrices)
+function [F_var, Q_var, var_states_amount, var_model_order] = construct_var_matrices(var_coefficient_matrices, var_covariance_matrices)
     % construct_var_matrices
     % Constructs VAR model matrices from coefficient and covariance matrices.
     %
@@ -598,4 +548,63 @@ function sigma2_array = compute_phase_variances(C_over_N0_array_dBHz, sampling_i
     C_over_N0_array_linear = 10.^(C_over_N0_array_dBHz ./ 10); % Convert dB-Hz to linear scale
     sigma2_array = (1 ./ (2 * C_over_N0_array_linear * sampling_interval)) ...
         .* (1 + 1 ./ (2 * C_over_N0_array_linear * sampling_interval)); % Compute variances
+end
+
+function sampling_interval = validate_sampling_interval(sampling_interval_los, sampling_interval_scint)
+    % validate_sampling_interval
+    % Validates consistency of sampling intervals between LOS dynamics and scintillation models.
+    %
+    % Syntax:
+    %   sampling_interval = validate_sampling_interval(sampling_interval_los, sampling_interval_scint)
+    %
+    % Description:
+    %   This function ensures that the sampling intervals for LOS dynamics and 
+    %   scintillation models match. If they differ, an error is raised.
+    %
+    % Inputs:
+    %   sampling_interval_los   - Sampling interval for LOS dynamics (seconds).
+    %   sampling_interval_scint - Sampling interval for scintillation model (seconds).
+    %
+    % Outputs:
+    %   sampling_interval - The validated and consistent sampling interval.
+    %
+    % Notes:
+    %   - The function assumes both intervals are scalars and checks for equality.
+    %
+    % Examples:
+    %   sampling_interval = validate_sampling_interval(0.01, 0.01);
+    %
+    % Author 1: Rodrigo de Lima Florindo
+    % Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
+    % Author's 1 Email: rdlfresearch@gmail.com
+
+    % Validate consistency of sampling_interval between los and scintillation kalman_pll_config
+    if sampling_interval_los ~= sampling_interval_scint
+        error(['Inconsistent sampling_interval values: los (%f) vs. ' ...
+               'scintillation model (%f).'], sampling_interval_los, ...
+               sampling_interval_scint);
+    end
+    sampling_interval = sampling_interval_los; % Return consistent value
+end
+
+function validate_config(config)
+    % TODO: Work on error handling inside this validation function
+    % Ensure required fields are present in the configuration struct
+    required_fields = {'discrete_wiener_model_config', ...
+                       'scintillation_training_data_config', ...
+                       'var_minimum_order', ...
+                       'var_maximum_order', ...
+                       'C_over_N0_array_dBHz', ...
+                       'training_scint_model', ...
+                       'initial_states_distributions_boundaries', ...
+                       'real_doppler_profile', ...
+                       'is_refractive_effects_removed', ...
+                       'is_use_cached_settings', ...
+                       'is_generate_random_initial_estimates' ...
+                       };
+    missing_fields = setdiff(required_fields, fieldnames(config));
+    if ~isempty(missing_fields)
+        error('get_kalman_pll_config:MissingFields', ...
+              'The following required fields are missing: %s', strjoin(missing_fields, ', '));
+    end
 end

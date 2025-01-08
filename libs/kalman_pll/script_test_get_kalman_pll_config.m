@@ -16,7 +16,7 @@ var_maximum_order = 6; % Maximum VAR model order
 C_over_N0_array_dBHz = 35; % Example values in dB-Hz
 
 % Choose scintillation model: 'CSM', 'MFPSM', or 'none'
-training_scint_model = 'CSM';
+training_scint_model = 'MFPSM';
 
 % Set the initial states uniform distributions boundaries in a cell array
 initial_states_distributions_boundaries = {[-pi,pi],[-5,5],[-0.1,0.1]};
