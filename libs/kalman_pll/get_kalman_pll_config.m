@@ -717,8 +717,13 @@ function sampling_interval = validate_sampling_interval(sampling_interval_los, s
 end
 
 function validate_config(config)
-    % TODO: Work on error handling inside this validation function
-    % Ensure required fields are present in the configuration struct
+    % validate_config
+    % Validates the input `config` struct for the Kalman PLL configuration.
+    %
+    % Throws an error if required fields are missing or if any field does not meet
+    % the expected data type and value constraints.
+
+    % Required fields in the config struct
     required_fields = {'discrete_wiener_model_config', ...
                        'scintillation_training_data_config', ...
                        'var_minimum_order', ...
@@ -729,11 +734,63 @@ function validate_config(config)
                        'real_doppler_profile', ...
                        'is_refractive_effects_removed', ...
                        'is_use_cached_settings', ...
-                       'is_generate_random_initial_estimates' ...
-                       };
+                       'is_generate_random_initial_estimates'};
+
+    % Check for missing fields
     missing_fields = setdiff(required_fields, fieldnames(config));
     if ~isempty(missing_fields)
-        error('get_kalman_pll_config:MissingFields', ...
+        error('validate_config:MissingFields', ...
               'The following required fields are missing: %s', strjoin(missing_fields, ', '));
     end
+
+    % Validate attributes for each field
+    try
+        validateattributes(config.discrete_wiener_model_config, {'cell'}, {'nonempty'}, 'validate_config', 'discrete_wiener_model_config');
+        validateattributes(config.scintillation_training_data_config, {'cell'}, {'nonempty'}, 'validate_config', 'scintillation_training_data_config');
+        validateattributes(config.var_minimum_order, {'numeric'}, {'scalar', 'integer', 'positive', 'nonnan'}, 'validate_config', 'var_minimum_order');
+        validateattributes(config.var_maximum_order, {'numeric'}, {'scalar', 'integer', '>=', config.var_minimum_order}, 'validate_config', 'var_maximum_order');
+        validateattributes(config.C_over_N0_array_dBHz, {'numeric'}, {'vector', 'real', 'finite', 'nonnan', 'nonempty'}, 'validate_config', 'C_over_N0_array_dBHz');
+        validateattributes(config.training_scint_model, {'char', 'string'}, {'scalartext', 'nonempty'}, 'validate_config', 'training_scint_model');
+        validateattributes(config.initial_states_distributions_boundaries, {'cell'}, {'nonempty'}, 'validate_config', 'initial_states_distributions_boundaries');
+        validateattributes(config.real_doppler_profile, {'numeric'}, {'vector', 'real', 'finite', 'nonnan'}, 'validate_config', 'real_doppler_profile');
+        validateattributes(config.is_refractive_effects_removed, {'logical'}, {'scalar'}, 'validate_config', 'is_refractive_effects_removed');
+        validateattributes(config.is_use_cached_settings, {'logical'}, {'scalar'}, 'validate_config', 'is_use_cached_settings');
+        validateattributes(config.is_generate_random_initial_estimates, {'logical'}, {'scalar'}, 'validate_config', 'is_generate_random_initial_estimates');
+    catch ME
+        rethrow(ME);
+    end
+
+    % Additional consistency checks
+    if config.var_minimum_order > config.var_maximum_order
+        error('validate_config:InvalidOrderRange', ...
+              '`var_minimum_order` (%d) cannot be greater than `var_maximum_order` (%d).', ...
+              config.var_minimum_order, config.var_maximum_order);
+    end
+
+    if ~ismember(config.training_scint_model, {'CSM', 'MFPSM', 'none'})
+        error('validate_config:InvalidScintModel', ...
+              '`training_scint_model` must be one of the following: ''CSM'', ''MFPSM'', ''none''.');
+    end
+
+    % Check initial_states_distributions_boundaries structure
+    if ~iscell(config.initial_states_distributions_boundaries) || isempty(config.initial_states_distributions_boundaries)
+        error('validate_config:InvalidBoundaries', ...
+              '`initial_states_distributions_boundaries` must be a non-empty cell array.');
+    end
+
+    % Check that `initial_states_distributions_boundaries` and `real_doppler_profile` have the same number of elements
+    if numel(config.initial_states_distributions_boundaries) ~= numel(config.real_doppler_profile)
+        error('validate_config:BoundaryProfileMismatch', ...
+              '`initial_states_distributions_boundaries` must have the same number of elements as `real_doppler_profile`. Found %d boundaries and %d profile elements.', ...
+              numel(config.initial_states_distributions_boundaries), numel(config.real_doppler_profile));
+    end
+    % Check that each boundary is a valid range
+    for i = 1:numel(config.initial_states_distributions_boundaries)
+        boundary = config.initial_states_distributions_boundaries{i}; % Access directly
+        if ~isnumeric(boundary) || numel(boundary) ~= 2 || boundary(1) >= boundary(2)
+            error('validate_config:InvalidBoundaryRange', ...
+                  'Each element of `initial_states_distributions_boundaries` must be a numeric vector containing a valid range [a, b] where a < b.');
+        end
+    end
+    
 end

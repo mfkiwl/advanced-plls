@@ -26,7 +26,7 @@ initial_states_distributions_boundaries = {[-pi,pi],[-5,5],[-0.1,0.1]};
 % TODO: Make a validation that assures that
 % `initial_states_distributions_boundaries` and `real_doppler_profile` have
 % the same amount of elements.
-real_doppler_profile = [0,1000,0.94];
+real_doppler_profile = [0, 1000, 0.94];
 
 % Set flag to remove refractive effects for MFPSM (not applicable for CSM or none)
 is_refractive_effects_removed = true;
