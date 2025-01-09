@@ -69,7 +69,7 @@ if abs(num_samples_exact - num_samples_rounded) > eps
 end
 
 % Generate the time vector based on the rounded number of samples
-time_vector = (0:num_samples_rounded-1).' * sampling_interval;
+time_vector = (1:num_samples_rounded).' * sampling_interval;
 
 % Compute the LOS phase time series using the Taylor series expansion
 % Initialize with initial phase

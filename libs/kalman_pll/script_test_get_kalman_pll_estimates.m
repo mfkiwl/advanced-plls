@@ -8,13 +8,13 @@ var_minimum_order = 1; % Minimum VAR model order
 var_maximum_order = 6; % Maximum VAR model order
 
 % Define C/N0 array
-C_over_N0_array_dBHz = 35; % Example values in dB-Hz
+C_over_N0_array_dBHz = 45; % Example values in dB-Hz
 
 % Choose scintillation model: 'CSM', 'MFPSM', or 'none'
 training_scint_model = 'none';
 
 % Set the initial states uniform distributions boundaries in a cell array
-initial_states_distributions_boundaries = {[-pi,pi],[-5,5],[-0.1,0.1]};
+initial_states_distributions_boundaries = {[-pi,pi],[-5,5],[-0.0001,0.0001]};
 
 % Set the Doppler profile used to simulate the real line-of-sight phase
 % dynamics on the function `get_los_phase`
@@ -65,6 +65,8 @@ config = struct( ...
     'is_generate_random_initial_estimates', is_generate_random_initial_estimates ...
 );
 
+time = 0.01:0.01:simulation_time;
+
 [received_signal, los_phase, psi, ps_realization] = ...
     get_received_signal(C_over_N0_array_dBHz(1),S4,tau0,simulation_time, ...
     settling_time,scint_model, real_doppler_profile, is_refractive_effects_removed);
@@ -73,3 +75,5 @@ config = struct( ...
 
 [state_estimates, error_covariance_estimates] = ...
     get_kalman_pll_estimates(received_signal,kalman_pll_config,initial_estimates,training_scint_model);
+
+plot(time,los_phase - state_estimates(:,1));
