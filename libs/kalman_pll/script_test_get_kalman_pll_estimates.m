@@ -3,20 +3,15 @@ clear all; clc;
 
 addpath(genpath(fullfile(pwd,'..')));
 
-% Define discrete Wiener model configuration
-discrete_wiener_model_config = {1,3,0.01,[0,0,1],1}; % Example: L, M, sampling_interval, sigma_array, delta_array
-% Define scintillation training data configuration
-scintillation_training_data_config = {0.8, 0.7, 3000, 0.01}; % Example: S4, tau0, simulation_time, sampling_interval
-
 % Set VAR model parameters
 var_minimum_order = 1; % Minimum VAR model order
-var_maximum_order = 30; % Maximum VAR model order
+var_maximum_order = 6; % Maximum VAR model order
 
 % Define C/N0 array
 C_over_N0_array_dBHz = 35; % Example values in dB-Hz
 
 % Choose scintillation model: 'CSM', 'MFPSM', or 'none'
-training_scint_model = 'CSM';
+training_scint_model = 'none';
 
 % Set the initial states uniform distributions boundaries in a cell array
 initial_states_distributions_boundaries = {[-pi,pi],[-5,5],[-0.1,0.1]};
@@ -29,13 +24,31 @@ initial_states_distributions_boundaries = {[-pi,pi],[-5,5],[-0.1,0.1]};
 real_doppler_profile = [0, 1000, 0.94];
 
 % Set flag to remove refractive effects for MFPSM (not applicable for CSM or none)
-is_refractive_effects_removed = true;
+is_refractive_effects_removed = false;
 
 % Set flag to use cached settings (set to true to load from cache, false to compute fresh)
 is_use_cached_settings = false;
 
 % Set flag to generate initial estimates
 is_generate_random_initial_estimates = false;
+
+S4 = 0.8;
+tau0 = 0.7;
+simulation_time = 300;
+var_model_training_simulation_time = 900;
+settling_time = 50;
+scint_model = 'none';
+sampling_interval = 0.01;
+
+L = 1;
+M = 3;
+sigma_array = [0,0,1e-2];
+delta_array = 1;
+
+% Define discrete Wiener model configuration
+discrete_wiener_model_config = {L,M,sampling_interval,sigma_array,delta_array}; % Example: L, M, sampling_interval, sigma_array, delta_array
+% Define scintillation training data configuration
+scintillation_training_data_config = {S4, tau0, simulation_time, sampling_interval}; % Example: S4, tau0, simulation_time, sampling_interval
 
 % Combine all configurations into a single struct
 config = struct( ...
@@ -52,4 +65,11 @@ config = struct( ...
     'is_generate_random_initial_estimates', is_generate_random_initial_estimates ...
 );
 
+[received_signal, los_phase, psi, ps_realization] = ...
+    get_received_signal(C_over_N0_array_dBHz(1),S4,tau0,simulation_time, ...
+    settling_time,scint_model, real_doppler_profile, is_refractive_effects_removed);
+
 [kalman_pll_config,initial_estimates] = get_kalman_pll_config(config);
+
+[state_estimates, error_covariance_estimates] = ...
+    get_kalman_pll_estimates(received_signal,kalman_pll_config,initial_estimates,training_scint_model);
