@@ -19,20 +19,20 @@ function [psi_tppsm, ps_realization, general_params, irr_params_set, seed] = get
 %
 % Inputs:
 %   scenario         - A string specifying the scintillation scenario 
-%                      ('Weak', 'Moderate', or 'Severe')
+%                      ('Weak', 'Moderate', or 'Severe').
 %
 % Optional Name-Value Pair Inputs:
-%   'simulation_time'  - Duration of the simulation in seconds (default: 300 s)
-%   'sampling_interval'- Sampling time in seconds (default: 0.01 s)
-%   'general_params' - Structure containing simulation parameters. If empty,
-%                      the function will call get_general_parameters() internally.
-%   'irr_params_set' - Structure containing preset irregularity parameters.
-%                      If empty, the function will call get_irregularity_parameters().
-%   'seed'           - Seed for random number generation (default: 1)
+%   'simulation_time'  - Duration of the simulation in seconds (default: 300 s).
+%   'sampling_interval'- Sampling time in seconds (default: 0.01 s).
+%   'general_params'   - Structure containing simulation parameters. If empty,
+%                        the function will call get_general_parameters() internally.
+%   'irr_params_set'   - Structure containing preset irregularity parameters.
+%                        If empty, the function will call get_irregularity_parameters().
+%   'seed'             - Seed for random number generation (default: 1).
 %
 % Outputs:
-%   psi_tppsm        - Scintillation field time series (complex)
-%   ps_realization   - Phase screen (detrended phase) realization
+%   psi_tppsm        - Scintillation field time series (complex).
+%   ps_realization   - Phase screen (detrended phase) realization.
 %   general_params   - Simulation parameters used for this run.
 %   irr_params_set   - Preset irregularity parameters used.
 %   seed             - Seed value used.
@@ -55,11 +55,11 @@ function [psi_tppsm, ps_realization, general_params, irr_params_set, seed] = get
 % Input validation using inputParser
 p = inputParser;
 addRequired(p, 'scenario', @(x) ischar(x) || isstring(x));
-addParameter(p, 'simulation_time', 300, @(x) isnumeric(x) && isscalar(x) && (x > 0));
-addParameter(p, 'sampling_interval', 0.01, @(x) isnumeric(x) && isscalar(x) && (x > 0));
-addParameter(p, 'general_params', [], @(x) isstruct(x));
-addParameter(p, 'irr_params_set', [], @(x) isstruct(x));
-addParameter(p, 'seed', 1, @(x) isnumeric(x) && isscalar(x));
+addParameter(p, 'simulation_time', 300, @(x) validateattributes(x, {'numeric'}, {'scalar', 'real', 'positive'}));
+addParameter(p, 'sampling_interval', 0.01, @(x) validateattributes(x, {'numeric'}, {'scalar', 'real', 'positive'}));
+addParameter(p, 'general_params', [], @(x) isempty(x) || isstruct(x));
+addParameter(p, 'irr_params_set', [], @(x) isempty(x) || isstruct(x));
+addParameter(p, 'seed', 1, @(x) validateattributes(x, {'numeric'}, {'scalar', 'real'}));
 parse(p, scenario, varargin{:});
 
 scenario = validatestring(p.Results.scenario, {'Weak', 'Moderate', 'Severe'}, mfilename, 'scenario');
@@ -69,6 +69,7 @@ general_params = p.Results.general_params;
 irr_params_set = p.Results.irr_params_set;
 seed = p.Results.seed;
 
+% Ensure simulation_time is greater than sampling_interval
 if simulation_time < sampling_interval
     error('get_tppsm_data:simulationTimeSmallerThanSamplingInterval', ...
           'The simulation_time (%g s) is smaller than the sampling_interval (%g s).', ...
@@ -95,12 +96,6 @@ if isempty(irr_params_set)
     irr_params_set = get_irregularity_parameters();
 end
 
-% Ensure the selected scenario exists in the irregularity parameters
-if ~isfield(irr_params_set, scenario)
-    error('get_tppsm_data:InvalidScenario', ...
-          'The scenario "%s" is not available in the preset irregularity parameters.', scenario);
-end
-
 % Use the preset irregularity parameters directly (no extrapolation)
 irr_params = irr_params_set.(scenario);
 
@@ -117,6 +112,7 @@ rng(seed);
     general_params, irr_params, rhof_veff_ratio_L1, seed);
 
 % Trim outputs to match the expected number of samples
-psi_tppsm = scint_field(1:num_samples_rounded).';
-ps_realization = detrended_phase(1:num_samples_rounded).';
+psi_tppsm = scint_field(1:num_samples_rounded);
+ps_realization = detrended_phase(1:num_samples_rounded);
+
 end

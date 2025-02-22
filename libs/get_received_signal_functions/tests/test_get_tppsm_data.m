@@ -50,7 +50,7 @@ classdef test_get_tppsm_data < matlab.unittest.TestCase
         function testInvalidScenario(testCase)
             % Test that providing an invalid scenario produces an error.
             testCase.verifyError(@() get_tppsm_data('InvalidScenario'), ...
-                'get_tppsm_data:InvalidScenario');
+                'MATLAB:get_tppsm_data:unrecognizedStringChoice');
         end
         
         function testSimulationTimeLessThanSampling(testCase)
@@ -63,13 +63,13 @@ classdef test_get_tppsm_data < matlab.unittest.TestCase
         function testNonNumericSimulationTime(testCase)
             % Test that a non-numeric simulation_time input triggers the built-in error.
             testCase.verifyError(@() get_tppsm_data(testCase.validScenario, 'simulation_time', 'invalid'), ...
-                'MATLAB:InputParser:ArgumentFailedValidation');
+                'MATLAB:invalidType');
         end
         
         function testNonNumericSamplingInterval(testCase)
             % Test that a non-numeric sampling_interval input triggers the built-in error.
             testCase.verifyError(@() get_tppsm_data(testCase.validScenario, 'sampling_interval', 'invalid'), ...
-                'MATLAB:InputParser:ArgumentFailedValidation');
+                'MATLAB:invalidType');
         end
     end
 end
