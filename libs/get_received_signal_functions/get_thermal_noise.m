@@ -79,14 +79,7 @@ if abs(N_int_exact - N_int_rounded) > eps
     % Issue a warning if rounding was needed
     warning('get_thermal_noise:NonIntegerRatioAmountOfIntegrationSamples', ...
             'B * sampling_interval is not an integer. The number of samples was rounded from %.5g to %d.', ...
-            num_samples_exact, num_samples_rounded);
-end
-
-if abs(num_samples_exact - num_samples_rounded) > eps
-    % Issue a warning if rounding was needed
-    warning('get_thermal_noise:NonIntegerRatio', ...
-            'simulation_time / sampling_interval is not an integer. The number of samples was rounded from %.5g to %d.', ...
-            num_samples_exact, num_samples_rounded);
+            N_int_exact, N_int_rounded);
 end
 
 % Convert CN0 from dB-Hz to linear scale
