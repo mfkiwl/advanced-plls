@@ -4,7 +4,7 @@ function [psi_csm] = get_csm_data(S4,tau0,simulation_time,sampling_interval)
 % specified scintillation parameters.
 %
 % Syntax:
-%   [psi_csm] = get_csm_data(S4, tau0, simulation_time)
+%   [psi_csm] = get_csm_data(S4, tau0, simulation_time,sampling_interval)
 %
 % Description:
 %   This function simulates the ionospheric scintillation complex field
