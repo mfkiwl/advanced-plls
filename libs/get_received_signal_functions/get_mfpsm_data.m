@@ -4,7 +4,7 @@ function [psi_mfpsm, ps_realization] = get_mfpsm_data(S4,tau0,simulation_time,sa
 % on specified scintillation parameters.
 %
 % Syntax:
-%   [psi_mfpsm, ps_realization] = get_mfpsm_data(S4, tau0, simulation_time)
+%   [psi_mfpsm, ps_realization] = get_mfpsm_data(S4, tau0, simulation_time,sampling_interval)
 %
 % Description:
 %   This function calculates the phase screen realization and corresponding
