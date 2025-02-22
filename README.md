@@ -69,7 +69,7 @@ This project is licensed under the [Your License Name Here] License.
 ## Additional Information
 For further details on the project's design, usage, and configuration, please refer to the documentation in the /docs folder or contact the project maintainers.
 
-## Authors information:
+## Authors' Information:
 
 ### Rodrigo de Lima Florindo
 - Orcid: https://orcid.org/0000-0003-0412-5583
