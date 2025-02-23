@@ -8,12 +8,9 @@ classdef test_get_tppsm_data < matlab.unittest.TestCase
     
     methods (TestClassSetup)
         function addPaths(testCase)
-            % Compute repository root based on the current file location.
-            % The test file is located at:
-            % E:\Github\kalman_pll_testbench\libs\get_received_signal_functions\tests
-            % Therefore, the repository root is four levels up.
-            % Add the submodule path and all its subdirectories.
+            % Add the paths for the tests
             submodule_paths = genpath(fullfile(pwd,'..','..','scintillation_models/refactored_tppsm'));
+            % The paths should also include the `get_tppsm_data` function.
             all_paths = [submodule_paths, ';' , fullfile(pwd,'..')];
             addpath(all_paths);
             % Ensure the path is removed after tests.

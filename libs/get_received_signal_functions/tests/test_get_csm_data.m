@@ -1,75 +1,229 @@
-classdef test_get_tppsm_data < matlab.unittest.TestCase
-    properties
-        validScenario = 'Moderate';
-        simulation_time = 300;
-        sampling_interval = 0.01;
-        seed = 42;
+classdef test_get_csm_data < matlab.unittest.TestCase
+% test_get_csm_data
+% Unit tests for the `get_csm_data` function, which simulates a Cornell
+% Scintillation Model (CSM) time series based on specified scintillation
+% parameters.
+%
+% This test suite validates the correctness and robustness of the `get_csm_data` 
+% function by testing its behavior under various scenarios, including:
+%
+% **Functional Tests**:
+%   - Ensure valid inputs produce a non-empty, complex output.
+%
+% **Validation Tests**:
+%   - Dynamically validate error handling for invalid inputs, including:
+%       1. Negative or out-of-range values for `S4`.
+%       2. Non-numeric, non-scalar, or invalid `tau0`, `simulation_time`, and `sampling_interval`.
+%
+% Example:
+%   To run the test suite:
+%       results = runtests('test_get_csm_data');
+%       disp(results);
+%
+% Author:
+%   Rodrigo de Lima Florindo
+%   ORCID: https://orcid.org/0000-0003-0412-5583
+%   Email: rdlfresearch@gmail.com
+
+properties
+    % Valid Test Parameters
+    S4 = 0.8;                   % Valid S4 index
+    tau0 = 0.7;                 % Valid decorrelation time
+    simulation_time = 300;      % Valid total simulation time
+    sampling_interval = 0.01;                 % Valid sampling time
+    invalid_inputs               % Dynamically generated invalid input cases
+end
+
+properties (TestParameter)
+    % Parameterized input names for dynamic testing
+    input_name = struct(...
+        'S4', 'S4', ...
+        'tau0', 'tau0', ...
+        'simulation_time', 'simulation_time', ...
+        'sampling_interval', 'sampling_interval' ...
+    );
+end
+
+methods (TestClassSetup)
+    function classSetup(testCase)
+        % Add parent directory and dependencies to the path
+        paths = {fullfile(pwd, '..'), ...
+                 fullfile(pwd, '..', '..', 'scintillation_models', 'cornell_scintillation_model')};
+        for pathToAdd = paths
+            if ~contains(path, pathToAdd{1})
+                addpath(pathToAdd{1});
+                testCase.addTeardown(@() rmpath(pathToAdd{1}));
+            end
+        end
+
+        % Define invalid input cases dynamically
+        testCase.invalid_inputs = struct(...
+            'S4', { ...
+                {'invalid', 'MATLAB:get_csm_data:invalidType'; ...
+                 true, 'MATLAB:get_csm_data:invalidType'; ...
+                 {0.8}, 'MATLAB:get_csm_data:invalidType'; ...
+                 [0.8, 0.9], 'MATLAB:get_csm_data:expectedScalar'; ...
+                 zeros(2, 2), 'MATLAB:get_csm_data:expectedScalar'; ...
+                 -0.1, 'MATLAB:get_csm_data:expectedPositive'; ...
+                 1.1, 'MATLAB:get_csm_data:notLessEqual'; ...
+                 Inf, 'MATLAB:get_csm_data:expectedFinite'; ...
+                 -Inf, 'MATLAB:get_csm_data:expectedPositive'; ...
+                 NaN, 'MATLAB:get_csm_data:expectedFinite'; ...
+                 [], 'MATLAB:get_csm_data:expectedScalar'; ...
+                 0.8 + 1j, 'MATLAB:get_csm_data:expectedReal' ...
+                }}, ...
+            'tau0', { ...
+                {'invalid', 'MATLAB:get_csm_data:invalidType'; ...
+                 true, 'MATLAB:get_csm_data:invalidType'; ...
+                 {0.7}, 'MATLAB:get_csm_data:invalidType'; ...
+                 [0.7, 0.8], 'MATLAB:get_csm_data:expectedScalar'; ...
+                 zeros(2, 2), 'MATLAB:get_csm_data:expectedScalar'; ...
+                 -0.5, 'MATLAB:get_csm_data:expectedPositive'; ...
+                 Inf, 'MATLAB:get_csm_data:expectedFinite'; ...
+                 -Inf, 'MATLAB:get_csm_data:expectedPositive'; ...
+                 NaN, 'MATLAB:get_csm_data:expectedFinite'; ...
+                 [], 'MATLAB:get_csm_data:expectedScalar'; ...
+                 0.7 + 1j, 'MATLAB:get_csm_data:expectedReal' ...
+                }}, ...
+            'simulation_time', { ...
+                {'invalid', 'MATLAB:get_csm_data:invalidType'; ...
+                 true, 'MATLAB:get_csm_data:invalidType'; ...
+                 {300}, 'MATLAB:get_csm_data:invalidType'; ...
+                 [300, 400], 'MATLAB:get_csm_data:expectedScalar'; ...
+                 zeros(3, 3), 'MATLAB:get_csm_data:expectedScalar'; ...
+                 -300, 'MATLAB:get_csm_data:expectedPositive'; ...
+                 0, 'MATLAB:get_csm_data:expectedPositive'; ...
+                 Inf, 'MATLAB:get_csm_data:expectedFinite'; ...
+                 -Inf, 'MATLAB:get_csm_data:expectedPositive'; ...
+                 NaN, 'MATLAB:get_csm_data:expectedFinite'; ...
+                 [], 'MATLAB:get_csm_data:expectedScalar'; ...
+                 300 + 1j, 'MATLAB:get_csm_data:expectedReal' ...
+                }}, ...
+            'sampling_interval', { ...
+                {'invalid', 'MATLAB:get_csm_data:invalidType'; ...
+                 true, 'MATLAB:get_csm_data:invalidType'; ...
+                 {0.01}, 'MATLAB:get_csm_data:invalidType'; ...
+                 [0.01, 0.02], 'MATLAB:get_csm_data:expectedScalar'; ...
+                 zeros(3, 3), 'MATLAB:get_csm_data:expectedScalar'; ...invalid_inputs
+                 -0.01, 'MATLAB:get_csm_data:expectedPositive'; ...
+                 0, 'MATLAB:get_csm_data:expectedPositive'; ...
+                 Inf, 'MATLAB:get_csm_data:expectedFinite'; ...
+                 -Inf, 'MATLAB:get_csm_data:expectedPositive'; ...
+                 NaN, 'MATLAB:get_csm_data:expectedFinite'; ...
+                 [], 'MATLAB:get_csm_data:expectedScalar'; ...
+                 0.01 + 1j, 'MATLAB:get_csm_data:expectedReal' ...
+                }} ...
+        );
     end
+end
+
+methods (Test)
+    %% Functional Tests
+    function test_output_S4_statistical_correctness(testCase)
+        % Statistical evaluation of S4 calculation correctness for psi_csm
     
-    methods (TestClassSetup)
-        function addPaths(testCase)
-            % Compute repository root based on the current file location.
-            % The test file is located at:
-            % E:\Github\kalman_pll_testbench\libs\get_received_signal_functions\tests
-            % Therefore, the repository root is four levels up.
-            currentFile = mfilename('fullpath');
-            repoRoot = fileparts(fileparts(fileparts(fileparts(currentFile))));
-            % Define the path to the refactored TPPSM submodule.
-            submodulePath = fullfile(repoRoot, 'libs', 'scintillation_models', 'refactored_tppsm');
-            % Add the submodule path and all its subdirectories.
-            p = genpath(submodulePath);
-            addpath(p);
-            % Ensure the path is removed after tests.
-            testCase.addTeardown(@() rmpath(p));
-        end
-    end
+        % Number of iterations for statistical evaluation
+        num_iterations = 100;
     
-    methods (Test)
-        function testValidOutput(testCase)
-            [psi_tppsm, ps_realization, general_params, irr_params_set, seedOut] = ...
-                get_tppsm_data(testCase.validScenario, ...
-                'simulation_time', testCase.simulation_time, ...
-                'sampling_interval', testCase.sampling_interval, ...
-                'seed', testCase.seed);
-            
-            % Verify outputs are non-empty and of type double.
-            testCase.verifyNotEmpty(psi_tppsm);
-            testCase.verifyNotEmpty(ps_realization);
-            testCase.verifyClass(psi_tppsm, 'double');
-            testCase.verifyClass(ps_realization, 'double');
-            
-            % Verify the number of samples is correct.
-            expectedSamples = round(testCase.simulation_time / testCase.sampling_interval);
-            testCase.verifySize(psi_tppsm, [1, expectedSamples]);
-            testCase.verifySize(ps_realization, [1, expectedSamples]);
-            
-            % Verify the returned seed matches the input seed.
-            testCase.verifyEqual(seedOut, testCase.seed);
+        % Preallocate arrays for differences and psi_csm samples
+        num_samples_per_iteration = testCase.simulation_time / testCase.sampling_interval;
+        s4_differences = zeros(1, num_iterations);
+        psi_csm_samples = zeros(num_samples_per_iteration * num_iterations, 1); % Flattened collection of all samples
+    
+        % Iterate to calculate S4 differences and collect samples
+        for i = 1:num_iterations
+            % Generate psi_csm using the provided S4 value
+            psi_csm = get_csm_data(testCase.S4, testCase.tau0, ...
+                                   testCase.simulation_time, testCase.sampling_interval);
+    
+            % Store the generated samples in the flattened array
+            start_idx = (i - 1) * num_samples_per_iteration + 1;
+            end_idx = i * num_samples_per_iteration;
+            psi_csm_samples(start_idx:end_idx) = psi_csm(:);
+    
+            % Calculate the intensity
+            intensity = abs(psi_csm).^2;
+    
+            % Calculate the mean of intensity and its square
+            mean_intensity = mean(intensity);
+            mean_intensity_squared = mean(intensity.^2);
+    
+            % Calculate the S4 value from the samples
+            s4_calculated = sqrt((mean_intensity_squared - mean_intensity^2) / mean_intensity^2);
+    
+            % Store the absolute difference between calculated and input S4
+            s4_differences(i) = abs(s4_calculated - testCase.S4);
         end
-        
-        function testInvalidScenario(testCase)
-            % Test that providing an invalid scenario produces an error.
-            testCase.verifyError(@() get_tppsm_data('InvalidScenario'), ...
-                'get_tppsm_data:InvalidScenario');
-        end
-        
-        function testSimulationTimeLessThanSampling(testCase)
-            % Test that simulation_time less than sampling_interval triggers an error.
-            testCase.verifyError(@() get_tppsm_data(testCase.validScenario, ...
-                'simulation_time', 0.005, 'sampling_interval', 0.01), ...
-                'get_tppsm_data:simulationTimeSmallerThanSamplingInterval');
-        end
-        
-        function testNonNumericSimulationTime(testCase)
-            % Test that a non-numeric simulation_time input triggers the built-in error.
-            testCase.verifyError(@() get_tppsm_data(testCase.validScenario, 'simulation_time', 'invalid'), ...
-                'MATLAB:InputParser:ArgumentFailedValidation');
-        end
-        
-        function testNonNumericSamplingInterval(testCase)
-            % Test that a non-numeric sampling_interval input triggers the built-in error.
-            testCase.verifyError(@() get_tppsm_data(testCase.validScenario, 'sampling_interval', 'invalid'), ...
-                'MATLAB:InputParser:ArgumentFailedValidation');
+    
+        % Evaluate statistics of the differences
+        mean_difference = mean(s4_differences);
+        std_difference = std(s4_differences);
+    
+        % Define acceptable thresholds
+        mean_tolerance = 3e-2; % Mean difference threshold
+        std_tolerance = 5e-2;  % Standard deviation threshold
+    
+        % Verify that the mean difference is within tolerance
+        testCase.verifyLessThanOrEqual(mean_difference, mean_tolerance, ...
+            sprintf('Mean difference (%.4f) exceeds tolerance (%.4f).', ...
+                    mean_difference, mean_tolerance));
+    
+        % Verify that the standard deviation is within tolerance
+        testCase.verifyLessThanOrEqual(std_difference, std_tolerance, ...
+            sprintf('Standard deviation of differences (%.4f) exceeds tolerance (%.4f).', ...
+                    std_difference, std_tolerance));
+    end
+
+
+    %% Edge Cases
+    function test_boundary_S4_zero(testCase)
+        % Test with S4 = 0 (no scintillation)
+        testCase.verifyError(@() get_csm_data(0, testCase.tau0, ...
+                               testCase.simulation_time, testCase.sampling_interval),'MATLAB:get_csm_data:expectedPositive', ...
+                               sprintf('Validation failed for %s with input: %s', 'S4', 0));
+    end
+
+    %% Validation Tests
+    function test_invalid_inputs(testCase, input_name)
+        % Dynamically validate invalid inputs
+        testCase.run_validation_tests(input_name, testCase.invalid_inputs.(input_name));
+    end
+end
+
+methods
+    function run_validation_tests(testCase, input_name, invalidCases)
+        % Iterate through invalid cases and verify errors
+        for invalidCase = invalidCases.'
+            invalidInput = invalidCase{1}; % Extract invalid value
+            expectedError = invalidCase{2}; % Extract expected error ID
+
+            % Generate function inputs
+            inputs = testCase.generate_inputs(input_name, invalidInput);
+            invalidInputStr = testCase.safe_input_strings(invalidInput);
+
+            % Validate the function throws the expected error
+            testCase.verifyError(@() get_csm_data(inputs{:}), expectedError, ...
+                sprintf('Validation failed for %s with input: %s', input_name, invalidInputStr));
         end
     end
+
+    function inputs = generate_inputs(testCase, fieldName, value)
+        % Generate inputs for get_csm_data, replacing specified field
+        inputs = {testCase.S4, testCase.tau0, testCase.simulation_time, testCase.sampling_interval};
+        fieldNames = {'S4', 'tau0', 'simulation_time', 'sampling_interval'};
+        inputs(strcmp(fieldNames, fieldName)) = {value};
+    end
+
+    function str = safe_input_strings(~, input)
+        % Safely convert input to string for error messages
+        if ischar(input) || isstring(input)
+            str = char(input);
+        elseif isnumeric(input) || islogical(input)
+            str = mat2str(input);
+        else
+            str = '<unconvertible input>';
+        end
+    end
+end
+
 end
