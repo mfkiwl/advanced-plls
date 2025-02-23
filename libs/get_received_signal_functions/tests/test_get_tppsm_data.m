@@ -1,4 +1,33 @@
 classdef test_get_tppsm_data < matlab.unittest.TestCase
+% test_get_tppsm_data
+%
+% Syntax:
+%   results = runtests('test_get_tppsm_data')
+%
+% Description:
+%   Unit tests for the get_tppsm_data function. This suite tests that the
+%   TPPSM simulation returns outputs with correct type and size for valid
+%   inputs, and that it errors for invalid inputs.
+%
+% Inputs:
+%   (None) - No input arguments.
+%
+% Outputs:
+%   results - Test results from MATLAB unit testing framework.
+%
+% Notes:
+%   - Ensure the correct paths to the refactored TPPSM model are added.
+%   - Intended for MATLAB R2024b.
+%
+% Example:
+%   % Run tests from the MATLAB command window:
+%   results = runtests('test_get_tppsm_data');
+%
+% Author:
+%   Rodrigo de Lima Florindo
+%   ORCID: https://orcid.org/0000-0003-0412-5583
+%   Email: rdlfresearch@gmail.com
+
     properties
         validScenario = 'Moderate';
         simulation_time = 300;

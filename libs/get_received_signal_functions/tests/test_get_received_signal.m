@@ -1,4 +1,34 @@
 classdef test_get_received_signal < matlab.unittest.TestCase
+% test_get_received_signal
+%
+% Syntax:
+%   results = runtests('test_get_received_signal')
+%
+% Description:
+%   Unit tests for the get_received_signal function. This suite tests that
+%   the function simulates the baseband received signal with ionospheric
+%   scintillation, thermal noise, and LOS phase dynamics correctly.
+%
+% Inputs:
+%   (None) - No input arguments.
+%
+% Outputs:
+%   results - Test results from MATLAB unit testing framework.
+%
+% Notes:
+%   - Ensure that paths to the TPPSM and Cornell models are added prior to
+%     testing.
+%   - Intended for MATLAB R2024b.
+%
+% Example:
+%   % Run tests from the MATLAB command window:
+%   results = runtests('test_get_received_signal');
+%
+% Author:
+%   Rodrigo de Lima Florindo
+%   ORCID: https://orcid.org/0000-0003-0412-5583
+%   Email: rdlfresearch@gmail.com
+
     properties
         % Define valid parameters for testing
         C_over_N0_dBHz = 45;
