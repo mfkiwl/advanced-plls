@@ -12,15 +12,12 @@ classdef test_get_tppsm_data < matlab.unittest.TestCase
             % The test file is located at:
             % E:\Github\kalman_pll_testbench\libs\get_received_signal_functions\tests
             % Therefore, the repository root is four levels up.
-            currentFile = mfilename('fullpath');
-            repoRoot = fileparts(fileparts(fileparts(fileparts(currentFile))));
-            % Define the path to the refactored TPPSM submodule.
-            submodulePath = fullfile(repoRoot, 'libs', 'scintillation_models', 'refactored_tppsm');
             % Add the submodule path and all its subdirectories.
-            p = genpath(submodulePath);
-            addpath(p);
+            submodule_paths = genpath(fullfile(pwd,'..','..','scintillation_models/refactored_tppsm'));
+            all_paths = [submodule_paths, ';' , fullfile(pwd,'..')];
+            addpath(all_paths);
             % Ensure the path is removed after tests.
-            testCase.addTeardown(@() rmpath(p));
+            testCase.addTeardown(@() rmpath(all_paths));
         end
     end
     
