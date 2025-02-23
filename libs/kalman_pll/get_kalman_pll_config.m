@@ -43,14 +43,14 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(config)
     %       - var_maximum_order: Maximum VAR model order.
     %       - C_over_N0_array_dBHz: Array representing the average C/N0 values for each 
     %          frequency band (in dB-Hz).
-    %       - training_scint_model: Selected scintillation model ('CSM', 'MFPSM', or 'none').
+    %       - training_scint_model: Selected scintillation model ('CSM', 'TPPSM', or 'none').
     %       - initial_states_distributions_boundaries: Uniform
     %          distributions boundaries for generating the initial state
     %          estimates for the Doppler profile used by the Kalman Filter.
     %       - real_doppler_profile: Real Doppler profile used to simulate the
     %          synthetic line-of-sight dynamics.
     %       - is_refractive_effects_removed: Boolean flag indicating whether refractive 
-    %          effects are removed for MFPSM.
+    %          effects are removed for TPPSM.
     %       - is_use_cached_settings: Boolean flag indicating whether cached configurations 
     %          should be used.
     %       - is_generate_random_initial_estimates: Boolean flag indicating
@@ -130,7 +130,7 @@ function kalman_pll_config = handle_kalman_pll_config(config, cache_file, sampli
     %
     % Inputs:
     %   config - Struct containing all configuration details with the following fields:
-    %       - training_scint_model: Specifies the scintillation model ('CSM', 'MFPSM', or 'none').
+    %       - training_scint_model: Specifies the scintillation model ('CSM', 'TPPSM', or 'none').
     %       - discrete_wiener_model_config: Cell array for LOS dynamics parameters to 
     %                                       be used by `get_discrete_wiener_model`.
     %         Example: {1, 3, 0.01, [0, 0, 1], 1}, where:
@@ -258,7 +258,7 @@ function initial_estimates = handle_initial_estimates(config, kalman_pll_config)
     %         to generate random initial estimates of the Doppler profile. Example:
     %           {{[-pi, pi]}, {[-5, 5]}, {[-0.1, 0.1]}, {[-0.001, 0.001]}}
     %       - real_doppler_profile: Vector containing the real Doppler profile values.
-    %       - training_scint_model: String specifying the scintillation model ('CSM', 'MFPSM', or 'none').
+    %       - training_scint_model: String specifying the scintillation model ('CSM', 'TPPSM', or 'none').
     %
     %   kalman_pll_config - Struct containing Kalman filter settings, which must include:
     %       - var_states_amount: Number of VAR model states.
@@ -409,7 +409,7 @@ function [kalman_pll_config, is_cache_used] = load_or_initialize_models(config, 
     else
         fprintf('No cache file found. Initializing kalman_pll_config.\n');
         % Initialize the kalman_pll_config struct
-        kalman_pll_config = struct('CSM', struct(), 'MFPSM', struct(), 'none', struct());
+        kalman_pll_config = struct('CSM', struct(), 'TPPSM', struct(), 'none', struct());
         bp = 1;
     end
 end
@@ -435,7 +435,7 @@ function kalman_pll_config = compute_settings(kalman_pll_config, ...
     %   (number of states and order) are also computed.
     %
     % Inputs:
-    %   training_scint_model                      - Selected scintillation model ('CSM', 'MFPSM').
+    %   training_scint_model                      - Selected scintillation model ('CSM', 'TPPSM').
     %   scintillation_training_data_config - Cell array of scintillation model settings, such as:
     %                                         {S4, tau0, simulation_time, sampling_interval}.
     %   var_minimum_order                - Minimum VAR model order.
@@ -443,7 +443,7 @@ function kalman_pll_config = compute_settings(kalman_pll_config, ...
     %   C_over_N0_array_dBHz             - Array of carrier-to-noise density ratios in dB-Hz.
     %   sampling_interval                - Sampling interval for the Kalman filter in seconds.
     %   F_los, Q_los                     - LOS dynamics state transition and covariance matrices.
-    %   is_refractive_effects_removed    - Boolean flag indicating whether to remove refractive effects for MFPSM.
+    %   is_refractive_effects_removed    - Boolean flag indicating whether to remove refractive effects for TPPSM.
     %
     % Outputs:
     %   kalman_pll_config - Struct containing the computed Kalman filter 
@@ -460,7 +460,7 @@ function kalman_pll_config = compute_settings(kalman_pll_config, ...
     %
     % Notes:
     %   - The function preprocesses training data based on the selected scintillation model
-    %     and removes refractive effects if specified (for MFPSM only).
+    %     and removes refractive effects if specified (for TPPSM only).
     %   - VAR model parameters are computed using the `arfit` function.
     %   - Full Kalman matrices are constructed by combining LOS and VAR model dynamics.
     %
@@ -513,20 +513,20 @@ function training_data = preprocess_training_data(training_scint_model, scintill
     % Description:
     %   This function generates training data for a given scintillation model. It extracts the 
     %   phase information from the scintillation field, optionally removing refractive effects 
-    %   for the MFPSM model.
+    %   for the TPPSM model.
     %
     % Inputs:
-    %   training_scint_model                      - Scintillation model ('CSM', 'MFPSM').
+    %   training_scint_model                      - Scintillation model ('CSM', 'TPPSM').
     %   scintillation_training_data_config - Cell array containing scintillation model settings.
-    %   is_refractive_effects_removed    - Boolean indicating whether to remove refractive effects (applies to MFPSM only).
+    %   is_refractive_effects_removed    - Boolean indicating whether to remove refractive effects (applies to TPPSM only).
     %
     % Outputs:
     %   training_data - Phase data extracted from the scintillation field.
     %
     % Notes:
-    %   - The function calls external functions (`get_csm_data` or `get_mfpsm_data`) to generate 
+    %   - The function calls external functions (`get_csm_data` or `get_tppsm_data`) to generate 
     %     scintillation fields.
-    %   - For MFPSM, refractive effects are removed by multiplying with the complex conjugate 
+    %   - For TPPSM, refractive effects are removed by multiplying with the complex conjugate 
     %     of the phase screen realization.
     %
     % Examples:
@@ -542,9 +542,9 @@ function training_data = preprocess_training_data(training_scint_model, scintill
             scint_complex_field = get_csm_data(scintillation_training_data_config{:});
             training_data = angle(scint_complex_field); % Extract phase data
 
-        case 'MFPSM'
+        case 'TPPSM'
             [scint_complex_field, ps_realization] = ...
-                get_mfpsm_data(scintillation_training_data_config{:});
+                get_tppsm_data(scintillation_training_data_config{:});
             if is_refractive_effects_removed
                 % Remove refractive effects
                 scint_complex_field = scint_complex_field .* exp(-1j * ps_realization);
@@ -768,9 +768,9 @@ function validate_config(config)
               config.var_minimum_order, config.var_maximum_order);
     end
 
-    if ~ismember(config.training_scint_model, {'CSM', 'MFPSM', 'none'})
+    if ~ismember(config.training_scint_model, {'CSM', 'TPPSM', 'none'})
         error('validate_config:InvalidScintModel', ...
-              '`training_scint_model` must be one of the following: ''CSM'', ''MFPSM'', ''none''.');
+              '`training_scint_model` must be one of the following: ''CSM'', ''TPPSM'', ''none''.');
     end
 
     % Check initial_states_distributions_boundaries structure
