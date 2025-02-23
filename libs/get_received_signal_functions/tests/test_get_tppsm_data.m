@@ -9,9 +9,9 @@ classdef test_get_tppsm_data < matlab.unittest.TestCase
     methods (TestClassSetup)
         function addPaths(testCase)
             % Add the paths for the tests
-            submodule_paths = genpath(fullfile(pwd,'..','..','scintillation_models/refactored_tppsm'));
-            % The paths should also include the `get_tppsm_data` function.
-            all_paths = [submodule_paths, ';' , fullfile(pwd,'..')];
+            tppsm_paths = genpath(fullfile(pwd,'..','..','scintillation_models/refactored_tppsm'));
+            get_received_functions_path = fullfile(pwd,'..');
+            all_paths = [tppsm_paths, ';' , get_received_functions_path];
             addpath(all_paths);
             % Ensure the path is removed after tests.
             testCase.addTeardown(@() rmpath(all_paths));

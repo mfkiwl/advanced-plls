@@ -47,15 +47,13 @@ end
 methods (TestClassSetup)
     function classSetup(testCase)
         % Add parent directory and dependencies to the path
-        paths = {fullfile(pwd, '..'), ...
-                 fullfile(pwd, '..', '..', 'scintillation_models', 'cornell_scintillation_model')};
-        for pathToAdd = paths
-            if ~contains(path, pathToAdd{1})
-                addpath(pathToAdd{1});
-                testCase.addTeardown(@() rmpath(pathToAdd{1}));
-            end
-        end
-
+        csm_paths = genpath(fullfile(pwd,'..','..','scintillation_models/cornell_scintillation_model'));
+        get_received_functions_path = fullfile(pwd,'..');
+        all_paths = [csm_paths, ';' , get_received_functions_path];
+        addpath(all_paths);
+        % Ensure the path is removed after tests.
+        testCase.addTeardown(@() rmpath(all_paths));
+        
         % Define invalid input cases dynamically
         testCase.invalid_inputs = struct(...
             'S4', { ...
