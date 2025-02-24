@@ -12,10 +12,11 @@ function training_data = preprocess_training_data(scintillation_training_data_co
 % Inputs:
 %   scintillation_training_data_config - Struct containing scintillation model settings.
 %       For CSM, expected fields:
-%           S4              - Scintillation index (0 <= S4 <= 1)
-%           tau0            - Signal decorrelation time (positive scalar)
-%           simulation_time - Duration of simulation (positive scalar)
-%           sampling_interval - Sampling interval (positive scalar)
+%           scintillation_model - Must be 'CSM'
+%           S4                  - Scintillation index (0 <= S4 <= 1)
+%           tau0                - Signal decorrelation time (positive scalar)
+%           simulation_time     - Duration of simulation (positive scalar)
+%           sampling_interval   - Sampling interval (positive scalar)
 %
 %       For TPPSM, expected fields:
 %           scintillation_model - Must be 'TPPSM'
@@ -44,37 +45,99 @@ function training_data = preprocess_training_data(scintillation_training_data_co
 %                      'is_refractive_effects_removed', true);
 %   training_data = preprocess_training_data(tpConfig);
 %
+% Dependencies:
+%   get_csm_data, get_tppsm_data, struct_to_nv_pairs.
+%
 % Author:
 %   Rodrigo de Lima Florindo
 %   ORCID: https://orcid.org/0000-0003-0412-5583
 %   Email: rdlfresearch@gmail.com
 
+    % 1) Validate scintillation_training_data_config is a nonempty struct
+    validateattributes(scintillation_training_data_config, {'struct'}, {'nonempty'}, ...
+        mfilename, 'scintillation_training_data_config');
+
+    % 2) Check for scintillation_model field
+    if ~isfield(scintillation_training_data_config, 'scintillation_model')
+        error('preprocess_training_data:MissingScintillationModelField', ...
+            'scintillation_training_data_config must contain a ''scintillation_model'' field.');
+    end
+
     model = scintillation_training_data_config.scintillation_model;
-    
+    if ~(ischar(model) || isstring(model))
+        error('preprocess_training_data:InvalidModelType', ...
+            'The "scintillation_model" field must be a character or string.');
+    end
+
+    % 3) Switch on model
     switch upper(model)
         case 'CSM'
-            % For CSM, extract required fields.
-            csm_config = scintillation_training_data_config;
-            scint_complex_field = get_csm_data(csm_config.S4, csm_config.tau0, ...
-                csm_config.simulation_time, csm_config.sampling_interval);
-            training_data = angle(scint_complex_field); % Extract phase data
-            
+            % Validate required fields for CSM
+            required_csm_fields = {'S4','tau0','simulation_time','sampling_interval'};
+            for f = 1:numel(required_csm_fields)
+                if ~isfield(scintillation_training_data_config, required_csm_fields{f})
+                    error('preprocess_training_data:MissingCSMField', ...
+                        'For CSM, the field "%s" is required.', required_csm_fields{f});
+                end
+            end
+
+            % Additional numeric validations can be done here if desired, e.g.:
+            validateattributes(scintillation_training_data_config.S4, {'numeric'}, ...
+                {'scalar','real','>=',0,'<=',1}, mfilename, 'S4');
+            validateattributes(scintillation_training_data_config.tau0, {'numeric'}, ...
+                {'scalar','positive','finite','nonnan'}, mfilename, 'tau0');
+            validateattributes(scintillation_training_data_config.simulation_time, {'numeric'}, ...
+                {'scalar','positive','finite','nonnan'}, mfilename, 'simulation_time');
+            validateattributes(scintillation_training_data_config.sampling_interval, {'numeric'}, ...
+                {'scalar','positive','finite','nonnan'}, mfilename, 'sampling_interval');
+
+            % Generate CSM data
+            csm_config = rmfield(scintillation_training_data_config,'scintillation_model');
+            scint_complex_field = get_csm_data(csm_config);
+            training_data = angle(scint_complex_field);
+
         case 'TPPSM'
-            % For TPPSM, extract required fields.
-            tppsm_config = scintillation_training_data_config;
-            % Automatically build name-value pairs from the struct (except for 'scintillation_model')
-            nv = struct_to_nv_pairs(rmfield(tppsm_config, 'scintillation_model'));
-            [scint_complex_field, ps_realization, ~, ~, ~] = get_tppsm_data(tppsm_config.scenario, nv{:});
-            if tppsm_config.is_refractive_effects_removed
-                % Remove refractive effects.
+            % Validate required fields for TPPSM
+            required_tppsm_fields = {'scenario','simulation_time','sampling_interval'};
+            for f = 1:numel(required_tppsm_fields)
+                if ~isfield(scintillation_training_data_config, required_tppsm_fields{f})
+                    error('preprocess_training_data:MissingTPPSMField', ...
+                        'For TPPSM, the field "%s" is required.', required_tppsm_fields{f});
+                end
+            end
+
+            % If is_refractive_effects_removed isn't present, default to false
+            if ~isfield(scintillation_training_data_config, 'is_refractive_effects_removed')
+                scintillation_training_data_config.is_refractive_effects_removed = false;
+            end
+
+            validateattributes(scintillation_training_data_config.scenario, {'char','string'}, ...
+                {'nonempty'}, mfilename, 'scenario');
+            validateattributes(scintillation_training_data_config.simulation_time, {'numeric'}, ...
+                {'scalar','positive','finite','nonnan'}, mfilename, 'simulation_time');
+            validateattributes(scintillation_training_data_config.sampling_interval, {'numeric'}, ...
+                {'scalar','positive','finite','nonnan'}, mfilename, 'sampling_interval');
+            validateattributes(scintillation_training_data_config.is_refractive_effects_removed, ...
+                {'logical'}, {'scalar'}, mfilename, 'is_refractive_effects_removed');
+
+            % Build name-value pairs from the struct except the "scintillation_model" field
+            tppsm_config = rmfield(scintillation_training_data_config, {'scintillation_model','is_refractive_effects_removed'});
+            nv = struct_to_nv_pairs(tppsm_config);
+            [scint_complex_field, ps_realization, ~, ~, ~] = ...
+                get_tppsm_data(scintillation_training_data_config.scenario, nv{:});
+
+            % Optionally remove refractive effects
+            if scintillation_training_data_config.is_refractive_effects_removed
                 scint_complex_field = scint_complex_field .* exp(-1j * ps_realization);
             end
-            training_data = angle(scint_complex_field); % Extract phase data
-            
+            training_data = angle(scint_complex_field);
+
         case 'NONE'
+            % For 'none', we can define training_data as an empty array
             training_data = [];
 
         otherwise
-            error('preprocess_training_data:UnsupportedModel', 'Unsupported scintillation model: %s', model);
+            error('preprocess_training_data:UnsupportedModel', ...
+                'Unsupported scintillation model: %s', model);
     end
 end

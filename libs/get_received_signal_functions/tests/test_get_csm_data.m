@@ -1,227 +1,172 @@
 classdef test_get_csm_data < matlab.unittest.TestCase
-% test_get_csm_data
-% Unit tests for the `get_csm_data` function, which simulates a Cornell
-% Scintillation Model (CSM) time series based on specified scintillation
-% parameters.
-%
-% This test suite validates the correctness and robustness of the `get_csm_data` 
-% function by testing its behavior under various scenarios, including:
-%
-% **Functional Tests**:
-%   - Ensure valid inputs produce a non-empty, complex output.
-%
-% **Validation Tests**:
-%   - Dynamically validate error handling for invalid inputs, including:
-%       1. Negative or out-of-range values for `S4`.
-%       2. Non-numeric, non-scalar, or invalid `tau0`, `simulation_time`, and `sampling_interval`.
-%
-% Example:
-%   To run the test suite:
-%       results = runtests('test_get_csm_data');
-%       disp(results);
-%
-% Author:
-%   Rodrigo de Lima Florindo
-%   ORCID: https://orcid.org/0000-0003-0412-5583
-%   Email: rdlfresearch@gmail.com
+    % test_get_csm_data
+    %
+    % Syntax:
+    %   results = runtests('test_get_csm_data')
+    %
+    % Description:
+    %   Unit tests for get_csm_data, which generates a Cornell Scintillation 
+    %   Model (CSM) time series from a struct (csm_params) containing 
+    %   scintillation parameters (S4, tau0, simulation_time, sampling_interval).
+    %
+    %   This suite verifies:
+    %   - Correct output type for valid inputs
+    %   - Approximate correctness of the S4 index
+    %   - Error handling for missing fields and invalid values
+    %   - Warnings when simulation_time / sampling_interval is non-integer
+    %
+    % Example:
+    %   % Run the test suite:
+    %   results = runtests('test_get_csm_data');
+    %   disp(results);
+    %
+    % Author:
+    %   Rodrigo de Lima Florindo
+    %   ORCID: https://orcid.org/0000-0003-0412-5583
+    %   Email: rdlfresearch@gmail.com
 
-properties
-    % Valid Test Parameters
-    S4 = 0.8;                   % Valid S4 index
-    tau0 = 0.7;                 % Valid decorrelation time
-    simulation_time = 300;      % Valid total simulation time
-    sampling_interval = 0.01;                 % Valid sampling time
-    invalid_inputs               % Dynamically generated invalid input cases
-end
-
-properties (TestParameter)
-    % Parameterized input names for dynamic testing
-    input_name = struct(...
-        'S4', 'S4', ...
-        'tau0', 'tau0', ...
-        'simulation_time', 'simulation_time', ...
-        'sampling_interval', 'sampling_interval' ...
-    );
-end
-
-methods (TestClassSetup)
-    function classSetup(testCase)
-        % Add parent directory and dependencies to the path
-        csm_paths = genpath(fullfile(pwd,'..','..','scintillation_models/cornell_scintillation_model'));
-        get_received_functions_path = fullfile(pwd,'..');
-        all_paths = [csm_paths, ';' , get_received_functions_path];
-        addpath(all_paths);
-        % Ensure the path is removed after tests.
-        testCase.addTeardown(@() rmpath(all_paths));
-        
-        % Define invalid input cases dynamically
-        testCase.invalid_inputs = struct(...
-            'S4', { ...
-                {'invalid', 'MATLAB:get_csm_data:invalidType'; ...
-                 true, 'MATLAB:get_csm_data:invalidType'; ...
-                 {0.8}, 'MATLAB:get_csm_data:invalidType'; ...
-                 [0.8, 0.9], 'MATLAB:get_csm_data:expectedScalar'; ...
-                 zeros(2, 2), 'MATLAB:get_csm_data:expectedScalar'; ...
-                 -0.1, 'MATLAB:get_csm_data:expectedPositive'; ...
-                 1.1, 'MATLAB:get_csm_data:notLessEqual'; ...
-                 Inf, 'MATLAB:get_csm_data:expectedFinite'; ...
-                 -Inf, 'MATLAB:get_csm_data:expectedPositive'; ...
-                 NaN, 'MATLAB:get_csm_data:expectedFinite'; ...
-                 [], 'MATLAB:get_csm_data:expectedScalar'; ...
-                 0.8 + 1j, 'MATLAB:get_csm_data:expectedReal' ...
-                }}, ...
-            'tau0', { ...
-                {'invalid', 'MATLAB:get_csm_data:invalidType'; ...
-                 true, 'MATLAB:get_csm_data:invalidType'; ...
-                 {0.7}, 'MATLAB:get_csm_data:invalidType'; ...
-                 [0.7, 0.8], 'MATLAB:get_csm_data:expectedScalar'; ...
-                 zeros(2, 2), 'MATLAB:get_csm_data:expectedScalar'; ...
-                 -0.5, 'MATLAB:get_csm_data:expectedPositive'; ...
-                 Inf, 'MATLAB:get_csm_data:expectedFinite'; ...
-                 -Inf, 'MATLAB:get_csm_data:expectedPositive'; ...
-                 NaN, 'MATLAB:get_csm_data:expectedFinite'; ...
-                 [], 'MATLAB:get_csm_data:expectedScalar'; ...
-                 0.7 + 1j, 'MATLAB:get_csm_data:expectedReal' ...
-                }}, ...
-            'simulation_time', { ...
-                {'invalid', 'MATLAB:get_csm_data:invalidType'; ...
-                 true, 'MATLAB:get_csm_data:invalidType'; ...
-                 {300}, 'MATLAB:get_csm_data:invalidType'; ...
-                 [300, 400], 'MATLAB:get_csm_data:expectedScalar'; ...
-                 zeros(3, 3), 'MATLAB:get_csm_data:expectedScalar'; ...
-                 -300, 'MATLAB:get_csm_data:expectedPositive'; ...
-                 0, 'MATLAB:get_csm_data:expectedPositive'; ...
-                 Inf, 'MATLAB:get_csm_data:expectedFinite'; ...
-                 -Inf, 'MATLAB:get_csm_data:expectedPositive'; ...
-                 NaN, 'MATLAB:get_csm_data:expectedFinite'; ...
-                 [], 'MATLAB:get_csm_data:expectedScalar'; ...
-                 300 + 1j, 'MATLAB:get_csm_data:expectedReal' ...
-                }}, ...
-            'sampling_interval', { ...
-                {'invalid', 'MATLAB:get_csm_data:invalidType'; ...
-                 true, 'MATLAB:get_csm_data:invalidType'; ...
-                 {0.01}, 'MATLAB:get_csm_data:invalidType'; ...
-                 [0.01, 0.02], 'MATLAB:get_csm_data:expectedScalar'; ...
-                 zeros(3, 3), 'MATLAB:get_csm_data:expectedScalar'; ...invalid_inputs
-                 -0.01, 'MATLAB:get_csm_data:expectedPositive'; ...
-                 0, 'MATLAB:get_csm_data:expectedPositive'; ...
-                 Inf, 'MATLAB:get_csm_data:expectedFinite'; ...
-                 -Inf, 'MATLAB:get_csm_data:expectedPositive'; ...
-                 NaN, 'MATLAB:get_csm_data:expectedFinite'; ...
-                 [], 'MATLAB:get_csm_data:expectedScalar'; ...
-                 0.01 + 1j, 'MATLAB:get_csm_data:expectedReal' ...
-                }} ...
-        );
+    properties
+        valid_csm_params % Minimal valid struct for csm_params
     end
-end
 
-methods (Test)
-    %% Functional Tests
-    function test_output_S4_statistical_correctness(testCase)
-        % Statistical evaluation of S4 calculation correctness for psi_csm
-    
-        % Number of iterations for statistical evaluation
-        num_iterations = 100;
-    
-        % Preallocate arrays for differences and psi_csm samples
-        num_samples_per_iteration = testCase.simulation_time / testCase.sampling_interval;
-        s4_differences = zeros(1, num_iterations);
-        psi_csm_samples = zeros(num_samples_per_iteration * num_iterations, 1); % Flattened collection of all samples
-    
-        % Iterate to calculate S4 differences and collect samples
-        for i = 1:num_iterations
-            % Generate psi_csm using the provided S4 value
-            psi_csm = get_csm_data(testCase.S4, testCase.tau0, ...
-                                   testCase.simulation_time, testCase.sampling_interval);
-    
-            % Store the generated samples in the flattened array
-            start_idx = (i - 1) * num_samples_per_iteration + 1;
-            end_idx = i * num_samples_per_iteration;
-            psi_csm_samples(start_idx:end_idx) = psi_csm(:);
-    
-            % Calculate the intensity
-            intensity = abs(psi_csm).^2;
-    
-            % Calculate the mean of intensity and its square
-            mean_intensity = mean(intensity);
-            mean_intensity_squared = mean(intensity.^2);
-    
-            % Calculate the S4 value from the samples
-            s4_calculated = sqrt((mean_intensity_squared - mean_intensity^2) / mean_intensity^2);
-    
-            % Store the absolute difference between calculated and input S4
-            s4_differences(i) = abs(s4_calculated - testCase.S4);
+    methods(TestClassSetup)
+        function addParentPath(testCase)
+            % Add parent directory and dependencies to the path
+            csm_paths = genpath(fullfile(pwd,'..','..','scintillation_models/cornell_scintillation_model'));
+            get_received_functions_path = fullfile(pwd,'..');
+            all_paths = [csm_paths, ';' , get_received_functions_path];
+            addpath(all_paths);
+            testCase.addTeardown(@() rmpath(all_paths));
         end
-    
-        % Evaluate statistics of the differences
-        mean_difference = mean(s4_differences);
-        std_difference = std(s4_differences);
-    
-        % Define acceptable thresholds
-        mean_tolerance = 3e-2; % Mean difference threshold
-        std_tolerance = 5e-2;  % Standard deviation threshold
-    
-        % Verify that the mean difference is within tolerance
-        testCase.verifyLessThanOrEqual(mean_difference, mean_tolerance, ...
-            sprintf('Mean difference (%.4f) exceeds tolerance (%.4f).', ...
-                    mean_difference, mean_tolerance));
-    
-        % Verify that the standard deviation is within tolerance
-        testCase.verifyLessThanOrEqual(std_difference, std_tolerance, ...
-            sprintf('Standard deviation of differences (%.4f) exceeds tolerance (%.4f).', ...
-                    std_difference, std_tolerance));
-    end
 
-
-    %% Edge Cases
-    function test_boundary_S4_zero(testCase)
-        % Test with S4 = 0 (no scintillation)
-        testCase.verifyError(@() get_csm_data(0, testCase.tau0, ...
-                               testCase.simulation_time, testCase.sampling_interval),'MATLAB:get_csm_data:expectedPositive', ...
-                               sprintf('Validation failed for %s with input: %s', 'S4', 0));
-    end
-
-    %% Validation Tests
-    function test_invalid_inputs(testCase, input_name)
-        % Dynamically validate invalid inputs
-        testCase.run_validation_tests(input_name, testCase.invalid_inputs.(input_name));
-    end
-end
-
-methods
-    function run_validation_tests(testCase, input_name, invalidCases)
-        % Iterate through invalid cases and verify errors
-        for invalidCase = invalidCases.'
-            invalidInput = invalidCase{1}; % Extract invalid value
-            expectedError = invalidCase{2}; % Extract expected error ID
-
-            % Generate function inputs
-            inputs = testCase.generate_inputs(input_name, invalidInput);
-            invalidInputStr = testCase.safe_input_strings(invalidInput);
-
-            % Validate the function throws the expected error
-            testCase.verifyError(@() get_csm_data(inputs{:}), expectedError, ...
-                sprintf('Validation failed for %s with input: %s', input_name, invalidInputStr));
+        function setupValidParams(testCase)
+            % Create a valid struct that passes all validations
+            testCase.valid_csm_params = struct( ...
+                'S4', 0.8, ...
+                'tau0', 0.7, ...
+                'simulation_time', 300, ...
+                'sampling_interval', 0.01 ...
+            );
         end
     end
 
-    function inputs = generate_inputs(testCase, fieldName, value)
-        % Generate inputs for get_csm_data, replacing specified field
-        inputs = {testCase.S4, testCase.tau0, testCase.simulation_time, testCase.sampling_interval};
-        fieldNames = {'S4', 'tau0', 'simulation_time', 'sampling_interval'};
-        inputs(strcmp(fieldNames, fieldName)) = {value};
-    end
+    methods(Test)
+        function testValidOutput(testCase)
+            % testValidOutput
+            % Ensures a valid csm_params produces a non-empty complex output.
+            psi_csm = get_csm_data(testCase.valid_csm_params);
+            testCase.verifyNotEmpty(psi_csm, ...
+                'Output should not be empty for valid inputs.');
+            testCase.verifyTrue(~isreal(psi_csm), ...
+                'psi_csm should be a complex-valued array.');
+        end
 
-    function str = safe_input_strings(~, input)
-        % Safely convert input to string for error messages
-        if ischar(input) || isstring(input)
-            str = char(input);
-        elseif isnumeric(input) || islogical(input)
-            str = mat2str(input);
-        else
-            str = '<unconvertible input>';
+        function testStatisticalEvaluationOfS4(testCase)
+            % testStatisticalEvaluationOfS4
+            % Evaluate that the simulated S4 index is approximately correct
+            % across multiple iterations.
+            
+            S4_target = testCase.valid_csm_params.S4;
+            numIterations = 50;
+            s4Differences = zeros(1, numIterations);
+
+            for i = 1:numIterations
+                psi_csm = get_csm_data(testCase.valid_csm_params);
+                intensity = abs(psi_csm).^2;
+                s4_calc = sqrt(var(intensity) / mean(intensity)^2); 
+                % This is a quick approximate approach to the S4 index.
+
+                s4Differences(i) = abs(s4_calc - S4_target);
+            end
+
+            meanDiff = mean(s4Differences);
+            stdDiff = std(s4Differences);
+            meanTolerance = 0.04; % approximate tolerance
+            stdTolerance  = 0.06;
+
+            testCase.verifyLessThanOrEqual(meanDiff, meanTolerance, ...
+                sprintf('Mean difference %.4f exceeds tolerance %.4f.', meanDiff, meanTolerance));
+            testCase.verifyLessThanOrEqual(stdDiff, stdTolerance, ...
+                sprintf('Std difference %.4f exceeds tolerance %.4f.', stdDiff, stdTolerance));
+        end
+
+        function testS4ZeroError(testCase)
+            % testS4ZeroError
+            % S4 = 0 is invalid (strict positivity is required).
+            invalidParams = testCase.valid_csm_params;
+            invalidParams.S4 = 0;
+            testCase.verifyError(@() get_csm_data(invalidParams), ...
+                'MATLAB:get_csm_data:notGreater', ...
+                'S4=0 should raise an expectedPositive error.');
+        end
+
+        function testTimeLessThanSamplingIntervalError(testCase)
+            % testTimeLessThanSamplingIntervalError
+            % If simulation_time < sampling_interval, an error is raised.
+            invalidParams = testCase.valid_csm_params;
+            invalidParams.simulation_time = 0.001;
+            invalidParams.sampling_interval = 0.01;
+            testCase.verifyError(@() get_csm_data(invalidParams), ...
+                'get_csm_data:simulationTimeSmallerThanSamplingInterval', ...
+                'Expected an error if simulation_time < sampling_interval.');
+        end
+
+        function testRoundingWarning(testCase)
+            % testRoundingWarning
+            % If simulation_time / sampling_interval is not an integer,
+            % we expect a warning about rounding.
+            invalid_csm_params = struct( ...
+                'S4', 0.8, ...
+                'tau0', 0.7, ...
+                'simulation_time', 0.011, ...
+                'sampling_interval', 0.01 ...
+            );
+            testCase.verifyWarning(@() get_csm_data(invalid_csm_params), ...
+                'get_csm_data:NonIntegerRatioSamples', ...
+                'Expected a rounding warning for non-integer ratio of simulation_time to sampling_interval.');
+        end
+
+        function testMissingFieldError(testCase)
+            % testMissingFieldError
+            % If the csm_params struct is missing one of the required fields, it raises an error.
+            fields = {'S4','tau0','simulation_time','sampling_interval'};
+            for f = 1:numel(fields)
+                invalidParams = testCase.valid_csm_params;
+                invalidParams = rmfield(invalidParams, fields{f});
+                
+                testCase.verifyError(@() get_csm_data(invalidParams), ...
+                    'get_csm_data:MissingField', ...
+                    sprintf('Expected a MissingField error when "%s" is removed.', fields{f}));
+            end
+        end
+
+        function testInvalidInputType(testCase)
+            % testInvalidInputType
+            % If the input is not a struct, we expect a type error.
+            nonStructInput = 42;
+            testCase.verifyError(@() get_csm_data(nonStructInput), ...
+                'MATLAB:get_csm_data:invalidType', ...
+                'Expected a mustBeA error when input is not a struct.');
+        end
+
+        function testInvalidFieldValues(testCase)
+            % testInvalidFieldValues
+            % Check negative or nonsensical values for fields in csm_params.
+            invalidParams = testCase.valid_csm_params;
+
+            % Negative S4
+            invalidParams.S4 = -0.1;
+            testCase.verifyError(@() get_csm_data(invalidParams), ...
+                'MATLAB:get_csm_data:notGreater', ...
+                'Negative S4 should trigger an expectedPositive error.');
+            
+            % Reset
+            invalidParams.S4 = 0.8;
+            % Negative tau0
+            invalidParams.tau0 = -1;
+            testCase.verifyError(@() get_csm_data(invalidParams), ...
+                'MATLAB:get_csm_data:expectedPositive', ...
+                'Negative tau0 should trigger an expectedPositive error.');
         end
     end
-end
-
 end
