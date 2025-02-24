@@ -1,26 +1,26 @@
 classdef test_get_cached_kalman_pll_config < matlab.unittest.TestCase
-    % get_cached_kalman_pll_config
-    %
-    % Syntax:
-    %   results = runtests('get_cached_kalman_pll_config')
-    %
-    % Description:
-    %   Unit tests for the get_cached_kalman_pll_config function. This test suite
-    %   verifies that:
-    %     - A new configuration is initialized when no cache file exists.
-    %     - An existing cache file is used when valid and is_use_cached_settings is true.
-    %     - If the cache lacks required fields, the configuration is reinitialized.
-    %     - Validation errors occur for invalid inputs (non-struct config, non-string paths).
-    %
-    % Example:
-    %   % Run the test suite:
-    %   results = runtests('test_get_cached_kalman_pll_config');
-    %   disp(results);
-    %
-    % Author:
-    %   Rodrigo de Lima Florindo
-    %   ORCID: https://orcid.org/0000-0003-0412-5583
-    %   Email: rdlfresearch@gmail.com
+% get_cached_kalman_pll_config
+%
+% Syntax:
+%   results = runtests('get_cached_kalman_pll_config')
+%
+% Description:
+%   Unit tests for the get_cached_kalman_pll_config function. This test suite
+%   verifies that:
+%     - A new configuration is initialized when no cache file exists.
+%     - An existing cache file is used when valid and is_use_cached_settings is true.
+%     - If the cache lacks required fields, the configuration is reinitialized.
+%     - Validation errors occur for invalid inputs (non-struct config, non-string paths).
+%
+% Example:
+%   % Run the test suite:
+%   results = runtests('test_get_cached_kalman_pll_config');
+%   disp(results);
+%
+% Author:
+%   Rodrigo de Lima Florindo
+%   ORCID: https://orcid.org/0000-0003-0412-5583
+%   Email: rdlfresearch@gmail.com
 
     properties
         cache_directory  % Temporary cache directory for testing
