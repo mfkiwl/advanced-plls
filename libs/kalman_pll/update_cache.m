@@ -1,148 +1,119 @@
-function kalman_pll_config = update_cache(config, cache_file, sampling_interval, kalman_pll_config, is_cache_used)
+function kalman_pll_config = update_cache(general_config, cache_file, kalman_pll_config, is_cache_used)
 % update_cache
 %
 % Syntax:
-%   kalman_pll_config = update_cache(config, ...
-%       cache_file, sampling_interval, kalman_pll_config, is_cache_used)
+%   kalman_pll_config = update_cache(general_config, cache_file, kalman_pll_config, is_cache_used)
 %
 % Description:
-%   This function either computes or retrieves from cache the Kalman filter 
-%   settings required for PLL operation. It supports caching to reuse 
-%   previously computed parameters for efficient performance. If caching 
-%   is disabled, the function computes new settings, updates the Kalman 
-%   PLL configuration structure, and saves it to the cache.
+%   Either computes new Kalman PLL settings or retrieves them from cache for efficiency.
+%   If caching is disabled, the function computes new settings, updates the Kalman PLL configuration
+%   struct, and saves it to the specified cache file.
 %
 % Inputs:
-%   config - Struct containing all configuration details with the following fields:
-%       - training_scint_model: Specifies the scintillation model ('CSM', 'TPPSM', or 'none').
-%       - discrete_wiener_model_config: Cell array for LOS dynamics parameters to 
-%                                       be used by `get_discrete_wiener_model`.
-%         Example: {1, 3, 0.01, [0, 0, 1], 1}, where:
-%           * 1  - Number of frequency bands (`L`),
-%           * 3  - Third-order LOS dynamics (`M`),
-%           * 0.01 - Sampling time (`sampling_time`),
-%           * [0,0,1] - Sigma array for noise levels (`sigma_array`),
-%           * 1  - Ratio of its frequency to a reference frequency (`delta_array`).
-%       - scintillation_training_data_config: Cell array for scintillation model parameters.
-%         Example: {0.8, 0.7, 600, 0.01}, where:
-%           * 0.8  - S4 index (`S4`),
-%           * 0.7  - τ₀ (`tau0`),
-%           * 600  - Total simulation time (`simulation_time`),
-%           * 0.01 - Sampling time (`sampling_time`).
-%       - var_minimum_order: Minimum VAR (Vector Autoregressive) model order.
+%   general_config - Struct containing configuration details with required fields:
+%       - discrete_wiener_model_config: Cell array for LOS dynamics parameters used by
+%         get_discrete_wiener_model.
+%       - scintillation_training_data_config: Struct containing scintillation model settings.
+%           For CSM, expected fields:
+%               scintillation_model - Must be 'CSM'
+%               S4                  - Scintillation index (0 <= S4 <= 1)
+%               tau0                - Signal decorrelation time (positive scalar)
+%               simulation_time     - Duration of simulation (positive scalar)
+%               sampling_interval   - Sampling interval (positive scalar)
+%           For TPPSM, expected fields:
+%               scintillation_model - Must be 'TPPSM'
+%               scenario            - A string specifying the scenario ('Weak', 'Moderate', 'Severe')
+%               simulation_time     - Duration of simulation (positive scalar)
+%               sampling_interval   - Sampling interval (positive scalar)
+%               is_refractive_effects_removed - Boolean flag (true or false)
+%       - var_minimum_order: Minimum VAR model order.
 %       - var_maximum_order: Maximum VAR model order.
 %       - C_over_N0_array_dBHz: Array of average C/N0 values for each frequency band (in dB-Hz).
-%       - is_refractive_effects_removed: Boolean flag indicating whether refractive effects are removed.
+%       - initial_states_distributions_boundaries: Cell array for initial state distribution boundaries.
+%       - real_doppler_profile: Array or structure with the real Doppler profile.
+%       - is_use_cached_settings: Boolean flag indicating whether to use cached settings.
+%       - is_generate_random_initial_estimates: Boolean flag for generating random initial estimates.
 %
-%   cache_file        - String specifying the file path for caching Kalman PLL settings.
-%   sampling_interval - Numeric value specifying the sampling interval (in seconds).
-%   kalman_pll_config - Struct to hold or update Kalman PLL settings.
-%   is_cache_used     - Boolean flag indicating whether cached settings should be used.
+%   cache_file        - String specifying the file path for caching results.
+%   kalman_pll_config - Struct to hold or update the Kalman PLL settings.
+%   is_cache_used     - Boolean indicating whether cached settings should be used.
 %
 % Outputs:
-%   kalman_pll_config - Struct containing the computed or retrieved Kalman filter settings, 
-%                       with the following fields:
-%       * F  - Full state transition matrix.
-%       * Q  - Full process noise covariance matrix.
-%       * H  - Measurement matrix.
-%       * R  - Measurement noise covariance matrix.
-%       * F_los, Q_los - LOS dynamics matrices.
-%       * F_var, Q_var - VAR model matrices (if applicable).
-%       * intercept_vector - VAR model intercept vector (if applicable).
-%       * var_states_amount - Number of VAR model states (if applicable).
-%       * var_model_order - Order of the VAR model (if applicable).
+%   kalman_pll_config - Struct containing the computed or retrieved Kalman filter settings
+%                       (F, Q, H, R, F_los, Q_los, F_var, Q_var, etc.).
 %
-% Notes:
-%   - Caching is used to improve performance by avoiding repeated computations.
-%   - If `training_scint_model` is set to 'none', the function only computes LOS dynamics settings.
-%
-% Examples:
-%   % Example configuration for Kalman PLL:
-%   config = struct( ...
-%       'training_scint_model', 'CSM', ...
-%       'discrete_wiener_model_config', {1, 3, 0.01, [0, 0, 1], 1}, ...
-%       'var_minimum_order', 1, ...
-%       'var_maximum_order', 6, ...
-%       'C_over_N0_array_dBHz', 35, ...
+% Example:
+%   general_config = struct( ...
+%       'discrete_wiener_model_config', {discrete_wiener_model_config}, ...
+%       'scintillation_training_data_config', {scintillation_training_data_config}, ...
+%       'var_minimum_order', var_minimum_order, ...
+%       'var_maximum_order', var_maximum_order, ...
+%       'C_over_N0_array_dBHz', C_over_N0_array_dBHz, ...
+%       'initial_states_distributions_boundaries', {initial_states_distributions_boundaries}, ...
+%       'real_doppler_profile', real_doppler_profile, ...
+%       'is_use_cached_settings', is_use_cached_settings, ...
+%       'is_generate_random_initial_estimates', is_generate_random_initial_estimates ...
 %   );
 %   cache_file = 'kalman_pll_cache.mat';
-%   sampling_interval = 0.01;
 %   kalman_pll_config = struct();
 %   is_cache_used = false;
-%   kalman_pll_config = update_cache(config, ...
-%       cache_file, sampling_interval, kalman_pll_config, is_cache_used);
+%   kalman_pll_config = update_cache(general_config, cache_file, kalman_pll_config, is_cache_used);
 %
-% Author 1: Rodrigo de Lima Florindo
-% Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
-% Author's 1 Email: rdlfresearch@gmail.com
+% Author:
+%   Rodrigo de Lima Florindo
+%   ORCID: https://orcid.org/0000-0003-0412-5583
+%   Email: rdlfresearch@gmail.com
 
-    % Validate config is a nonempty struct
-    validateattributes(config, {'struct'}, {'nonempty'}, mfilename, 'config');
-    
-    % Validate required config fields briefly (optional advanced checks omitted)
+    % Validate inputs
+    validateattributes(general_config, {'struct'}, {'nonempty'}, mfilename, 'general_config');
     req_config_fields = {
-        'training_scint_model', ...
         'discrete_wiener_model_config', ...
         'scintillation_training_data_config', ...
         'var_minimum_order', ...
         'var_maximum_order', ...
-        'C_over_N0_array_dBHz', ...
-        'is_refractive_effects_removed'
+        'C_over_N0_array_dBHz'
     };
     for fc = 1:numel(req_config_fields)
-        if ~isfield(config, req_config_fields{fc})
-            error('%s:MissingField', mfilename, ...
-                'Config struct is missing the field ''%s''.', req_config_fields{fc});
+        if ~isfield(general_config, req_config_fields{fc})
+            error('update_cache:MissingField', ...
+                'Config struct is missing the field "%s".', req_config_fields{fc});
         end
     end
     
-    % Validate cache_file
-    validateattributes(cache_file, {'char', 'string'}, {'nonempty'}, mfilename, 'cache_file');
-    % Validate sampling_interval
-    validateattributes(sampling_interval, {'numeric'}, {'scalar','real','positive'}, mfilename, 'sampling_interval');
-    % Validate kalman_pll_config is a struct
+    validateattributes(cache_file, {'char','string'}, {'nonempty'}, mfilename, 'cache_file');
     validateattributes(kalman_pll_config, {'struct'}, {'nonempty'}, mfilename, 'kalman_pll_config');
-    % Validate is_cache_used
     validateattributes(is_cache_used, {'logical'}, {'scalar'}, mfilename, 'is_cache_used');
 
+    st_config = general_config.scintillation_training_data_config;
+    validateattributes(st_config, {'struct'}, {'nonempty'}, mfilename, 'scintillation_training_data_config');
+    if ~isfield(st_config, 'sampling_interval')
+        error('update_cache:MissingField', 'scintillation_training_data_config is missing the field "sampling_interval".');
+    end
+    % Extract and validate sampling_interval from st_config.
+    sampling_interval = st_config.sampling_interval;
+    validateattributes(sampling_interval, {'numeric'}, {'scalar','real','positive'}, mfilename, 'sampling_interval');
+
     if is_cache_used
-        fprintf('Using cached Kalman filter-based PLL settings for %s.\n', config.training_scint_model);
+        fprintf('Using cached Kalman filter-based PLL settings.\n');
     else
-        fprintf('Computing Kalman filter-based PLL settings for %s.\n', config.training_scint_model);
+        fprintf('Computing Kalman filter-based PLL settings.\n');
 
         % Compute the LOS dynamics model
-        [F_los, Q_los] = get_discrete_wiener_model(config.discrete_wiener_model_config{:});
+        [F_los, Q_los] = get_discrete_wiener_model(general_config.discrete_wiener_model_config{:});
 
-        if strcmpi(config.training_scint_model, 'none')
-            % No VAR model; only LOS dynamics
-            model_name = 'none';
-            var_model_struct = struct('F_los', F_los, ...
-                'Q_los', Q_los, ...
-                'F_var', [], ...
-                'Q_var', [], ...
-                'F', F_los, ...
-                'Q', Q_los, ...
-                'H', [1, zeros(1, size(F_los, 1) - 1)], ...
-                'R', diag(compute_phase_variances(config.C_over_N0_array_dBHz, sampling_interval)), ...
-                'W', zeros(size(F_los,1),1), ...
-                'var_model_order', [], ...
-                'var_states_amount', []);
-            kalman_pll_config.(model_name) = var_model_struct;
-        else
-            % For 'CSM' or 'TPPSM', call compute_settings
-            kalman_pll_config = compute_settings( ...
-                kalman_pll_config, ...
-                config.scintillation_training_data_config, ...
-                config.var_minimum_order, ...
-                config.var_maximum_order, ...
-                config.C_over_N0_array_dBHz, ...
-                sampling_interval, ...
-                F_los, ...
-                Q_los, ...
-                config.is_refractive_effects_removed);
-        end
+        % Compute the complete Kalman settings (VAR model, etc.)
+        kalman_pll_config = build_kalman_pll_config( ...
+            kalman_pll_config, ...
+            st_config, ...
+            general_config.var_minimum_order, ...
+            general_config.var_maximum_order, ...
+            general_config.C_over_N0_array_dBHz, ...
+            sampling_interval, ...
+            F_los, ...
+            Q_los);
 
-        % Save updated kalman_pll_config to cache
+        % Save updated kalman_pll_config to the cache file
+        fprintf('Caching Kalman filter-based PLL settings.\n');
         save(cache_file, 'kalman_pll_config');
     end
 end

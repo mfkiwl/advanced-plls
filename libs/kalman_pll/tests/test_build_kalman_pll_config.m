@@ -18,8 +18,7 @@ classdef test_build_kalman_pll_config < matlab.unittest.TestCase
 
     methods(TestClassSetup)
         function add_parent_path(test_case)
-            % add_parent_path - Add the parent directory of the test folder 
-            % so that preprocess_training_data.m and dependencies can be found.
+            % Add the necessary directory paths
             parent_dir = fileparts(fileparts(mfilename('fullpath')));
             libs_dir = fileparts(parent_dir);
             get_received_signal_functions_dir = [libs_dir,'\get_received_signal_functions'];
