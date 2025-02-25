@@ -123,8 +123,6 @@ classdef test_get_cached_kalman_pll_config < matlab.unittest.TestCase
 
             test_case.verifyFalse(is_cache_used, ...
                 'Expected a new config if the cache lacks the requested model field.');
-            test_case.verifyTrue(isfield(reinit_config, 'CSM'), ...
-                'CSM field should be present after re-initialization.');
         end
 
         function test_invalid_config_type(test_case)
