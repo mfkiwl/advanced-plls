@@ -1,9 +1,9 @@
 classdef test_build_kalman_pll_config < matlab.unittest.TestCase
-    % test_build_kalman_pll_config
-    %
-    % This test suite verifies the behavior of the build_kalman_pll_config
-    % function. It checks that valid inputs execute successfully and that
-    % invalid inputs raise appropriate errors or warnings.
+% test_build_kalman_pll_config
+%
+% This test suite verifies the behavior of the build_kalman_pll_config
+% function. It checks that valid inputs execute successfully and that
+% invalid inputs raise appropriate errors or warnings.
 
     properties
         default_kalman_pll_config
