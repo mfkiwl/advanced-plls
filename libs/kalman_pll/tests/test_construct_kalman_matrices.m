@@ -1,45 +1,138 @@
-function [F, Q, H, R, W] = construct_kalman_matrices(F_los, Q_los, F_var, Q_var, intercept_vector, var_states_amount, var_model_order, C_over_N0_array_dBHz, sampling_interval)
-    % construct_kalman_matrices
-    % Constructs the full Kalman filter matrices.
+classdef test_construct_kalman_matrices < matlab.unittest.TestCase
+    % test_construct_kalman_matrices
     %
-    % Syntax:
-    %   [F, Q, H, R] = construct_kalman_matrices(F_los, Q_los, F_var, Q_var, var_states_amount, var_model_order, C_over_N0_array_dBHz, sampling_interval)
+    % This test suite verifies the behavior of the function construct_kalman_matrices,
+    % ensuring that it correctly constructs Kalman filter matrices while enforcing
+    % valid constraints on input parameters.
     %
-    % Description:
-    %   This function combines LOS dynamics and VAR model matrices to construct 
-    %   the state transition matrix (F), process noise covariance matrix (Q), 
-    %   measurement matrix (H), and measurement noise covariance matrix (R) 
-    %   for the Kalman filter.
-    %
-    % Inputs:
-    %   F_los, Q_los     - LOS dynamics state transition and covariance matrices.
-    %   F_var, Q_var     - VAR model state transition and covariance matrices.
-    %   var_states_amount - Number of states in the VAR model.
-    %   var_model_order  - Order of the VAR model.
-    %   C_over_N0_array_dBHz - Array of C/N0 values in dB-Hz.
-    %   sampling_interval - Sampling interval for computations.
-    %
-    % Outputs:
-    %   F - Full state transition matrix.
-    %   Q - Full process noise covariance matrix.
-    %   H - Measurement matrix.
-    %   R - Measurement noise covariance matrix.
-    %
-    % Notes:
-    %   - The measurement matrix (H) maps the LOS and VAR states to measurements.
-    %   - Measurement noise covariance (R) is computed from the provided C/N0 values.
-    %
-    % Examples:
-    %   [F, Q, H, R] = construct_kalman_matrices(F_los, Q_los, F_var, Q_var, 3, 2, [35], 0.01);
-    %
-    % Author 1: Rodrigo de Lima Florindo
-    % Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
-    % Author's 1 Email: rdlfresearch@gmail.com
+    % Tests include:
+    %   - A valid input scenario.
+    %   - Verification of expected matrix dimensions and values.
+    %   - Error cases for invalid inputs, such as:
+    %       - Non-numeric, non-square, or non-positive semi-definite covariance matrices.
+    %       - Invalid intercept vector.
+    %       - Invalid process noise covariance matrices.
 
-    F = blkdiag(F_los, F_var); % Combine LOS and VAR state transitions
-    Q = blkdiag(Q_los, Q_var); % Combine LOS and VAR covariance matrices
-    H = [1, zeros(1, size(F_los, 1) - 1), 1, ... 
-         zeros(1, var_states_amount * var_model_order - 1)]; % Measurement matrix
-    R = diag(compute_phase_variances(C_over_N0_array_dBHz, sampling_interval)); % Measurement noise covariance
-    W = [zeros(size(F_los, 1),1);intercept_vector;zeros(var_states_amount*(var_model_order-1),1)];
+    methods(TestClassSetup)
+        function addParentPath(testCase)
+            % Add the parent directory to the path (if necessary).
+            parent_dir = fileparts(fileparts(mfilename('fullpath')));
+            addpath(parent_dir);
+            testCase.addTeardown(@() rmpath(parent_dir));
+        end
+    end
+
+    methods(Test)
+        function testValidInputs(testCase)
+            % Test valid Kalman filter matrix construction.
+
+            % Define valid LOS matrices (2x2)
+            F_los = eye(2);
+            Q_los = [0.1, 0.02; 0.02, 0.1];  % Symmetric and positive semi-definite
+
+            % Define valid VAR matrices for VAR(2) with 2 states
+            var_states_amount = 2;
+            var_model_order = 2;
+            F_var = [0.5, 0.1, -0.2, 0.3; 
+                     0.2, 0.3,  0.1, 0.4];
+            Q_var = blkdiag([0.05, 0.01; 0.01, 0.05], zeros(2)); % Symmetric and PSD
+
+            % Valid intercept vector
+            intercept_vector = [0.1; -0.1];
+
+            % Other parameters
+            C_over_N0_array_dBHz = 35;
+            sampling_interval = 0.01;
+
+            % Call the function
+            [F, Q, H, R, W] = construct_kalman_matrices(F_los, Q_los, F_var, Q_var, intercept_vector, var_states_amount, var_model_order, C_over_N0_array_dBHz, sampling_interval);
+
+            % Expected outputs
+            expected_F = blkdiag(F_los, F_var);
+            expected_Q = blkdiag(Q_los, Q_var);
+            expected_H = [1, 0, 1, zeros(1, var_states_amount * var_model_order - 1)];
+            expected_R = diag(compute_phase_variances(C_over_N0_array_dBHz, sampling_interval));
+            expected_W = [zeros(size(F_los,1),1); intercept_vector; zeros(var_states_amount * (var_model_order - 1),1)];
+
+            % Assertions
+            testCase.verifyEqual(F, expected_F, 'AbsTol', 1e-10);
+            testCase.verifyEqual(Q, expected_Q, 'AbsTol', 1e-10);
+            testCase.verifyEqual(H, expected_H, 'AbsTol', 1e-10);
+            testCase.verifyEqual(R, expected_R, 'AbsTol', 1e-10);
+            testCase.verifyEqual(W, expected_W, 'AbsTol', 1e-10);
+        end
+
+        function testNonSymmetricQ_los(testCase)
+            % Q_los must be symmetric; this should trigger an error.
+            F_los = eye(2);
+            Q_los = [0.1, 0.02; 0.03, 0.1]; % Non-symmetric
+            F_var = eye(2);
+            Q_var = eye(2);
+            intercept_vector = [0.1; -0.1];
+
+            testCase.verifyError(@() construct_kalman_matrices(F_los, Q_los, F_var, Q_var, intercept_vector, 2, 2, 35, 0.01), ...
+                'construct_kalman_matrices:QlosNotSymmetric');
+        end
+
+        function testNonSymmetricQ_var(testCase)
+            % Q_var must be symmetric; this should trigger an error.
+            F_los = eye(2);
+            Q_los = eye(2);
+            F_var = eye(2);
+            Q_var = [0.05, 0.01; 0.02, 0.05]; % Non-symmetric
+            intercept_vector = [0.1; -0.1];
+
+            testCase.verifyError(@() construct_kalman_matrices(F_los, Q_los, F_var, Q_var, intercept_vector, 2, 2, 35, 0.01), ...
+                'construct_kalman_matrices:QvarNotSymmetric');
+        end
+
+        function testNegativeDefiniteQ_los(testCase)
+            % Q_los must be positive semi-definite; this should trigger an error.
+            F_los = eye(2);
+            Q_los = [-1, 0; 0, -1]; % Negative definite
+            F_var = eye(2);
+            Q_var = eye(2);
+            intercept_vector = [0.1; -0.1];
+
+            testCase.verifyError(@() construct_kalman_matrices(F_los, Q_los, F_var, Q_var, intercept_vector, 2, 2, 35, 0.01), ...
+                'construct_kalman_matrices:QlosNotPositiveSemiDefinite');
+        end
+
+        function testNegativeDefiniteQ_var(testCase)
+            % Q_var must be positive semi-definite; this should trigger an error.
+            F_los = eye(2);
+            Q_los = eye(2);
+            F_var = eye(2);
+            Q_var = [-1, 0; 0, -1]; % Negative definite
+            intercept_vector = [0.1; -0.1];
+
+            testCase.verifyError(@() construct_kalman_matrices(F_los, Q_los, F_var, Q_var, intercept_vector, 2, 2, 35, 0.01), ...
+                'construct_kalman_matrices:QvarNotPositiveSemiDefinite');
+        end
+
+        function testInvalidInterceptVector(testCase)
+            % Intercept vector must be a column; this should trigger an error.
+            F_los = eye(2);
+            Q_los = eye(2);
+            F_var = eye(2);
+            Q_var = eye(2);
+            intercept_vector = [0.1, -0.1]; % Row vector (invalid)
+
+            testCase.verifyError(@() construct_kalman_matrices(F_los, Q_los, F_var, Q_var, intercept_vector, 2, 2, 35, 0.01), ...
+                'MATLAB:construct_kalman_matrices:expectedColumn');
+        end
+
+        function testInvalidCOverN0(testCase)
+            % C/N0 must be positive; this should trigger an error.
+            F_los = eye(2);
+            Q_los = eye(2);
+            F_var = eye(2);
+            Q_var = eye(2);
+            intercept_vector = [0.1; -0.1];
+            C_over_N0_array_dBHz = -35; % Invalid (negative value)
+
+            testCase.verifyError(@() construct_kalman_matrices(F_los, Q_los, F_var, Q_var, intercept_vector, 2, 2, C_over_N0_array_dBHz, 0.01), ...
+                'MATLAB:construct_kalman_matrices:expectedPositive');
+        end
+    end
 end
