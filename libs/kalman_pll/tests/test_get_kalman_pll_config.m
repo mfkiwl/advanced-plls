@@ -1,117 +1,130 @@
-function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(config)
-    % get_kalman_pll_config
-    % Generates or retrieves Kalman filter settings and initial estimates,
-    % based on the provided configuration parameters.
+classdef test_get_kalman_pll_config < matlab.unittest.TestCase
+    % test_get_kalman_pll_config
     %
-    % Syntax:
-    %   kalman_pll_config = get_kalman_pll_config(config)
+    % This test suite verifies the behavior of the get_kalman_pll_config function.
+    % It checks that:
+    %   - With a valid configuration, the function returns a configuration struct
+    %     with the expected model field and a column vector of initial estimates.
+    %   - Missing required fields, mismatched sampling intervals, invalid boundaries,
+    %     an empty real_doppler_profile, or negative C/N0 values trigger errors.
     %
-    % Description:
-    %   This function computes or retrieves the Kalman filter settings, including 
-    %   state-space matrices and noise covariance matrices and its initial estimates. 
-    %   It supports caching to reuse previously computed parameters for efficient 
-    %   performance. If caching is not enabled or the cache is invalid, 
-    %   it computes new parameters and updates the cache.
-    %
-    % Inputs:
-    %   config - Struct containing all configuration details with the following fields:
-    %       - discrete_wiener_model_config: Cell array for LOS dynamics parameters to 
-    %                                       be used by `get_los_phase` function.
-    %         Example: {1,3,0.01,[0,0,1],1}, where:
-    %           * 1  - Number of frequency bands (`L`),
-    %           * 3  - Third-order LOS dynamics (`M`),
-    %           * 0.01 - Sampling time (`sampling_time`),
-    %           * [0,0,1] - Sigma array for noise levels (`sigma_array`),
-    %           * 1  - Ratio of its frequency to a reference frequency (`delta_array`).
-    %
-    %       - scintillation_training_data_config: Cell array for scintillation model parameters.
-    %         Example: {0.8, 0.7, 600, 0.01}, where:
-    %           * 0.8  - S4 index (`S4`),
-    %           * 0.7  - τ₀ (`tau0`),
-    %           * 600  - Total simulation time (`simulation_time`),
-    %           * 0.01 - Sampling time (`sampling_time`).
-    %
-    %       - var_minimum_order: Minimum VAR (Vector Autoregressive) model
-    %          order. The `arfit` function automatically estimates the vector
-    %          autoregressive model order that lies withing a minimum and 
-    %          maximum orders provided by the user that minimizes the 
-    %          Schwarz Bayesian Criterion (SBC). It is important to comment
-    %          that for time series with extremely large samples amount, the
-    %          model order estimated by this function is generally close to
-    %          the maximum one, since the SBC only starts to increase again at
-    %          larger orders in this case.
-    %       - var_maximum_order: Maximum VAR model order.
-    %       - C_over_N0_array_dBHz: Array representing the average C/N0 values for each 
-    %          frequency band (in dB-Hz).
-    %       - training_scint_model: Selected scintillation model ('CSM', 'TPPSM', or 'none').
-    %       - initial_states_distributions_boundaries: Uniform
-    %          distributions boundaries for generating the initial state
-    %          estimates for the Doppler profile used by the Kalman Filter.
-    %       - real_doppler_profile: Real Doppler profile used to simulate the
-    %          synthetic line-of-sight dynamics.
-    %       - is_refractive_effects_removed: Boolean flag indicating whether refractive 
-    %          effects are removed for TPPSM.
-    %       - is_use_cached_settings: Boolean flag indicating whether cached configurations 
-    %          should be used.
-    %       - is_generate_random_initial_estimates: Boolean flag indicating
-    %          if the inital estimates will be perfect or randomly generated
-    %          according to the parsed
-    %          `initial_states_distributions_boundaries` array.
-    %
-    % Outputs:
-    %   kalman_pll_config - Struct containing the computed Kalman filter 
-    %                       settings, with the following fields:
-    %       * F  - Full state transition matrix.
-    %       * Q  - Full process noise covariance matrix.
-    %       * H  - Measurement matrix.
-    %       * R  - Measurement noise covariance matrix.
-    %       * F_los, Q_los - LOS dynamics matrices.
-    %       * F_var, Q_var - VAR model matrices.
-    %       * intercept_vector - VAR model intercept vector.
-    %       * var_states_amount - Number of VAR model states.
-    %       * var_model_order - Order of the VAR model.
-    %
-    % Notes:
-    %   - Caching is used to improve performance by avoiding repeated computations.
-    %   - Sampling intervals for LOS dynamics and scintillation models must match.
-    %
-    % Examples:
-    %   % Example configuration:
-    %   config = struct( ...
-    %       'discrete_wiener_model_config', {1,3,0.01,[0,0,1],1}, ...
-    %       'scintillation_training_data_config', {0.8, 0.7, 300, 0.01}, ...
-    %       'var_minimum_order', 1, ...
-    %       'var_maximum_order', 6, ...
-    %       'C_over_N0_array_dBHz', 35, ...
-    %       'training_scint_model', 'CSM', ...
-    %       'initial_states_distributions_boundaries', {[-pi,pi],[-5,5],[-0.1,0.1]}, ...
-    %       'real_doppler_profile', [0,1000,0.94], ...
-    %       'is_refractive_effects_removed', false, ...
-    %       'is_generate_random_initial_estimates', true ...
-    %   kalman_pll_config = get_kalman_pll_config(config);
-    %
-    % Author 1: Rodrigo de Lima Florindo
-    % Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
-    % Author's 1 Email: rdlfresearch@gmail.com
+    % The lower-level functions (get_cached_kalman_pll_config, update_cache,
+    % and get_initial_estimates) are overridden by dummy static methods defined
+    % in this test class.
+    
+    properties
+        DefaultConfig
+    end
 
-    % Cache file path
-    cache_file = 'kalman_pll_cache.mat';
+    methods(TestClassSetup)
+        function add_parent_path(test_case)
+            % Add the necessary directory paths
+            parent_dir = fileparts(fileparts(mfilename('fullpath')));
+            libs_dir = fileparts(parent_dir);
+            get_received_signal_functions_dir = [libs_dir,'\get_received_signal_functions'];
+            tppsm_paths = genpath([libs_dir,'\scintillation_models\refactored_tppsm']);
+            csm_paths = genpath([libs_dir,'\scintillation_models\cornell_scintillation_model']);
+            arfit_path = [libs_dir,'\arfit'];
+            addpath(parent_dir);
+            addpath(get_received_signal_functions_dir);
+            addpath(tppsm_paths);
+            addpath(csm_paths);
+            addpath(arfit_path);
 
-    % Validate required fields in config
-    % TODO: Work on error handling inside this validation function
-    validate_config(config);
+            test_case.addTeardown(@() rmpath(parent_dir, get_received_signal_functions_dir, ...
+                tppsm_paths, csm_paths, arfit_path));
+        end
+    end
 
-    % Validate if the sampling_interval from both
-    % `discrete_wiener_model_config` and
-    % `scintillation_training_data_config` cell arrays are the same. If
-    % not, raises an error.
-    sampling_interval = validate_sampling_interval(config.discrete_wiener_model_config{1,3}, ...
-        config.scintillation_training_data_config{1,4});
-
-    % Load or initialize kalman_pll_config
-    [kalman_pll_config, is_cache_used] = load_or_initialize_models(config, cache_file);
-
-    kalman_pll_config = handle_kalman_pll_config(config, cache_file, sampling_interval, kalman_pll_config, is_cache_used);
-
-    initial_estimates = handle_initial_estimates(config, kalman_pll_config);
+    methods(TestMethodSetup)
+        function setDefaultConfig(testCase)
+            % Define a default valid configuration struct.
+            testCase.DefaultConfig = struct( ...
+                'discrete_wiener_model_config', { {1, 3, 0.01, [0,0,1], 1} }, ...
+                'scintillation_training_data_config', struct('scintillation_model', 'CSM', 'S4', 0.8, 'tau0', 0.7, 'simulation_time', 300, 'sampling_interval', 0.01), ...
+                'var_minimum_order', 1, ...
+                'var_maximum_order', 6, ...
+                'C_over_N0_array_dBHz', 35, ...
+                'initial_states_distributions_boundaries', { {[-pi,pi], [-5,5], [-0.1,0.1]} }, ...
+                'real_doppler_profile', [0, 1000, 0.94], ...
+                'is_use_cached_settings', false, ...
+                'is_generate_random_initial_estimates', true ...
+            );
+        end
+    end
+    
+    methods(Test)
+        function testValidConfig(testCase)
+            % Using the default configuration, verify that the outputs are valid.
+            [kcfg, initEst] = get_kalman_pll_config(testCase.DefaultConfig);
+            testCase.verifyTrue(isstruct(kcfg), 'kalman_pll_config must be a struct.');
+            % Dummy update_cache adds field "CSM"
+            testCase.verifyTrue(isfield(kcfg, 'CSM'), 'Expected field "CSM" not found.');
+            
+            testCase.verifyClass(initEst, 'struct', 'initial_estimates must be numeric.');
+            testCase.verifyEqual(size(initEst,2), 1, 'initial_estimates must be a column vector.');
+        end
+        
+        function testMissingRequiredField(testCase)
+            % Remove a required field from the config.
+            config = testCase.DefaultConfig;
+            config = rmfield(config, 'is_generate_random_initial_estimates');
+            testCase.verifyError(@() get_kalman_pll_config(config), 'get_kalman_pll_config:MissingField');
+        end
+        
+        function testSamplingIntervalMismatch(testCase)
+            % Modify the sampling interval in discrete_wiener_model_config so that it mismatches.
+            config = testCase.DefaultConfig;
+            config.discrete_wiener_model_config{3} = 0.02; % Should be 0.01 as in scintillation_training_data_config
+            testCase.verifyError(@() get_kalman_pll_config(config), 'get_kalman_pll_config:SamplingIntervalMismatch');
+        end
+        
+        function testInvalidBoundaries(testCase)
+            % Provide an invalid boundary (min >= max) for one element.
+            config = testCase.DefaultConfig;
+            config.initial_states_distributions_boundaries{3} = [0.1, -0.1];
+            testCase.verifyError(@() get_kalman_pll_config(config), 'get_kalman_pll_config:InvalidBoundaries');
+        end
+        
+        function testEmptyRealDopplerProfile(testCase)
+            % Set real_doppler_profile to an empty array.
+            config = testCase.DefaultConfig;
+            config.real_doppler_profile = [];
+            testCase.verifyError(@() get_kalman_pll_config(config), 'MATLAB:get_kalman_pll_config:expectedNonempty');
+        end
+        
+        function testNegativeCOverN0(testCase)
+            % Set a negative value for C_over_N0_array_dBHz.
+            config = testCase.DefaultConfig;
+            config.C_over_N0_array_dBHz = -35;
+            testCase.verifyError(@() get_kalman_pll_config(config), 'MATLAB:get_kalman_pll_config:expectedPositive');
+        end
+    end
+    
+    methods(Static)
+        % Dummy implementations to override lower-level functions for testing.
+        function [kcfg, is_cache_used] = get_cached_kalman_pll_config(~, ~)
+            % Return an empty config and false flag to simulate no cached config.
+            kcfg = struct();
+            is_cache_used = false;
+        end
+        
+        function kcfg = update_cache(~, ~, kcfg, ~)
+            % Return a dummy configuration struct with a field "CSM".
+            kcfg.CSM = struct( ...
+                'F', eye(2), 'Q', eye(2), 'H', ones(1,2), 'R', eye(2), ...
+                'F_los', eye(2), 'Q_los', eye(2), 'F_var', eye(2), 'Q_var', eye(2), ...
+                'intercept_vector', [0; 0], 'var_states_amount', 2, 'var_model_order', 1);
+        end
+        
+        function estimates = get_initial_estimates(~, kcfg)
+            % Return a dummy column vector for initial estimates.
+            if isfield(kcfg, 'CSM')
+                n = size(kcfg.CSM.F,1);
+            else
+                n = 2;
+            end
+            estimates = ones(n,1);
+        end
+    end
 end

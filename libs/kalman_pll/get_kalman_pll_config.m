@@ -1,117 +1,117 @@
-function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(config)
+function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_config)
     % get_kalman_pll_config
     % Generates or retrieves Kalman filter settings and initial estimates,
     % based on the provided configuration parameters.
     %
     % Syntax:
-    %   kalman_pll_config = get_kalman_pll_config(config)
+    %   [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_config)
     %
     % Description:
-    %   This function computes or retrieves the Kalman filter settings, including 
-    %   state-space matrices and noise covariance matrices and its initial estimates. 
-    %   It supports caching to reuse previously computed parameters for efficient 
-    %   performance. If caching is not enabled or the cache is invalid, 
-    %   it computes new parameters and updates the cache.
+    %   This function computes or retrieves the Kalman filter settings—including state‐space
+    %   matrices, noise covariance matrices, and initial estimates—based on the provided configuration.
+    %   It uses caching to avoid repeated computations. If caching is disabled or the cache is invalid,
+    %   new parameters are computed and the cache is updated.
     %
     % Inputs:
-    %   config - Struct containing all configuration details with the following fields:
-    %       - discrete_wiener_model_config: Cell array for LOS dynamics parameters to 
-    %                                       be used by `get_los_phase` function.
-    %         Example: {1,3,0.01,[0,0,1],1}, where:
-    %           * 1  - Number of frequency bands (`L`),
-    %           * 3  - Third-order LOS dynamics (`M`),
-    %           * 0.01 - Sampling time (`sampling_time`),
-    %           * [0,0,1] - Sigma array for noise levels (`sigma_array`),
-    %           * 1  - Ratio of its frequency to a reference frequency (`delta_array`).
+    %   general_config - Struct containing all configuration details with required fields:
+    %       - discrete_wiener_model_config: Cell array for LOS dynamics parameters to be used by
+    %         the get_los_phase function. Example: {1, 3, 0.01, [0,0,1], 1}.
     %
-    %       - scintillation_training_data_config: Cell array for scintillation model parameters.
-    %         Example: {0.8, 0.7, 600, 0.01}, where:
-    %           * 0.8  - S4 index (`S4`),
-    %           * 0.7  - τ₀ (`tau0`),
-    %           * 600  - Total simulation time (`simulation_time`),
-    %           * 0.01 - Sampling time (`sampling_time`).
+    %       - scintillation_training_data_config: Struct with fields:
+    %             S4, tau0, simulation_time, and sampling_interval.
     %
-    %       - var_minimum_order: Minimum VAR (Vector Autoregressive) model
-    %          order. The `arfit` function automatically estimates the vector
-    %          autoregressive model order that lies withing a minimum and 
-    %          maximum orders provided by the user that minimizes the 
-    %          Schwarz Bayesian Criterion (SBC). It is important to comment
-    %          that for time series with extremely large samples amount, the
-    %          model order estimated by this function is generally close to
-    %          the maximum one, since the SBC only starts to increase again at
-    %          larger orders in this case.
+    %       - var_minimum_order: Minimum VAR model order.
     %       - var_maximum_order: Maximum VAR model order.
-    %       - C_over_N0_array_dBHz: Array representing the average C/N0 values for each 
-    %          frequency band (in dB-Hz).
-    %       - training_scint_model: Selected scintillation model ('CSM', 'TPPSM', or 'none').
-    %       - initial_states_distributions_boundaries: Uniform
-    %          distributions boundaries for generating the initial state
-    %          estimates for the Doppler profile used by the Kalman Filter.
-    %       - real_doppler_profile: Real Doppler profile used to simulate the
-    %          synthetic line-of-sight dynamics.
-    %       - is_refractive_effects_removed: Boolean flag indicating whether refractive 
-    %          effects are removed for TPPSM.
-    %       - is_use_cached_settings: Boolean flag indicating whether cached configurations 
-    %          should be used.
-    %       - is_generate_random_initial_estimates: Boolean flag indicating
-    %          if the inital estimates will be perfect or randomly generated
-    %          according to the parsed
-    %          `initial_states_distributions_boundaries` array.
+    %       - C_over_N0_array_dBHz: Numeric vector (positive) of average C/N0 values.
+    %       - initial_states_distributions_boundaries: Non-empty cell array where each element is a
+    %         1×2 numeric vector (with the first element less than the second).
+    %       - real_doppler_profile: Non-empty numeric vector.
+    %       - is_use_cached_settings: Boolean flag indicating whether cached configurations should be used.
+    %       - is_generate_random_initial_estimates: Boolean flag indicating whether initial estimates are randomly generated.
     %
     % Outputs:
-    %   kalman_pll_config - Struct containing the computed Kalman filter 
-    %                       settings, with the following fields:
-    %       * F  - Full state transition matrix.
-    %       * Q  - Full process noise covariance matrix.
-    %       * H  - Measurement matrix.
-    %       * R  - Measurement noise covariance matrix.
-    %       * F_los, Q_los - LOS dynamics matrices.
-    %       * F_var, Q_var - VAR model matrices.
-    %       * intercept_vector - VAR model intercept vector.
-    %       * var_states_amount - Number of VAR model states.
-    %       * var_model_order - Order of the VAR model.
+    %   kalman_pll_config - Struct containing the computed Kalman filter settings, with fields:
+    %           F, Q, H, R, F_los, Q_los, F_var, Q_var, intercept_vector,
+    %           var_states_amount, and var_model_order.
+    %   initial_estimates - Column vector of initial estimates. Its number of rows equals the number of states in the state transition matrix.
     %
     % Notes:
-    %   - Caching is used to improve performance by avoiding repeated computations.
-    %   - Sampling intervals for LOS dynamics and scintillation models must match.
+    %   - The sampling interval is taken from scintillation_training_data_config.sampling_interval,
+    %     and it is compared to the sampling interval in discrete_wiener_model_config (element 3).
+    %   - Lower-level functions (get_cached_kalman_pll_config, update_cache, and get_initial_estimates)
+    %     handle further validations.
     %
     % Examples:
-    %   % Example configuration:
-    %   config = struct( ...
-    %       'discrete_wiener_model_config', {1,3,0.01,[0,0,1],1}, ...
-    %       'scintillation_training_data_config', {0.8, 0.7, 300, 0.01}, ...
+    %   general_config = struct( ...
+    %       'discrete_wiener_model_config', { {1,3,0.01,[0,0,1],1} }, ...
+    %       'scintillation_training_data_config', struct('S4',0.8, 'tau0',0.7, 'simulation_time',300, 'sampling_interval',0.01), ...
     %       'var_minimum_order', 1, ...
     %       'var_maximum_order', 6, ...
-    %       'C_over_N0_array_dBHz', 35, ...
-    %       'training_scint_model', 'CSM', ...
-    %       'initial_states_distributions_boundaries', {[-pi,pi],[-5,5],[-0.1,0.1]}, ...
+    %       'C_over_N0_array_dBHz', [35], ...
+    %       'initial_states_distributions_boundaries', {[-pi,pi], [-5,5], [-0.1,0.1]}, ...
     %       'real_doppler_profile', [0,1000,0.94], ...
-    %       'is_refractive_effects_removed', false, ...
+    %       'is_use_cached_settings', false, ...
     %       'is_generate_random_initial_estimates', true ...
-    %   kalman_pll_config = get_kalman_pll_config(config);
+    %   );
+    %   [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_config);
     %
-    % Author 1: Rodrigo de Lima Florindo
-    % Author's 1 Orcid: https://orcid.org/0000-0003-0412-5583
-    % Author's 1 Email: rdlfresearch@gmail.com
+    % Author: Rodrigo de Lima Florindo
+    % ORCID: https://orcid.org/0000-0003-0412-5583
+    % Email: rdlfresearch@gmail.com
 
-    % Cache file path
+    % Validate required fields in general_config
+    required_fields = {'discrete_wiener_model_config', 'scintillation_training_data_config', ...
+                       'var_minimum_order', 'var_maximum_order', 'C_over_N0_array_dBHz', ...
+                       'initial_states_distributions_boundaries', 'real_doppler_profile', ...
+                       'is_use_cached_settings', 'is_generate_random_initial_estimates'};
+    for i = 1:numel(required_fields)
+        if ~isfield(general_config, required_fields{i})
+            error('get_kalman_pll_config:MissingField', ...
+                'general_config is missing the required field: %s', required_fields{i});
+        end
+    end
+
+    % Validate sampling_interval in scintillation_training_data_config
+    st_config = general_config.scintillation_training_data_config;
+    if ~isfield(st_config, 'sampling_interval') || isempty(st_config.sampling_interval)
+        error('get_kalman_pll_config:MissingField', ...
+            'scintillation_training_data_config must have a non-empty sampling_interval field.');
+    end
+    sampling_interval = st_config.sampling_interval;
+    
+    % Validate initial_states_distributions_boundaries: must be a non-empty cell array of 1x2 numeric vectors with min < max.
+    if ~iscell(general_config.initial_states_distributions_boundaries) || isempty(general_config.initial_states_distributions_boundaries)
+        error('get_kalman_pll_config:InvalidBoundaries', 'initial_states_distributions_boundaries must be a non-empty cell array.');
+    end
+    for i = 1:length(general_config.initial_states_distributions_boundaries)
+        b = general_config.initial_states_distributions_boundaries{i};
+        validateattributes(b, {'numeric'}, {'vector', 'numel', 2}, mfilename, 'initial_states_distributions_boundaries');
+        if b(1) >= b(2)
+            error('get_kalman_pll_config:InvalidBoundaries', 'Each boundary must have its first element less than its second.');
+        end
+    end
+
+    % Validate real_doppler_profile: non-empty numeric vector.
+    validateattributes(general_config.real_doppler_profile, {'numeric'}, {'nonempty','vector'}, mfilename, 'real_doppler_profile');
+
+    % Validate C_over_N0_array_dBHz: non-empty, positive numeric vector.
+    validateattributes(general_config.C_over_N0_array_dBHz, {'numeric'}, {'nonempty','vector','positive'}, mfilename, 'C_over_N0_array_dBHz');
+    
+    % Compare sampling_interval in discrete_wiener_model_config and scintillation_training_data_config
+    dw_config = general_config.discrete_wiener_model_config;
+    if numel(dw_config) < 3
+        error('get_kalman_pll_config:MissingField', 'discrete_wiener_model_config must have at least 3 elements.');
+    end
+    sampling_interval_dw = dw_config{3};
+    validateattributes(sampling_interval_dw, {'numeric'}, {'scalar','real','positive'}, mfilename, 'discrete_wiener_model_config{3}');
+    if abs(sampling_interval - sampling_interval_dw) > 1e-10
+        error('get_kalman_pll_config:SamplingIntervalMismatch', ...
+            'Sampling intervals in scintillation_training_data_config and discrete_wiener_model_config must match.');
+    end
+
+    % Call lower-level functions (which perform further validations)
     cache_file = 'kalman_pll_cache.mat';
-
-    % Validate required fields in config
-    % TODO: Work on error handling inside this validation function
-    validate_config(config);
-
-    % Validate if the sampling_interval from both
-    % `discrete_wiener_model_config` and
-    % `scintillation_training_data_config` cell arrays are the same. If
-    % not, raises an error.
-    sampling_interval = validate_sampling_interval(config.discrete_wiener_model_config{1,3}, ...
-        config.scintillation_training_data_config{1,4});
-
-    % Load or initialize kalman_pll_config
-    [kalman_pll_config, is_cache_used] = load_or_initialize_models(config, cache_file);
-
-    kalman_pll_config = handle_kalman_pll_config(config, cache_file, sampling_interval, kalman_pll_config, is_cache_used);
-
-    initial_estimates = handle_initial_estimates(config, kalman_pll_config);
+    [kalman_pll_config, is_cache_used] = get_cached_kalman_pll_config(general_config, cache_file);
+    kalman_pll_config = update_cache(general_config, cache_file, kalman_pll_config, is_cache_used);
+    initial_estimates = get_initial_estimates(general_config, kalman_pll_config);
 end
