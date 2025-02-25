@@ -84,13 +84,13 @@ function kalman_pll_config = update_cache(general_config, cache_file, kalman_pll
     validateattributes(kalman_pll_config, {'struct'}, {'nonempty'}, mfilename, 'kalman_pll_config');
     validateattributes(is_cache_used, {'logical'}, {'scalar'}, mfilename, 'is_cache_used');
 
-    st_config = general_config.scintillation_training_data_config;
-    validateattributes(st_config, {'struct'}, {'nonempty'}, mfilename, 'scintillation_training_data_config');
-    if ~isfield(st_config, 'sampling_interval')
+    scint_training_data_cfg = general_config.scintillation_training_data_config;
+    validateattributes(scint_training_data_cfg, {'struct'}, {'nonempty'}, mfilename, 'scintillation_training_data_config');
+    if ~isfield(scint_training_data_cfg, 'sampling_interval')
         error('update_cache:MissingField', 'scintillation_training_data_config is missing the field "sampling_interval".');
     end
     % Extract and validate sampling_interval from st_config.
-    sampling_interval = st_config.sampling_interval;
+    sampling_interval = scint_training_data_cfg.sampling_interval;
     validateattributes(sampling_interval, {'numeric'}, {'scalar','real','positive'}, mfilename, 'sampling_interval');
 
     if is_cache_used
@@ -104,12 +104,13 @@ function kalman_pll_config = update_cache(general_config, cache_file, kalman_pll
         % Compute the complete Kalman settings (VAR model, etc.)
         kalman_pll_config = build_kalman_pll_config( ...
             kalman_pll_config, ...
-            st_config, ...
+            scint_training_data_cfg, ...
             general_config.var_minimum_order, ...
             general_config.var_maximum_order, ...
             general_config.C_over_N0_array_dBHz, ...
             F_los, ...
-            Q_los);
+            Q_los ...
+            );
 
         % Save updated kalman_pll_config to the cache file
         fprintf('Caching Kalman filter-based PLL settings.\n');

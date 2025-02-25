@@ -34,8 +34,8 @@ function [F_var, Q_var, var_states_amount, var_model_order] = construct_var_matr
     % Author's 1 Email: rdlfresearch@gmail.com
 
     % Validate inputs
-    validateattributes(var_coefficient_matrices, {'numeric'}, {'2d', 'nonempty'}, mfilename, 'var_coefficient_matrices');
-    validateattributes(var_covariance_matrices, {'numeric'}, {'2d', 'nonempty', 'square'}, mfilename, 'var_covariance_matrices');
+    validateattributes(var_coefficient_matrices, {'numeric'}, {'2d'}, mfilename, 'var_coefficient_matrices');
+    validateattributes(var_covariance_matrices, {'numeric'}, {'2d', 'square'}, mfilename, 'var_covariance_matrices');
     
     % Determine the number of states (n) from the coefficient matrix
     var_states_amount = size(var_coefficient_matrices, 1);
@@ -49,7 +49,9 @@ function [F_var, Q_var, var_states_amount, var_model_order] = construct_var_matr
     
     % Compute the VAR model order (p)
     var_model_order = numCols / var_states_amount;
-    validateattributes(var_model_order, {'numeric'}, {'scalar', 'integer', '>=', 1}, mfilename, 'var_model_order');
+    if ~isnan(var_model_order)
+        validateattributes(var_model_order, {'numeric'}, {'scalar', 'integer', '>=', 1}, mfilename, 'var_model_order');
+    end
     
     % Construct augmented state transition matrix
     % F_var = [A; [I_{n*(p-1)} , 0_{n*(p-1) x n}]]

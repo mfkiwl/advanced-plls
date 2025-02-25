@@ -44,11 +44,13 @@ function [F, Q, H, R, W] = construct_kalman_matrices(F_los, Q_los, F_var, Q_var,
     % Validate inputs
     validateattributes(F_los, {'numeric'}, {'2d', 'nonempty'}, mfilename, 'F_los');
     validateattributes(Q_los, {'numeric'}, {'2d', 'nonempty', 'square'}, mfilename, 'Q_los');
-    validateattributes(F_var, {'numeric'}, {'2d', 'nonempty'}, mfilename, 'F_var');
-    validateattributes(Q_var, {'numeric'}, {'2d', 'nonempty', 'square'}, mfilename, 'Q_var');
-    validateattributes(intercept_vector, {'numeric'}, {'column'}, mfilename, 'intercept_vector');
-    validateattributes(var_states_amount, {'numeric'}, {'scalar', 'integer', '>=', 1}, mfilename, 'var_states_amount');
-    validateattributes(var_model_order, {'numeric'}, {'scalar', 'integer', '>=', 1}, mfilename, 'var_model_order');
+    if ~isnan(var_model_order)
+        validateattributes(F_var, {'numeric'}, {'2d', 'nonempty'}, mfilename, 'F_var');
+        validateattributes(Q_var, {'numeric'}, {'2d', 'nonempty', 'square'}, mfilename, 'Q_var');
+        validateattributes(intercept_vector, {'numeric'}, {'column'}, mfilename, 'intercept_vector');
+        validateattributes(var_model_order, {'numeric'}, {'scalar', 'integer', '>=', 1}, mfilename, 'var_model_order');
+        validateattributes(var_states_amount, {'numeric'}, {'scalar', 'integer', '>=', 1}, mfilename, 'var_states_amount');
+    end
     validateattributes(C_over_N0_array_dBHz, {'numeric'}, {'vector', 'real', 'positive'}, mfilename, 'C_over_N0_array_dBHz');
     validateattributes(sampling_interval, {'numeric'}, {'scalar', 'real', 'positive'}, mfilename, 'sampling_interval');
     
@@ -74,13 +76,20 @@ function [F, Q, H, R, W] = construct_kalman_matrices(F_los, Q_los, F_var, Q_var,
     % Combine LOS and VAR covariance matrices
     Q = blkdiag(Q_los, Q_var);
     
-    % Construct measurement matrix H.
-    % H is defined as [1, zeros(1, size(F_los,1)-1), 1, zeros(1, var_states_amount*var_model_order-1)]
-    H = [1, zeros(1, size(F_los,1)-1), 1, zeros(1, var_states_amount*var_model_order - 1)];
-    
     % Compute measurement noise covariance matrix R from C/N0 values and sampling_interval.
     R = diag(compute_phase_variances(C_over_N0_array_dBHz, sampling_interval));
+
+    if ~isnan(var_model_order)
+        % Construct measurement matrix H.
+        % H is defined as [1, zeros(1, size(F_los,1)-1), 1, zeros(1, var_states_amount*var_model_order-1)]
+        H = [1, zeros(1, size(F_los,1)-1), 1, zeros(1, var_states_amount*var_model_order - 1)];
+        
+        % Construct the augmented intercept vector W.
+        W = [zeros(size(F_los,1), 1); intercept_vector; zeros(var_states_amount*(var_model_order-1),1)];
+    else
+        H = [1, zeros(1, size(F_los,1)-1)];
+        W = zeros(size(F_los,1), 1);
+    end
+
     
-    % Construct the augmented intercept vector W.
-    W = [zeros(size(F_los,1), 1); intercept_vector; zeros(var_states_amount*(var_model_order-1),1)];
 end
