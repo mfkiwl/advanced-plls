@@ -1,9 +1,14 @@
 classdef test_get_kalman_pll_estimates < matlab.unittest.TestCase
-    % test_get_kalman_pll_estimates
-    %
-    % This test suite verifies the behavior of get_kalman_pll_estimates.
-    % It uses default values for the inputs and checks structural properties of the outputs.
-    % It also tests error cases when inputs are invalid.
+% test_get_kalman_pll_estimates
+%
+% This test suite verifies the behavior of get_kalman_pll_estimates.
+% It uses default values for the inputs and checks structural properties of the outputs.
+% It also tests error cases when inputs are invalid.
+%
+% Author:
+%   Rodrigo de Lima Florindo
+%   ORCID: https://orcid.org/0000-0003-0412-5583
+%   Email: rdlfresearch@gmail.com
     
     properties
         DefaultReceivedSignal

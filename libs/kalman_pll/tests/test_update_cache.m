@@ -1,11 +1,16 @@
 classdef test_update_cache < matlab.unittest.TestCase
-    % test_update_cache
-    %
-    % This test suite verifies the behavior of the update_cache function
-    % after its refactoring. It checks that:
-    %   - With caching enabled, the function returns the input kalman_pll_config unchanged.
-    %   - With caching disabled, new settings are computed and saved to file.
-    %   - Missing or invalid inputs trigger the expected errors.
+% test_update_cache
+%
+% This test suite verifies the behavior of the update_cache function
+% after its refactoring. It checks that:
+%   - With caching enabled, the function returns the input kalman_pll_config unchanged.
+%   - With caching disabled, new settings are computed and saved to file.
+%   - Missing or invalid inputs trigger the expected errors.
+%
+% Author:
+%   Rodrigo de Lima Florindo
+%   ORCID: https://orcid.org/0000-0003-0412-5583
+%   Email: rdlfresearch@gmail.com
     
     properties
         default_general_config

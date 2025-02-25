@@ -1,17 +1,22 @@
 classdef test_get_kalman_pll_config < matlab.unittest.TestCase
-    % test_get_kalman_pll_config
-    %
-    % This test suite verifies the behavior of the get_kalman_pll_config function.
-    % It checks that:
-    %   - With a valid configuration, the function returns a configuration struct
-    %     with the expected model field and a column vector of initial estimates.
-    %   - Missing required fields, mismatched sampling intervals, invalid boundaries,
-    %     an empty real_doppler_profile, or negative C/N0 values trigger errors.
-    %
-    % The lower-level functions (get_cached_kalman_pll_config, update_cache,
-    % and get_initial_estimates) are overridden by dummy static methods defined
-    % in this test class.
-    
+% test_get_kalman_pll_config
+%
+% This test suite verifies the behavior of the get_kalman_pll_config function.
+% It checks that:
+%   - With a valid configuration, the function returns a configuration struct
+%     with the expected model field and a column vector of initial estimates.
+%   - Missing required fields, mismatched sampling intervals, invalid boundaries,
+%     an empty real_doppler_profile, or negative C/N0 values trigger errors.
+%
+% The lower-level functions (get_cached_kalman_pll_config, update_cache,
+% and get_initial_estimates) are overridden by dummy static methods defined
+% in this test class.
+%
+% Author:
+%   Rodrigo de Lima Florindo
+%   ORCID: https://orcid.org/0000-0003-0412-5583
+%   Email: rdlfresearch@gmail.com
+
     properties
         DefaultConfig
     end

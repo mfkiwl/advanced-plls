@@ -1,17 +1,17 @@
 classdef test_construct_kalman_matrices < matlab.unittest.TestCase
-    % test_construct_kalman_matrices
-    %
-    % This test suite verifies the behavior of the function construct_kalman_matrices,
-    % ensuring that it correctly constructs Kalman filter matrices while enforcing
-    % valid constraints on input parameters.
-    %
-    % Tests include:
-    %   - A valid input scenario.
-    %   - Verification of expected matrix dimensions and values.
-    %   - Error cases for invalid inputs, such as:
-    %       - Non-numeric, non-square, or non-positive semi-definite covariance matrices.
-    %       - Invalid intercept vector.
-    %       - Invalid process noise covariance matrices.
+% test_construct_kalman_matrices
+%
+% This test suite verifies the behavior of the function construct_kalman_matrices,
+% ensuring that it correctly constructs Kalman filter matrices while enforcing
+% valid constraints on input parameters.
+%
+% Tests include:
+%   - A valid input scenario.
+%   - Verification of expected matrix dimensions and values.
+%   - Error cases for invalid inputs, such as:
+%       - Non-numeric, non-square, or non-positive semi-definite covariance matrices.
+%       - Invalid intercept vector.
+%       - Invalid process noise covariance matrices.
 
     methods(TestClassSetup)
         function addParentPath(testCase)

@@ -1,24 +1,24 @@
 classdef test_struct_to_nv_pairs < matlab.unittest.TestCase
-    % test_struct_to_nv_pairs
-    % Unit tests for the struct_to_nv_pairs function.
-    %
-    % Syntax:
-    %   results = runtests('test_struct_to_nv_pairs')
-    %
-    % Description:
-    %   This test suite verifies that a nonempty struct is correctly converted
-    %   into an alternating cell array of name-value pairs. It also tests that
-    %   invalid inputs (empty structs or non-structs) trigger appropriate errors.
-    %
-    % Example:
-    %   % Run the test suite:
-    %   results = runtests('test_struct_to_nv_pairs');
-    %   disp(results);
-    %
-    % Author:
-    %   Rodrigo de Lima Florindo
-    %   ORCID: https://orcid.org/0000-0003-0412-5583
-    %   Email: rdlfresearch@gmail.com
+% test_struct_to_nv_pairs
+% Unit tests for the struct_to_nv_pairs function.
+%
+% Syntax:
+%   results = runtests('test_struct_to_nv_pairs')
+%
+% Description:
+%   This test suite verifies that a nonempty struct is correctly converted
+%   into an alternating cell array of name-value pairs. It also tests that
+%   invalid inputs (empty structs or non-structs) trigger appropriate errors.
+%
+% Example:
+%   % Run the test suite:
+%   results = runtests('test_struct_to_nv_pairs');
+%   disp(results);
+%
+% Author:
+%   Rodrigo de Lima Florindo
+%   ORCID: https://orcid.org/0000-0003-0412-5583
+%   Email: rdlfresearch@gmail.com
 
     methods(TestClassSetup)
         function add_parent_path(test_case)

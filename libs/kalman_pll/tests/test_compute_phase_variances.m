@@ -1,25 +1,25 @@
 classdef test_compute_phase_variances < matlab.unittest.TestCase
-    % test_compute_phase_variances
-    %
-    % Syntax:
-    %   results = runtests('test_compute_phase_variances')
-    %
-    % Description:
-    %   Unit tests for the compute_phase_variances function. This test suite
-    %   verifies that the function computes the expected phase noise variances
-    %   based on provided C/N0 values (in dB-Hz) and a sampling interval (in seconds).
-    %   It tests the output size, positivity, approximate numerical values, and
-    %   that invalid inputs trigger appropriate errors.
-    %
-    % Example:
-    %   % Run the test suite:
-    %   results = runtests('test_compute_phase_variances');
-    %   disp(results);
-    %
-    % Author:
-    %   Rodrigo de Lima Florindo
-    %   ORCID: https://orcid.org/0000-0003-0412-5583
-    %   Email: rdlfresearch@gmail.com
+% test_compute_phase_variances
+%
+% Syntax:
+%   results = runtests('test_compute_phase_variances')
+%
+% Description:
+%   Unit tests for the compute_phase_variances function. This test suite
+%   verifies that the function computes the expected phase noise variances
+%   based on provided C/N0 values (in dB-Hz) and a sampling interval (in seconds).
+%   It tests the output size, positivity, approximate numerical values, and
+%   that invalid inputs trigger appropriate errors.
+%
+% Example:
+%   % Run the test suite:
+%   results = runtests('test_compute_phase_variances');
+%   disp(results);
+%
+% Author:
+%   Rodrigo de Lima Florindo
+%   ORCID: https://orcid.org/0000-0003-0412-5583
+%   Email: rdlfresearch@gmail.com
 
     methods(TestClassSetup)
         function add_parent_path(test_case)

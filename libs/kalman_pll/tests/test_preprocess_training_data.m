@@ -17,7 +17,7 @@ classdef test_preprocess_training_data < matlab.unittest.TestCase
 % Author:
 %   Rodrigo de Lima Florindo
 %   ORCID: https://orcid.org/0000-0003-0412-5583
-    %   Email: rdlfresearch@gmail.com
+%   Email: rdlfresearch@gmail.com
 
     methods(TestClassSetup)
         function add_parent_path(test_case)

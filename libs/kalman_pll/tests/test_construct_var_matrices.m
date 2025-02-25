@@ -12,6 +12,11 @@ classdef test_construct_var_matrices < matlab.unittest.TestCase
 %     matrix is not an integer multiple of the number of states.
 %   - Non-numeric coefficient matrix input.
 %   - Non-square covariance matrix input.
+%
+% Author:
+%   Rodrigo de Lima Florindo
+%   ORCID: https://orcid.org/0000-0003-0412-5583
+%   Email: rdlfresearch@gmail.com
 
     methods(TestClassSetup)
         function add_parent_path(test_case)

@@ -7,6 +7,11 @@ classdef test_get_initial_estimates < matlab.unittest.TestCase
 %   2) When is_generate_random_initial_estimates is false, perfect estimates are used.
 %   3) Required fields in general_config and kalman_pll_config are validated,
 %      and errors are raised for missing or mismatched inputs.
+%
+% Author:
+%   Rodrigo de Lima Florindo
+%   ORCID: https://orcid.org/0000-0003-0412-5583
+%   Email: rdlfresearch@gmail.com
 
     properties
         DefaultConfig

@@ -1,24 +1,24 @@
 classdef test_get_discrete_wiener_model < matlab.unittest.TestCase
-    % test_get_discrete_wiener_model
-    %
-    % Syntax:
-    %   results = runtests('test_get_discrete_wiener_model')
-    %
-    % Description:
-    %   Unit tests for get_discrete_wiener_model, which generates the 
-    %   state transition and noise covariance matrices for LOS dynamics.
-    %   Validates correct handling of inputs, output sizes, and error 
-    %   handling on invalid data.
-    %
-    % Example:
-    %   % Run the test suite:
-    %   results = runtests('test_get_discrete_wiener_model');
-    %   disp(results);
-    %
-    % Author:
-    %   Rodrigo de Lima Florindo
-    %   ORCID: https://orcid.org/0000-0003-0412-5583
-    %   Email: rdlfresearch@gmail.com
+% test_get_discrete_wiener_model
+%
+% Syntax:
+%   results = runtests('test_get_discrete_wiener_model')
+%
+% Description:
+%   Unit tests for get_discrete_wiener_model, which generates the 
+%   state transition and noise covariance matrices for LOS dynamics.
+%   Validates correct handling of inputs, output sizes, and error 
+%   handling on invalid data.
+%
+% Example:
+%   % Run the test suite:
+%   results = runtests('test_get_discrete_wiener_model');
+%   disp(results);
+%
+% Author:
+%   Rodrigo de Lima Florindo
+%   ORCID: https://orcid.org/0000-0003-0412-5583
+%   Email: rdlfresearch@gmail.com
 
     methods(TestClassSetup)
         function add_parent_path(test_case)
