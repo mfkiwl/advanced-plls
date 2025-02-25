@@ -22,6 +22,7 @@ classdef test_get_kalman_pll_estimates < matlab.unittest.TestCase
             % Add the necessary directory paths
             parent_dir = fileparts(fileparts(mfilename('fullpath')));
             libs_dir = fileparts(parent_dir);
+            mock_dir = fullfile(fileparts(mfilename('fullpath')),'mock_test_get_kalman_pll_estimates');
             get_received_signal_functions_dir = [libs_dir,'\get_received_signal_functions'];
             tppsm_paths = genpath([libs_dir,'\scintillation_models\refactored_tppsm']);
             csm_paths = genpath([libs_dir,'\scintillation_models\cornell_scintillation_model']);
@@ -32,7 +33,7 @@ classdef test_get_kalman_pll_estimates < matlab.unittest.TestCase
             addpath(csm_paths);
             addpath(arfit_path);
 
-            test_case.addTeardown(@() rmpath(parent_dir, get_received_signal_functions_dir, ...
+            test_case.addTeardown(@() rmpath(parent_dir, mock_dir, get_received_signal_functions_dir, ...
                 tppsm_paths, csm_paths, arfit_path));
         end
 
@@ -40,15 +41,14 @@ classdef test_get_kalman_pll_estimates < matlab.unittest.TestCase
             % Define a default received signal (simulate 10 time steps).
             testCase.DefaultReceivedSignal = ones(10, 1) * exp(1j*0.1);  % Complex signal
             
-            % Define a default Kalman PLL config structure for training model 'CSM'
             % Using dummy matrices.
-            load('dummy_kalman_pll_config.mat');
+            load('mock_test_get_kalman_pll_estimates\dummy_kalman_pll_config.mat');
+            load('mock_test_get_kalman_pll_estimates\dummy_initial_estimates.mat');
+            
+            % Define a default Kalman PLL config structure for training model 'CSM'
             testCase.DefaultKalmanPLLConfig = kcfg;
-            
             % Define default initial estimates.
-            load('dummy_initial_estimates.mat');
             testCase.DefaultInitialEstimates = initEst;
-            
             % Default training model string.
             testCase.DefaultTrainingModel = 'CSM';
         end

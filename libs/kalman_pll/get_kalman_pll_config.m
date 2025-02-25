@@ -1,4 +1,4 @@
-function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_config)
+function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_config, cache_dir)
     % get_kalman_pll_config
     % Generates or retrieves Kalman filter settings and initial estimates,
     % based on the provided configuration parameters.
@@ -28,6 +28,7 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_
     %       - real_doppler_profile: Non-empty numeric vector.
     %       - is_use_cached_settings: Boolean flag indicating whether cached configurations should be used.
     %       - is_generate_random_initial_estimates: Boolean flag indicating whether initial estimates are randomly generated.
+    %   cache_dir - directory of the cache folder
     %
     % Outputs:
     %   kalman_pll_config - Struct containing the computed Kalman filter settings, with fields:
@@ -97,6 +98,9 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_
     % Validate C_over_N0_array_dBHz: non-empty, positive numeric vector.
     validateattributes(general_config.C_over_N0_array_dBHz, {'numeric'}, {'nonempty','vector','positive'}, mfilename, 'C_over_N0_array_dBHz');
     
+    % Validate `cache_file` path
+    validateattributes(cache_dir, {'char', 'string'}, {'nonempty'}, mfilename, 'cache_file');
+
     % Compare sampling_interval in discrete_wiener_model_config and scintillation_training_data_config
     dw_config = general_config.discrete_wiener_model_config;
     if numel(dw_config) < 3
@@ -109,8 +113,12 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_
             'Sampling intervals in scintillation_training_data_config and discrete_wiener_model_config must match.');
     end
 
-    % Call lower-level functions (which perform further validations)
-    cache_file = 'kalman_pll_cache.mat';
+    % Ensure the cache directory exists
+    if ~exist(cache_dir, 'dir')
+        mkdir(cache_dir);
+    end
+    cache_file = fullfile(cache_dir, 'kalman_pll_cache.mat');
+
     [kalman_pll_config, is_cache_used] = get_cached_kalman_pll_config(general_config, cache_file);
     kalman_pll_config = update_cache(general_config, cache_file, kalman_pll_config, is_cache_used);
     initial_estimates = get_initial_estimates(general_config, kalman_pll_config);
