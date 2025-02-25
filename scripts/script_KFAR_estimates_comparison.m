@@ -14,6 +14,10 @@
 %     - AKF-std    : Standard KF using simplified adaptation (hard_limited = false)
 %     - AHL-KF-std : Standard KF using simplified adaptation (hard_limited = true)
 %
+% [1] R. A. M. Lopes, F. Antreich, F. Fohlmeister, M. Kriegel and H. K. Kuga, "Ionospheric 
+%     Scintillation Mitigation With Kalman PLLs Employing Radial Basis Function Networks," 
+%     in IEEE Transactions on Aerospace and Electronic Systems, vol. 59, no. 5, pp. 6878-6893,
+%     Oct. 2023, doi: 10.1109/TAES.2023.3281431
 % Author: Rodrigo de Lima Florindo
 %  ORCID: https://orcid.org/0000-0003-0412-5583
 %  Email: rdlfresearch@gmail.com
@@ -27,15 +31,16 @@ seed = 4;
 rng(seed);
 
 %% Generating the received signal for CSM and TPPSM under severe scintillation scenarios
-doppler_profile = [0, 0, 0];
-L1_C_over_N0_dBHz = 45;
+doppler_profile = [0, 1000, 0.94];
+L1_C_over_N0_dBHz = 42;
 simulation_time = 900;
 S4 = 0.8;
 tau0 = 0.5;
+settling_time = 50;
 [rx_sig_csm, los_phase, psi_csm] = get_received_signal(L1_C_over_N0_dBHz, 'CSM', doppler_profile, ...
-    'S4', S4, 'tau0', tau0, 'simulation_time', simulation_time, 'settling_time', 50);
+    'S4', S4, 'tau0', tau0, 'simulation_time', simulation_time, 'settling_time', settling_time);
 [rx_sig_tppsm, ~, psi_tppsm] = get_received_signal(L1_C_over_N0_dBHz, 'TPPSM', doppler_profile, ...
-    'tppsm_scenario', 'Severe', 'simulation_time', simulation_time, 'settling_time', 50, 'is_refractive_effects_removed', true);
+    'tppsm_scenario', 'Severe', 'simulation_time', simulation_time, 'settling_time', settling_time, 'is_refractive_effects_removed', true);
 
 %% Generating KF-AR configurations and obtaining initial estimates
 cache_dir = fullfile(fileparts(mfilename('fullpath')), 'cache');
@@ -48,7 +53,8 @@ training_data_config_tppsm = struct('scintillation_model', 'TPPSM', 'scenario', 
                                     'simulation_time', training_simulation_time, 'is_refractive_effects_removed', true, 'sampling_interval', sampling_interval);
 training_data_config_none = struct('scintillation_model', 'none', 'sampling_interval', sampling_interval);
 
-process_noise_variance = 1e-8;
+% Here, we used the same noise variance as used in [1, Section V; Subsection A]
+process_noise_variance = 2.6*1e-6; 
 var_model_order = 5;
 general_config_csm = struct( ...
   'discrete_wiener_model_config', { {1, 3, 0.01, [0, 0, process_noise_variance], 1} }, ...
@@ -74,27 +80,27 @@ general_config_none.scintillation_training_data_config = training_data_config_no
 
 %% Define adaptive configuration structures
 % For the simplified adaptive update, we require L1_C_over_N0_dBHz, sampling_interval, and threshold.
-threshold = 40;  % Example threshold in dB; adjust as needed.
+hard_limited_threshold = 38;  % Example threshold in dB; adjust as needed.
 % For AR (KFAR) estimates:
 adaptive_config_KF_AR = struct('algorithm', 'none', 'hard_limited', false);
 adaptive_config_AKF_AR = struct('algorithm', 'simplified', 'hard_limited', false, ...
                                 'L1_C_over_N0_dBHz', L1_C_over_N0_dBHz, ...
                                 'sampling_interval', sampling_interval, ...
-                                'threshold', threshold);
+                                'threshold', hard_limited_threshold);
 adaptive_config_AHL_KF_AR = struct('algorithm', 'simplified', 'hard_limited', true, ...
                                    'L1_C_over_N0_dBHz', L1_C_over_N0_dBHz, ...
                                    'sampling_interval', sampling_interval, ...
-                                   'threshold', threshold);
+                                   'threshold', hard_limited_threshold);
 % For standard KF estimates (training_scint_model = 'none'):
 adaptive_config_KF_std = struct('algorithm', 'none', 'hard_limited', false);
 adaptive_config_AKF_std = struct('algorithm', 'simplified', 'hard_limited', false, ...
                                  'L1_C_over_N0_dBHz', L1_C_over_N0_dBHz, ...
                                  'sampling_interval', sampling_interval, ...
-                                 'threshold', threshold);
+                                 'threshold', hard_limited_threshold);
 adaptive_config_AHL_KF_std = struct('algorithm', 'simplified', 'hard_limited', true, ...
                                     'L1_C_over_N0_dBHz', L1_C_over_N0_dBHz, ...
                                     'sampling_interval', sampling_interval, ...
-                                    'threshold', threshold);
+                                    'threshold', hard_limited_threshold);
 
 %% Obtain state estimates for CSM
 % For CSM, the training_scint_model is 'CSM' (AR augmented).
