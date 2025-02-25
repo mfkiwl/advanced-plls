@@ -63,8 +63,8 @@ classdef test_get_tppsm_data < matlab.unittest.TestCase
             
             % Verify the number of samples is correct.
             expectedSamples = round(testCase.simulation_time / testCase.sampling_interval);
-            testCase.verifySize(psi_tppsm, [1, expectedSamples]);
-            testCase.verifySize(ps_realization, [1, expectedSamples]);
+            testCase.verifySize(psi_tppsm, [expectedSamples, 1]);
+            testCase.verifySize(ps_realization, [expectedSamples, 1]);
             
             % Verify the returned seed matches the input seed.
             testCase.verifyEqual(seedOut, testCase.seed);
