@@ -6,7 +6,10 @@ tau0 = 0.7;                 % Decorrelation time (seconds)
 simulation_time = 300;      % Total simulation time (seconds)
 sampling_interval = 0.01;   % Sampling interval (seconds)
 num_iterations = 1000;       % Number of iterations for statistical analysis
-
+csm_config = struct('S4', S4, ...
+    'tau0', tau0, ...
+    'simulation_time', simulation_time, ...
+    'sampling_interval', sampling_interval);
 % Preallocate arrays for storing results
 num_samples_per_iteration = simulation_time / sampling_interval;
 psi_csm_samples = zeros(num_samples_per_iteration * num_iterations, 1);
@@ -15,7 +18,7 @@ S4_differences = zeros(1, num_iterations);
 % Iterate to calculate S4 differences and collect samples
 for i = 1:num_iterations
     % Generate psi_csm using the provided parameters
-    psi_csm = get_csm_data(S4, tau0, simulation_time, sampling_interval);
+    psi_csm = get_csm_data(csm_config);
     
     % Store the generated samples in the flattened array
     start_idx = (i - 1) * num_samples_per_iteration + 1;

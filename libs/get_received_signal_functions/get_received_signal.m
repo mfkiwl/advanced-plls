@@ -115,7 +115,8 @@ switch scint_model
         end
     case 'CSM'
         % Use the Cornell Scintillation Model with S4 and tau0.
-        psi = get_csm_data(S4, tau0, simulation_time, sampling_interval);
+        csm_params = struct('S4', S4, 'tau0', tau0, 'simulation_time', simulation_time, 'sampling_interval', sampling_interval);
+        psi = get_csm_data(csm_params);
         ps_realization = [];
     case 'none'
         psi = ones(round(simulation_time / sampling_interval), 1);

@@ -79,8 +79,8 @@ function [kalman_pll_config, is_cache_used] = get_cached_kalman_pll_config(gener
         end
     else
         fprintf('No cache file found. Initializing kalman_pll_config.\n');
+        
+        % Initialize a new kalman_pll_config structure
+        kalman_pll_config = struct('CSM', struct(), 'TPPSM', struct(), 'none', struct());
     end
-
-    % Initialize a new kalman_pll_config structure
-    kalman_pll_config = struct('CSM', struct(), 'TPPSM', struct(), 'none', struct());
 end

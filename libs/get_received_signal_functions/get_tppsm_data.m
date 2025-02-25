@@ -112,7 +112,7 @@ rng(seed);
     general_params, irr_params, rhof_veff_ratio_L1, seed);
 
 % Trim outputs to match the expected number of samples
-psi_tppsm = scint_field(1:num_samples_rounded);
-ps_realization = detrended_phase(1:num_samples_rounded);
+psi_tppsm = scint_field(1:num_samples_rounded).';
+ps_realization = detrended_phase(1:num_samples_rounded).';
 
 end
