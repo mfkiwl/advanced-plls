@@ -1,4 +1,4 @@
-function [received_signal, los_phase, psi, ps_realization] = get_received_signal(C_over_N0_dBHz, scint_model, doppler_profile, varargin)
+function [received_signal, los_phase, psi_settled, ps_realization] = get_received_signal(C_over_N0_dBHz, scint_model, doppler_profile, varargin)
 % get_received_signal
 % Simulates the baseband received signal, including ionospheric scintillation
 % effects, thermal noise, and line-of-sight (LOS) phase dynamics.

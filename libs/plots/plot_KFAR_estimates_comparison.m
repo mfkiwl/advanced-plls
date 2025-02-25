@@ -1,14 +1,14 @@
 function plot_KFAR_estimates_comparison(...
     time_vector, ...
     los_phase, ...
-    rx_sig_csm, ...
+    psi_csm, ...
     kf_ar_csm, ...         % KF-AR estimates (no adaptive update) for CSM
     akf_ar_csm, ...        % AKF-AR estimates (simplified, no HL) for CSM
     ahl_kf_ar_csm, ...     % AHL-KF-AR estimates (simplified, HL) for CSM
     kf_std_csm, ...        % KF-std estimates (no adaptive update) for CSM
     akf_std_csm, ...       % AKF-std estimates (simplified, no HL) for CSM
     ahl_kf_std_csm, ...    % AHL-KF-std estimates (simplified, HL) for CSM
-    rx_sig_tppsm, ...
+    psi_tppsm, ...
     kf_ar_tppsm, ...       % KF-AR estimates for TPPSM
     akf_ar_tppsm, ...      % AKF-AR estimates for TPPSM
     ahl_kf_ar_tppsm, ...   % AHL-KF-AR estimates for TPPSM
@@ -19,7 +19,8 @@ function plot_KFAR_estimates_comparison(...
     cnr, ...
     seed, ...
     process_noise_variance, ...
-    ar_order)
+    ar_order, ...
+    is_save_figures)
 % plot_KFAR_estimates_comparison
 %   Creates a uifigure containing a tab group with three tabs:
 %       - "LOS Estimates"
@@ -59,6 +60,7 @@ function plot_KFAR_estimates_comparison(...
 %   seed               - Seed used in the simulation.
 %   process_noise_variance - Process noise variance.
 %   ar_order           - Order of the AR model.
+%   is_save_figures    - Flag to save the figures in pdf and .fig
 %
 % Author: [Your Name]
 % Date: [Today's Date]
@@ -85,7 +87,7 @@ tloLOS = tiledlayout(tabLOS, 2, 1, 'TileSpacing', 'Compact','Padding','Compact')
 
 % Subplot for CSM LOS estimates
 ax1 = nexttile(tloLOS);
-true_csm = unwrap(angle(rx_sig_csm)) - los_phase;
+true_csm = unwrap(angle(psi_csm));
 los_kf_ar = kf_ar_csm(:,1) - los_phase;
 los_akf_ar = akf_ar_csm(:,1) - los_phase;
 los_ahl_kf_ar = ahl_kf_ar_csm(:,1) - los_phase;
@@ -104,7 +106,7 @@ legend(ax1, {'True Unwrapped Phase (LOS detrended)', 'KF-AR LOS','AKF-AR LOS','A
 
 % Subplot for TPPSM LOS estimates
 ax2 = nexttile(tloLOS);
-true_tppsm = unwrap(angle(rx_sig_tppsm)) - los_phase;
+true_tppsm = unwrap(angle(psi_tppsm));
 los_kf_ar_tppsm = kf_ar_tppsm(:,1) - los_phase;
 los_akf_ar_tppsm = akf_ar_tppsm(:,1) - los_phase;
 los_ahl_kf_ar_tppsm = ahl_kf_ar_tppsm(:,1) - los_phase;
@@ -120,8 +122,9 @@ ylabel(ax2, 'Phase [rad]');
 title(ax2, 'TPPSM - LOS Estimates');
 legend(ax2, {'True Unwrapped Phase (LOS detrended)','KF-AR LOS','AKF-AR LOS','AHL-KF-AR LOS'}, ...
     'Location', 'best');
-
-save_tab(tabLOS, 'comparison_los');
+if is_save_figures
+    save_tab(tabLOS, 'comparison_los');
+end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Tab 2: Scintillation Estimates (AR methods only)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -129,7 +132,7 @@ tloScint = tiledlayout(tabScint, 2, 1, 'TileSpacing', 'Compact','Padding','Compa
 
 % Subplot for CSM Scintillation estimates
 ax3 = nexttile(tloScint);
-true_wrapped_csm = angle(rx_sig_csm) - los_phase;
+true_wrapped_csm = angle(psi_csm);
 scint_kf_ar_csm = kf_ar_csm(:,scint_idx);
 scint_akf_ar_csm = akf_ar_csm(:,scint_idx);
 scint_ahl_kf_ar_csm = ahl_kf_ar_csm(:,scint_idx);
@@ -147,7 +150,7 @@ legend(ax3, {'True Wrapped Phase (LOS detrended)', 'KF-AR scint','AKF-AR scint',
 
 % Subplot for TPPSM Scintillation estimates
 ax4 = nexttile(tloScint);
-true_wrapped_tppsm = angle(rx_sig_tppsm) - los_phase;
+true_wrapped_tppsm = angle(psi_tppsm);
 scint_kf_ar_tppsm = kf_ar_tppsm(:,scint_idx);
 scint_akf_ar_tppsm = akf_ar_tppsm(:,scint_idx);
 scint_ahl_kf_ar_tppsm = ahl_kf_ar_tppsm(:,scint_idx);
@@ -163,8 +166,9 @@ ylabel(ax4, 'Phase [rad]');
 title(ax4, 'TPPSM - Scintillation Estimates (AR only)');
 legend(ax4, {'True Wrapped Phase (LOS detrended)', 'KF-AR scint','AKF-AR scint','AHL-KF-AR scint'}, 'Location', 'best');
 
-save_tab(tabScint, 'comparison_scint');
-
+if is_save_figures
+    save_tab(tabScint, 'comparison_scint');
+end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Tab 3: Joint Estimates
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -218,8 +222,9 @@ title(ax6, 'TPPSM - Joint Estimates');
 legend(ax6, {'True Phase (LOS detrended)', 'KF-AR joint','AKF-AR joint','AHL-KF-AR joint',...
     'KF-std joint','AKF-std joint','AHL-KF-std joint'}, 'Location', 'best');
 
-save_tab(tabJoint, 'comparison_joint');
-
+if is_save_figures
+    save_tab(tabJoint, 'comparison_joint');
+end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Local helper function to save the figure
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
