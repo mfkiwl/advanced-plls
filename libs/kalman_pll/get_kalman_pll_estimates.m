@@ -28,6 +28,14 @@ function [state_estimates, error_covariance_estimates] = get_kalman_pll_estimate
     %                               Its first dimension is time, and its second and third dimensions
     %                               match the size of P_hat_init.
     %
+    % References: 
+    % [1] Vilà-Valls J, Closas P, Curran JT. 2017. Multi-frequency GNSS robust carrier tracking 
+    %     for ionospheric scintillation mitigation. J. Space Weather Space Clim. 7: A26
+    % [2] Florindo, Rodrigo de Lima, Antreich, Felix, "Multi-Frequency Kalman Filter Carrier 
+    %     Phase Tracking for Ionospheric Scintillation Mitigation and Monitoring," Proceedings
+    %     of the 37th International Technical Meeting of the Satellite Division of The Institute
+    %     of Navigation (ION GNSS+ 2024), Baltimore, Maryland, September 2024, pp. 3611-3625.
+    %     https://doi.org/10.33012/2024.19899
     % Author: Rodrigo de Lima Florindo
     % ORCID: https://orcid.org/0000-0003-0412-5583
     % Email: rdlfresearch@gmail.com
@@ -91,6 +99,8 @@ function [state_estimates, error_covariance_estimates] = get_kalman_pll_estimate
             P_hat_update = P_hat_project_ahead;
         end
         % Project ahead.
+        % NOTE: W is being used here to introduce the bias of the VAR
+        % model. See [1,Section 3.3] and [2, Equation 20].
         x_hat_project_ahead = F * x_hat_update + W;
         P_hat_project_ahead = F * P_hat_update * F.' + Q;
         % Save estimates.
