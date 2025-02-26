@@ -16,6 +16,7 @@ classdef test_update_cache < matlab.unittest.TestCase
         default_general_config
         default_cache_file
         default_kalman_pll_config
+        default_is_enable_cmd_print
     end
     
     methods(TestMethodSetup)
@@ -102,7 +103,7 @@ classdef test_update_cache < matlab.unittest.TestCase
             cache_file = testCase.default_cache_file;
             kalman_pll_config = testCase.default_kalman_pll_config;
             
-            updated_config = update_cache(config, cache_file, kalman_pll_config, is_cache_used);
+            updated_config = update_cache(config, cache_file, kalman_pll_config, is_cache_used, testCase.default_is_enable_cmd_print);
             testCase.verifyEqual(updated_config, kalman_pll_config, ...
                 'When caching is used, the output should equal the input kalman_pll_config.');
         end
@@ -115,7 +116,7 @@ classdef test_update_cache < matlab.unittest.TestCase
             cache_file = testCase.default_cache_file;
             kalman_pll_config = testCase.default_kalman_pll_config;
             
-            updated_config = update_cache(config, cache_file, kalman_pll_config, is_cache_used);
+            updated_config = update_cache(config, cache_file, kalman_pll_config, is_cache_used, testCase.default_is_enable_cmd_print);
             
             % Expect that build_kalman_pll_config adds a field named after the 
             % scintillation model (e.g., 'CSM')
@@ -142,7 +143,7 @@ classdef test_update_cache < matlab.unittest.TestCase
             kalman_pll_config = testCase.default_kalman_pll_config;
             is_cache_used = false;
             
-            testCase.verifyError(@() update_cache(config, cache_file, kalman_pll_config, is_cache_used), ...
+            testCase.verifyError(@() update_cache(config, cache_file, kalman_pll_config, is_cache_used, testCase.default_is_enable_cmd_print), ...
                 'update_cache:MissingField', ...
                 'An error is expected when a required field is missing from general_config.');
         end
@@ -158,7 +159,7 @@ classdef test_update_cache < matlab.unittest.TestCase
             kalman_pll_config = testCase.default_kalman_pll_config;
             is_cache_used = false;
             
-            testCase.verifyError(@() update_cache(config, cache_file, kalman_pll_config, is_cache_used), ...
+            testCase.verifyError(@() update_cache(config, cache_file, kalman_pll_config, is_cache_used, testCase.default_is_enable_cmd_print), ...
                 'update_cache:MissingField', ...
                 'An error is expected when sampling_interval is missing in scintillation_training_data_config.');
         end
@@ -170,7 +171,7 @@ classdef test_update_cache < matlab.unittest.TestCase
             kalman_pll_config = testCase.default_kalman_pll_config;
             is_cache_used = false;
             
-            testCase.verifyError(@() update_cache(config, cache_file, kalman_pll_config, is_cache_used), ...
+            testCase.verifyError(@() update_cache(config, cache_file, kalman_pll_config, is_cache_used, testCase.default_is_enable_cmd_print), ...
                 'MATLAB:update_cache:expectedNonempty', ...
                 'An error is expected for an empty cache_file.');
         end
@@ -182,7 +183,7 @@ classdef test_update_cache < matlab.unittest.TestCase
             kalman_pll_config = [];  % invalid kalman_pll_config
             is_cache_used = false;
             
-            testCase.verifyError(@() update_cache(config, cache_file, kalman_pll_config, is_cache_used), ...
+            testCase.verifyError(@() update_cache(config, cache_file, kalman_pll_config, is_cache_used, testCase.default_is_enable_cmd_print), ...
                 'MATLAB:update_cache:invalidType', ...
                 'An error is expected for an invalid kalman_pll_config.');
         end
@@ -194,7 +195,7 @@ classdef test_update_cache < matlab.unittest.TestCase
             kalman_pll_config = testCase.default_kalman_pll_config;
             is_cache_used = 'false';  % invalid type
             
-            testCase.verifyError(@() update_cache(config, cache_file, kalman_pll_config, is_cache_used), ...
+            testCase.verifyError(@() update_cache(config, cache_file, kalman_pll_config, is_cache_used, testCase.default_is_enable_cmd_print), ...
                 'MATLAB:update_cache:invalidType', ...
                 'An error is expected when is_cache_used is not a logical scalar.');
         end

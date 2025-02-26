@@ -25,6 +25,7 @@ classdef test_get_cached_kalman_pll_config < matlab.unittest.TestCase
     properties
         cache_directory  % Temporary cache directory for testing
         cache_file_path  % Full path to the test cache file
+        is_enable_cmd_print % Flag to enable cmd printing
     end
 
     methods (TestClassSetup)
@@ -44,6 +45,9 @@ classdef test_get_cached_kalman_pll_config < matlab.unittest.TestCase
             if ~isfolder(test_case.cache_directory)
                 mkdir(test_case.cache_directory);
             end
+        end
+        function is_enable_cmd_print_setup(test_case)
+            test_case.is_enable_cmd_print = true;
         end
     end
 
@@ -71,7 +75,7 @@ classdef test_get_cached_kalman_pll_config < matlab.unittest.TestCase
             );
 
             [kalman_pll_config, is_cache_used] = ...
-                get_cached_kalman_pll_config(config, test_case.cache_file_path);
+                get_cached_kalman_pll_config(config, test_case.cache_file_path, test_case.is_enable_cmd_print);
 
             test_case.verifyFalse(is_cache_used, ...
                 'Expected is_cache_used = false when no cache file exists.');
@@ -96,7 +100,7 @@ classdef test_get_cached_kalman_pll_config < matlab.unittest.TestCase
             );
 
             [loaded_config, is_cache_used] = ...
-                get_cached_kalman_pll_config(config, test_case.cache_file_path);
+                get_cached_kalman_pll_config(config, test_case.cache_file_path, test_case.is_enable_cmd_print);
 
             test_case.verifyTrue(is_cache_used, ...
                 'Expected cache to be used when a valid cache file exists.');
@@ -119,7 +123,7 @@ classdef test_get_cached_kalman_pll_config < matlab.unittest.TestCase
             );
 
             [reinit_config, is_cache_used] = ...
-                get_cached_kalman_pll_config(config, test_case.cache_file_path);
+                get_cached_kalman_pll_config(config, test_case.cache_file_path, test_case.is_enable_cmd_print);
 
             test_case.verifyFalse(is_cache_used, ...
                 'Expected a new config if the cache lacks the requested model field.');
@@ -131,7 +135,7 @@ classdef test_get_cached_kalman_pll_config < matlab.unittest.TestCase
 
             invalid_config = 123; % Not a struct
             test_case.verifyError(...
-                @() get_cached_kalman_pll_config(invalid_config, test_case.cache_file_path), ...
+                @() get_cached_kalman_pll_config(invalid_config, test_case.cache_file_path, test_case.is_enable_cmd_print), ...
                 'MATLAB:get_cached_kalman_pll_config:invalidType', ...
                 'Expected an error for invalid config type.');
         end

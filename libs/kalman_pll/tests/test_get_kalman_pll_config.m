@@ -18,8 +18,9 @@ classdef test_get_kalman_pll_config < matlab.unittest.TestCase
 %   Email: rdlfresearch@gmail.com
 
     properties
-        DefaultConfig
-        DefaultCacheDir
+        default_config
+        default_cache_dir
+        default_is_enable_cmd_print
     end
 
     methods(TestClassSetup)
@@ -45,7 +46,7 @@ classdef test_get_kalman_pll_config < matlab.unittest.TestCase
     methods(TestMethodSetup)
         function setDefaultConfig(testCase)
             % Define a default valid configuration struct.
-            testCase.DefaultConfig = struct( ...
+            testCase.default_config = struct( ...
                 'discrete_wiener_model_config', { {1, 3, 0.01, [0,0,1], 1} }, ...
                 'scintillation_training_data_config', struct('scintillation_model', 'CSM', 'S4', 0.8, 'tau0', 0.7, 'simulation_time', 300, 'sampling_interval', 0.01), ...
                 'var_minimum_order', 1, ...
@@ -56,14 +57,15 @@ classdef test_get_kalman_pll_config < matlab.unittest.TestCase
                 'is_use_cached_settings', false, ...
                 'is_generate_random_initial_estimates', true ...
             );
-            testCase.DefaultCacheDir = [fileparts(mfilename('fullpath')),'\cache'];
+            testCase.default_cache_dir = [fileparts(mfilename('fullpath')),'\cache'];
+            testCase.default_is_enable_cmd_print = true;
         end
     end
     
     methods(Test)
         function testValidConfig(testCase)
             % Using the default configuration, verify that the outputs are valid.
-            [kcfg, initEst] = get_kalman_pll_config(testCase.DefaultConfig, testCase.DefaultCacheDir);
+            [kcfg, initEst] = get_kalman_pll_config(testCase.default_config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print);
             testCase.verifyTrue(isstruct(kcfg), 'kalman_pll_config must be a struct.');
             % Dummy update_cache adds field "CSM"
             testCase.verifyTrue(isfield(kcfg, 'CSM'), 'Expected field "CSM" not found.');
@@ -74,37 +76,37 @@ classdef test_get_kalman_pll_config < matlab.unittest.TestCase
         
         function testMissingRequiredField(testCase)
             % Remove a required field from the config.
-            config = testCase.DefaultConfig;
+            config = testCase.default_config;
             config = rmfield(config, 'is_generate_random_initial_estimates');
-            testCase.verifyError(@() get_kalman_pll_config(config, testCase.DefaultCacheDir), 'get_kalman_pll_config:MissingField');
+            testCase.verifyError(@() get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print), 'get_kalman_pll_config:MissingField');
         end
         
         function testSamplingIntervalMismatch(testCase)
             % Modify the sampling interval in discrete_wiener_model_config so that it mismatches.
-            config = testCase.DefaultConfig;
+            config = testCase.default_config;
             config.discrete_wiener_model_config{3} = 0.02; % Should be 0.01 as in scintillation_training_data_config
-            testCase.verifyError(@() get_kalman_pll_config(config, testCase.DefaultCacheDir), 'get_kalman_pll_config:SamplingIntervalMismatch');
+            testCase.verifyError(@() get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print), 'get_kalman_pll_config:SamplingIntervalMismatch');
         end
         
         function testInvalidBoundaries(testCase)
             % Provide an invalid boundary (min >= max) for one element.
-            config = testCase.DefaultConfig;
+            config = testCase.default_config;
             config.initial_states_distributions_boundaries{3} = [0.1, -0.1];
-            testCase.verifyError(@() get_kalman_pll_config(config, testCase.DefaultCacheDir), 'get_kalman_pll_config:InvalidBoundaries');
+            testCase.verifyError(@() get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print), 'get_kalman_pll_config:InvalidBoundaries');
         end
         
         function testEmptyRealDopplerProfile(testCase)
             % Set real_doppler_profile to an empty array.
-            config = testCase.DefaultConfig;
+            config = testCase.default_config;
             config.real_doppler_profile = [];
-            testCase.verifyError(@() get_kalman_pll_config(config, testCase.DefaultCacheDir), 'MATLAB:get_kalman_pll_config:expectedNonempty');
+            testCase.verifyError(@() get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print), 'MATLAB:get_kalman_pll_config:expectedNonempty');
         end
         
         function testNegativeCOverN0(testCase)
             % Set a negative value for C_over_N0_array_dBHz.
-            config = testCase.DefaultConfig;
+            config = testCase.default_config;
             config.C_over_N0_array_dBHz = -35;
-            testCase.verifyError(@() get_kalman_pll_config(config, testCase.DefaultCacheDir), 'MATLAB:get_kalman_pll_config:expectedPositive');
+            testCase.verifyError(@() get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print), 'MATLAB:get_kalman_pll_config:expectedPositive');
         end
     end
     
