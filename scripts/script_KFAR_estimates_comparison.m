@@ -74,9 +74,11 @@ general_config_tppsm.scintillation_training_data_config = training_data_config_t
 general_config_none = general_config_csm;
 general_config_none.scintillation_training_data_config = training_data_config_none;
 
-[~, init_estimates_csm] = get_kalman_pll_config(general_config_csm, cache_dir);
-[~, init_estimates_tppsm] = get_kalman_pll_config(general_config_tppsm, cache_dir);
-[kf_cfg, init_estimates_none] = get_kalman_pll_config(general_config_none, cache_dir);
+is_enable_cmd_print = true;
+
+[~, init_estimates_csm] = get_kalman_pll_config(general_config_csm, cache_dir, is_enable_cmd_print);
+[~, init_estimates_tppsm] = get_kalman_pll_config(general_config_tppsm, cache_dir, is_enable_cmd_print);
+[kf_cfg, init_estimates_none] = get_kalman_pll_config(general_config_none, cache_dir, is_enable_cmd_print);
 
 %% Define adaptive configuration structures
 % For the simplified adaptive update, we require L1_C_over_N0_dBHz, sampling_interval, and threshold.
