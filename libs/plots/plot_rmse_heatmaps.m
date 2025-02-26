@@ -1,4 +1,4 @@
-function plot_rmse_heatmaps(rmse_csm, rmse_tppsm, process_noise_variance_array, phase_type, algorithm_label)
+function plot_rmse_heatmaps(rmse_csm, rmse_tppsm, process_noise_variance_array, phase_type, algorithm_label, directory_to_save)
 % plot_rmse_heatmaps
 % Plots side-by-side 2x1 heatmaps comparing the RMSE distribution versus process
 % noise variance for two scenarios (CSM and TPPSM) for a given phase type and algorithm.
@@ -26,12 +26,12 @@ function plot_rmse_heatmaps(rmse_csm, rmse_tppsm, process_noise_variance_array, 
 all_data = [rmse_csm(:); rmse_tppsm(:)];
 min_rmse = min(all_data);
 max_rmse = max(all_data);
-num_bins = 20;
+num_bins = 50;
 edges_rmse = linspace(min_rmse, max_rmse, num_bins+1);
 centers_rmse = (edges_rmse(1:end-1) + edges_rmse(2:end)) / 2;
 
 % Create figure and tiled layout
-figure;
+fig = figure('Position',[50,50,500,600]);
 tiled_layout = tiledlayout(2, 1, 'TileSpacing', 'Compact', 'Padding', 'Compact');
 
 %% Panel 1: CSM
@@ -80,4 +80,19 @@ plot(process_noise_variance_array, upper_bound, 'w--', 'LineWidth', 2);
 hold off;
 
 sgtitle(sprintf('%s %s RMSE vs. Process Noise Variance', algorithm_label, phase_type));
+
+% Adjust figure paper size
+set(fig, 'PaperUnits', 'centimeters');
+fig_pos = get(fig, 'Position');
+fig_width_cm = fig_pos(3) * 2.54 / 96;
+fig_height_cm = fig_pos(4) * 2.54 / 96;
+set(fig, 'PaperSize', [fig_width_cm fig_height_cm]);  
+set(fig, 'PaperPosition', [0 0 fig_width_cm fig_height_cm]);
+
+% Save as PDF
+pdf_filename = sprintf('%s_%s_RMSE_hist_pnv.pdf', algorithm_label, phase_type);
+print(fig, fullfile(directory_to_save, pdf_filename), '-dpdf', '-vector');
+
+disp(['Saved: ', fullfile(directory_to_save, pdf_filename)]);
+close(fig);
 end

@@ -42,11 +42,18 @@ script_folder = fileparts(mfilename('fullpath'));
 results_folder = fullfile(script_folder, 'results');
 results_file = fullfile(results_folder, 'monte_carlo_with_process_noise_sweep_results.mat');
 
+
 if exist(results_file, 'file')
     loaded_data = load(results_file, 'results');
     results = loaded_data.results;
 else
     error('plot_all_results:resultsNotFound', 'Results file not found: %s', results_file);
+end
+
+directory_to_save = fullfile(fileparts(fileparts(mfilename('fullpath'))),'figures','RMSE_hist_vs_pnv');
+
+if ~exist(directory_to_save, 'dir')
+    mkdir(directory_to_save);
 end
 
 % Determine the number of noise levels from the results structure
@@ -56,30 +63,30 @@ process_noise_variance_array = results.pnv_array;
 
 % --- 1. LOS RMSE Heatmaps ---
 % 1.1: KF-AR los phase RMSE
-plot_rmse_heatmaps(results.csm.los.kf_ar, results.tppsm.los.kf_ar, process_noise_variance_array, 'los', 'KF-AR');
+plot_rmse_heatmaps(results.csm.los.kf_ar, results.tppsm.los.kf_ar, process_noise_variance_array, 'line-of-sight phase', 'KF-AR', directory_to_save);
 % 1.2: AKF-AR los phase RMSE
-plot_rmse_heatmaps(results.csm.los.akf_ar, results.tppsm.los.akf_ar, process_noise_variance_array, 'los', 'AKF-AR');
+plot_rmse_heatmaps(results.csm.los.akf_ar, results.tppsm.los.akf_ar, process_noise_variance_array, 'line-of-sight phase', 'AKF-AR', directory_to_save);
 % 1.3: AHL-KF-AR los phase RMSE
-plot_rmse_heatmaps(results.csm.los.ahl_kf_ar, results.tppsm.los.ahl_kf_ar, process_noise_variance_array, 'los', 'AHL-KF-AR');
+plot_rmse_heatmaps(results.csm.los.ahl_kf_ar, results.tppsm.los.ahl_kf_ar, process_noise_variance_array, 'line-of-sight phase', 'AHL-KF-AR', directory_to_save);
 
 % --- 2. Scintillation RMSE Heatmaps (AR estimates only) ---
 % 2.1: KF-AR scint phase RMSE
-plot_rmse_heatmaps(results.csm.scint.kf_ar, results.tppsm.scint.kf_ar, process_noise_variance_array, 'scint', 'KF-AR');
+plot_rmse_heatmaps(results.csm.scint.kf_ar, results.tppsm.scint.kf_ar, process_noise_variance_array, 'scintillation phase', 'KF-AR', directory_to_save);
 % 2.2: AKF-AR scint phase RMSE
-plot_rmse_heatmaps(results.csm.scint.akf_ar, results.tppsm.scint.akf_ar, process_noise_variance_array, 'scint', 'AKF-AR');
+plot_rmse_heatmaps(results.csm.scint.akf_ar, results.tppsm.scint.akf_ar, process_noise_variance_array, 'scintillation phase', 'AKF-AR', directory_to_save);
 % 2.3: AHL-KF-AR scint phase RMSE
-plot_rmse_heatmaps(results.csm.scint.ahl_kf_ar, results.tppsm.scint.ahl_kf_ar, process_noise_variance_array, 'scint', 'AHL-KF-AR');
+plot_rmse_heatmaps(results.csm.scint.ahl_kf_ar, results.tppsm.scint.ahl_kf_ar, process_noise_variance_array, 'scintillation phase', 'AHL-KF-AR', directory_to_save);
 
 % --- 3. Joint RMSE Heatmaps ---
 % 3.1: KF-AR joint phase RMSE
-plot_rmse_heatmaps(results.csm.joint.kf_ar, results.tppsm.joint.kf_ar, process_noise_variance_array, 'joint', 'KF-AR');
+plot_rmse_heatmaps(results.csm.joint.kf_ar, results.tppsm.joint.kf_ar, process_noise_variance_array, 'joint (LOS + scint) phase', 'KF-AR', directory_to_save);
 % 3.2: AKF-AR joint phase RMSE
-plot_rmse_heatmaps(results.csm.joint.akf_ar, results.tppsm.joint.akf_ar, process_noise_variance_array, 'joint', 'AKF-AR');
+plot_rmse_heatmaps(results.csm.joint.akf_ar, results.tppsm.joint.akf_ar, process_noise_variance_array, 'joint (LOS + scint) phase', 'AKF-AR', directory_to_save);
 % 3.3: AHL-KF-AR joint phase RMSE
-plot_rmse_heatmaps(results.csm.joint.ahl_kf_ar, results.tppsm.joint.ahl_kf_ar, process_noise_variance_array, 'joint', 'AHL-KF-AR');
+plot_rmse_heatmaps(results.csm.joint.ahl_kf_ar, results.tppsm.joint.ahl_kf_ar, process_noise_variance_array, 'joint (LOS + scint) phase', 'AHL-KF-AR', directory_to_save);
 % 3.4: KF-std joint phase RMSE
-plot_rmse_heatmaps(results.csm.joint.kf_std, results.tppsm.joint.kf_std, process_noise_variance_array, 'joint', 'KF-Std');
+plot_rmse_heatmaps(results.csm.joint.kf_std, results.tppsm.joint.kf_std, process_noise_variance_array, 'joint (LOS + scint) phase', 'KF-Std', directory_to_save);
 % 3.5: AKF-std joint phase RMSE
-plot_rmse_heatmaps(results.csm.joint.akf_std, results.tppsm.joint.akf_std, process_noise_variance_array, 'joint', 'AKF-Std');
+plot_rmse_heatmaps(results.csm.joint.akf_std, results.tppsm.joint.akf_std, process_noise_variance_array, 'joint (LOS + scint) phase', 'AKF-Std', directory_to_save);
 % 3.6: AHL-KF-std joint phase RMSE
-plot_rmse_heatmaps(results.csm.joint.ahl_kf_std, results.tppsm.joint.ahl_kf_std, process_noise_variance_array, 'joint', 'AHL-KF-Std');
+plot_rmse_heatmaps(results.csm.joint.ahl_kf_std, results.tppsm.joint.ahl_kf_std, process_noise_variance_array, 'joint (LOS + scint) phase', 'AHL-KF-Std', directory_to_save);
