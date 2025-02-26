@@ -136,7 +136,7 @@ adaptive_config_AHL_KF_std = struct('algorithm', 'simplified', 'hard_limited', t
 time_vector = sampling_interval:sampling_interval:simulation_time;
 
 %% Plot the estimates comparison
-is_save_figures = false;
+is_save_figures = true;
 % The plotting function should be modified to handle these inputs accordingly.
 plot_KFAR_estimates_comparison(...
     time_vector, ...
