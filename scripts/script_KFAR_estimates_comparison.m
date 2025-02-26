@@ -31,7 +31,7 @@ seed = 4;
 rng(seed);
 
 %% Generating the received signal for CSM and TPPSM under severe scintillation scenarios
-doppler_profile = [0, 1000, 0.94];
+doppler_profile = [0, 0, 0];
 L1_C_over_N0_dBHz = 42;
 simulation_time = 300;
 S4 = 0.8;
@@ -136,7 +136,7 @@ adaptive_config_AHL_KF_std = struct('algorithm', 'simplified', 'hard_limited', t
 time_vector = sampling_interval:sampling_interval:simulation_time;
 
 %% Plot the estimates comparison
-is_save_figures = true;
+is_save_figures = false;
 % The plotting function should be modified to handle these inputs accordingly.
 plot_KFAR_estimates_comparison(...
     time_vector, ...

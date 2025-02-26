@@ -79,7 +79,7 @@ plot(process_noise_variance_array, lower_bound, 'w--', 'LineWidth', 2);
 plot(process_noise_variance_array, upper_bound, 'w--', 'LineWidth', 2);
 hold off;
 
-sgtitle(sprintf('%s %s RMSE vs. Process Noise Variance', algorithm_label, phase_type));
+%sgtitle(sprintf('%s %s RMSE vs. Process Noise Variance', algorithm_label, phase_type));
 
 % Adjust figure paper size
 set(fig, 'PaperUnits', 'centimeters');
