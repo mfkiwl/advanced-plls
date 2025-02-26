@@ -1,5 +1,5 @@
 % Clear workspace and command window
-clear all; clc;
+clearvars; clc;
 
 addpath(genpath(fullfile(pwd,'..')));
 

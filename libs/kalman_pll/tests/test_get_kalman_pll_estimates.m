@@ -43,8 +43,8 @@ classdef test_get_kalman_pll_estimates < matlab.unittest.TestCase
             testCase.DefaultReceivedSignal = ones(10, 1) * exp(1j*0.1);  % Complex signal
             
             % Using dummy matrices.
-            load(fullfile('mock_test_get_kalman_pll_estimates', 'dummy_kalman_pll_config.mat'));
-            load(fullfile('mock_test_get_kalman_pll_estimates', 'dummy_initial_estimates.mat'));
+            load(fullfile('mock_test_get_kalman_pll_estimates', 'dummy_kalman_pll_config.mat'), 'kcfg');
+            load(fullfile('mock_test_get_kalman_pll_estimates', 'dummy_initial_estimates.mat'), 'initEst');
             
             % Define a default Kalman PLL config structure for training model 'CSM'
             testCase.DefaultKalmanPLLConfig = kcfg;

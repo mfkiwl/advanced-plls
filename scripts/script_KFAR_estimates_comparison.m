@@ -22,7 +22,7 @@
 %  ORCID: https://orcid.org/0000-0003-0412-5583
 %  Email: rdlfresearch@gmail.com
 
-clear all; clc;
+clearvars; clc;
 
 addpath(genpath(fullfile(pwd, '..', 'libs')));
 
