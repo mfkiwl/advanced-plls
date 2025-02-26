@@ -81,7 +81,6 @@ function training_data = preprocess_training_data(scintillation_training_data_co
                 end
             end
 
-            % Additional numeric validations can be done here if desired, e.g.:
             validateattributes(scintillation_training_data_config.S4, {'numeric'}, ...
                 {'scalar','real','>=',0,'<=',1}, mfilename, 'S4');
             validateattributes(scintillation_training_data_config.tau0, {'numeric'}, ...

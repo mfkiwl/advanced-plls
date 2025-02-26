@@ -16,7 +16,7 @@ function [psi_tppsm, ps_realization, general_params, irr_params_set, seed] = get
 %                      'general_params', general_params, ...
 %                      'irr_params_set', irr_params_set, ...
 %                      'seed', seed, ...
-%                      'rhof_veff_ratio_L1', rhof_veff_ratio_L1)
+%                      'rhof_veff_ratio', rhof_veff_ratio)
 %
 % Inputs:
 %   scenario         - A string specifying the scintillation scenario 
@@ -30,7 +30,7 @@ function [psi_tppsm, ps_realization, general_params, irr_params_set, seed] = get
 %   'irr_params_set'      - Structure containing preset irregularity parameters.
 %                           If empty, the function will call get_irregularity_parameters().
 %   'seed'                - Seed for random number generation (default: 1).
-%   'rhof_veff_ratio_L1'  - (Optional) A numeric value for the computed 
+%   'rhof_veff_ratio'     - (Optional) A numeric value for the computed 
 %                           rhof/veff ratio for L1. If provided (and nonempty), 
 %                           the function will skip its internal computation.
 %
@@ -42,13 +42,13 @@ function [psi_tppsm, ps_realization, general_params, irr_params_set, seed] = get
 %   seed             - Seed value used.
 %
 % Example:
-%   [psi_tppsm, ps_realization] = get_tppsm_data('Moderate', 'seed', 42, 'rhof_veff_ratio_L1', 0.35);
+%   [psi_tppsm, ps_realization] = get_tppsm_data('Moderate', 'seed', 42, 'rhof_veff_ratio', 0.35);
 %
 % Notes:
 %   - This implementation is for single-frequency carrier phase tracking.
 %   - The function does not perform any extrapolation of irregularity parameters;
 %     instead, it uses preset parameters directly.
-%   - If 'rhof_veff_ratio_L1' is provided, it is used directly; otherwise, the
+%   - If 'rhof_veff_ratio' is provided, it is used directly; otherwise, the
 %     function computes it by calling get_rhof_veff_ratio(general_params).
 %
 % Author: Rodrigo de Lima Florindo
@@ -63,7 +63,7 @@ addParameter(p, 'sampling_interval', 0.01, @(x) validateattributes(x, {'numeric'
 addParameter(p, 'general_params', [], @(x) isempty(x) || isstruct(x));
 addParameter(p, 'irr_params_set', [], @(x) isempty(x) || isstruct(x));
 addParameter(p, 'seed', 1, @(x) validateattributes(x, {'numeric'}, {'scalar', 'real'}));
-addParameter(p, 'rhof_veff_ratio_L1', [], @(x) isempty(x) || isnumeric(x));
+addParameter(p, 'rhof_veff_ratio', [], @(x) isempty(x) || isnumeric(x));
 parse(p, scenario, varargin{:});
 
 scenario = validatestring(p.Results.scenario, {'Weak', 'Moderate', 'Severe'}, mfilename, 'scenario');
@@ -72,7 +72,7 @@ sampling_interval = p.Results.sampling_interval;
 general_params = p.Results.general_params;
 irr_params_set = p.Results.irr_params_set;
 seed = p.Results.seed;
-rhof_veff_ratio_L1 = p.Results.rhof_veff_ratio_L1;
+rhof_veff_ratio = p.Results.rhof_veff_ratio;
 
 if simulation_time < sampling_interval
     error('get_tppsm_data:simulationTimeSmallerThanSamplingInterval', ...
@@ -98,17 +98,17 @@ end
 
 irr_params = irr_params_set.(scenario);
 
-% If the external rhof_veff_ratio_L1 is not provided, compute it.
-if isempty(rhof_veff_ratio_L1)
-    rhof_veff_ratio_L1 = get_rhof_veff_ratio(general_params);
+% If the external rhof_veff_ratio is not provided, compute it.
+if isempty(rhof_veff_ratio)
+    rhof_veff_ratio = get_rhof_veff_ratio(general_params);
 else
-    fprintf('Using externally provided rhof_veff_ratio_L1: %g\n', rhof_veff_ratio_L1);
+    %fprintf('Using externally provided rhof_veff_ratio: %g\n', rhof_veff_ratio);
 end
 
 rng(seed);
 
 [scint_field, ~, detrended_phase, ~, ~] = get_scintillation_time_series(...
-    general_params, irr_params, rhof_veff_ratio_L1, seed);
+    general_params, irr_params, rhof_veff_ratio, seed);
 
 psi_tppsm = scint_field(1:num_samples_rounded).';
 ps_realization = detrended_phase(1:num_samples_rounded).';

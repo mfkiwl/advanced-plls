@@ -64,6 +64,10 @@ initial_process_noise_variance = 2.6e-6; % Process noise variance (e.g., from re
 % values are sampled from a uniform distribution.
 initial_states_distributions_boundaries = { {[-pi, pi], [-5, 5], [-0.1, 0.1]} };
 
+% Obtain L1_rhof_veff_ratio for a single satellite:
+general_params = get_general_parameters();
+L1_rhof_veff_ratio = get_rhof_veff_ratio(general_params);
+
 % Training Data Configuration
 training_simulation_time = 1500;         % Training simulation time (sec)
 training_data_config_csm = struct(...
@@ -77,7 +81,8 @@ training_data_config_tppsm = struct(...
     'scenario', 'Severe', ...
     'simulation_time', training_simulation_time, ...
     'is_refractive_effects_removed', true, ...
-    'sampling_interval', sampling_interval);
+    'sampling_interval', sampling_interval, ...
+    'rhof_veff_ratio', L1_rhof_veff_ratio);
 training_data_config_none = struct(...
     'scintillation_model', 'none', ...
     'sampling_interval', sampling_interval);
@@ -134,11 +139,13 @@ general_config_none.scintillation_training_data_config = training_data_config_no
 
 %% Main Monte Carlo Loop
 
-monte_carlo_runs = 2;
-pnv_amount = 2;
+monte_carlo_runs = 10;
+pnv_amount = 4;
 pnv_array = logspace(-4,-9,pnv_amount);
 % Preallocate a results structure for RMSE metrics
 results = struct();
+
+results.pnv_array = pnv_array;
 
 % For CSM scenario:
 results.csm.los.kf_ar           = zeros(monte_carlo_runs,pnv_amount);
@@ -252,3 +259,15 @@ for pnv_idx = 1:pnv_amount
         results.tppsm.joint.ahl_kf_std(m,pnv_idx) = sqrt(immse(wrapToPi(ahl_kf_std_tppsm(valid_time_vector,1)), valid_joint_phase_tppsm));
     end
 end
+
+%% Save the results structure in a "results" folder inside the script folder
+script_folder = fileparts(mfilename('fullpath'));
+results_folder = fullfile(script_folder, 'results');
+if ~exist(results_folder, 'dir')
+    mkdir(results_folder);
+end
+
+results_filename = fullfile(results_folder, 'monte_carlo_with_process_noise_sweep_results.mat');
+save(results_filename, 'results');
+
+fprintf('Results saved to %s\n', results_filename);
