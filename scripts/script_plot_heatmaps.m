@@ -56,30 +56,30 @@ process_noise_variance_array = results.pnv_array;
 
 % --- 1. LOS RMSE Heatmaps ---
 % 1.1: KF-AR los phase RMSE
-plot_rmse_heatmaps(results.csm.los.kf_ar, results.tppsm.los.kf_ar, noise_vals, 'los', 'KF-AR');
+plot_rmse_heatmaps(results.csm.los.kf_ar, results.tppsm.los.kf_ar, process_noise_variance_array, 'los', 'KF-AR');
 % 1.2: AKF-AR los phase RMSE
-plot_rmse_heatmaps(results.csm.los.akf_ar, results.tppsm.los.akf_ar, noise_vals, 'los', 'AKF-AR');
+plot_rmse_heatmaps(results.csm.los.akf_ar, results.tppsm.los.akf_ar, process_noise_variance_array, 'los', 'AKF-AR');
 % 1.3: AHL-KF-AR los phase RMSE
-plot_rmse_heatmaps(results.csm.los.ahl_kf_ar, results.tppsm.los.ahl_kf_ar, noise_vals, 'los', 'AHL-KF-AR');
+plot_rmse_heatmaps(results.csm.los.ahl_kf_ar, results.tppsm.los.ahl_kf_ar, process_noise_variance_array, 'los', 'AHL-KF-AR');
 
 % --- 2. Scintillation RMSE Heatmaps (AR estimates only) ---
 % 2.1: KF-AR scint phase RMSE
-plot_rmse_heatmaps(results.csm.scint.kf_ar, results.tppsm.scint.kf_ar, noise_vals, 'scint', 'KF-AR');
+plot_rmse_heatmaps(results.csm.scint.kf_ar, results.tppsm.scint.kf_ar, process_noise_variance_array, 'scint', 'KF-AR');
 % 2.2: AKF-AR scint phase RMSE
-plot_rmse_heatmaps(results.csm.scint.akf_ar, results.tppsm.scint.akf_ar, noise_vals, 'scint', 'AKF-AR');
+plot_rmse_heatmaps(results.csm.scint.akf_ar, results.tppsm.scint.akf_ar, process_noise_variance_array, 'scint', 'AKF-AR');
 % 2.3: AHL-KF-AR scint phase RMSE
-plot_rmse_heatmaps(results.csm.scint.ahl_kf_ar, results.tppsm.scint.ahl_kf_ar, noise_vals, 'scint', 'AHL-KF-AR');
+plot_rmse_heatmaps(results.csm.scint.ahl_kf_ar, results.tppsm.scint.ahl_kf_ar, process_noise_variance_array, 'scint', 'AHL-KF-AR');
 
 % --- 3. Joint RMSE Heatmaps ---
 % 3.1: KF-AR joint phase RMSE
-plot_rmse_heatmaps(results.csm.joint.kf_ar, results.tppsm.joint.kf_ar, noise_vals, 'joint', 'KF-AR');
+plot_rmse_heatmaps(results.csm.joint.kf_ar, results.tppsm.joint.kf_ar, process_noise_variance_array, 'joint', 'KF-AR');
 % 3.2: AKF-AR joint phase RMSE
-plot_rmse_heatmaps(results.csm.joint.akf_ar, results.tppsm.joint.akf_ar, noise_vals, 'joint', 'AKF-AR');
+plot_rmse_heatmaps(results.csm.joint.akf_ar, results.tppsm.joint.akf_ar, process_noise_variance_array, 'joint', 'AKF-AR');
 % 3.3: AHL-KF-AR joint phase RMSE
-plot_rmse_heatmaps(results.csm.joint.ahl_kf_ar, results.tppsm.joint.ahl_kf_ar, noise_vals, 'joint', 'AHL-KF-AR');
+plot_rmse_heatmaps(results.csm.joint.ahl_kf_ar, results.tppsm.joint.ahl_kf_ar, process_noise_variance_array, 'joint', 'AHL-KF-AR');
 % 3.4: KF-std joint phase RMSE
-plot_rmse_heatmaps(results.csm.joint.kf_std, results.tppsm.joint.kf_std, noise_vals, 'joint', 'KF-Std');
+plot_rmse_heatmaps(results.csm.joint.kf_std, results.tppsm.joint.kf_std, process_noise_variance_array, 'joint', 'KF-Std');
 % 3.5: AKF-std joint phase RMSE
-plot_rmse_heatmaps(results.csm.joint.akf_std, results.tppsm.joint.akf_std, noise_vals, 'joint', 'AKF-Std');
+plot_rmse_heatmaps(results.csm.joint.akf_std, results.tppsm.joint.akf_std, process_noise_variance_array, 'joint', 'AKF-Std');
 % 3.6: AHL-KF-std joint phase RMSE
-plot_rmse_heatmaps(results.csm.joint.ahl_kf_std, results.tppsm.joint.ahl_kf_std, noise_vals, 'joint', 'AHL-KF-Std');
+plot_rmse_heatmaps(results.csm.joint.ahl_kf_std, results.tppsm.joint.ahl_kf_std, process_noise_variance_array, 'joint', 'AHL-KF-Std');
