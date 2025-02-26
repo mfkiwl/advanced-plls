@@ -134,8 +134,8 @@ general_config_none.scintillation_training_data_config = training_data_config_no
 
 %% Main Monte Carlo Loop
 
-monte_carlo_runs = 3;
-pnv_amount = 5;
+monte_carlo_runs = 2;
+pnv_amount = 2;
 pnv_array = logspace(-4,-9,pnv_amount);
 % Preallocate a results structure for RMSE metrics
 results = struct();

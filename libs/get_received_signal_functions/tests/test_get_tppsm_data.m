@@ -1,32 +1,34 @@
 classdef test_get_tppsm_data < matlab.unittest.TestCase
-% test_get_tppsm_data
-%
-% Syntax:
-%   results = runtests('test_get_tppsm_data')
-%
-% Description:
-%   Unit tests for the get_tppsm_data function. This suite tests that the
-%   TPPSM simulation returns outputs with correct type and size for valid
-%   inputs, and that it errors for invalid inputs.
-%
-% Inputs:
-%   (None) - No input arguments.
-%
-% Outputs:
-%   results - Test results from MATLAB unit testing framework.
-%
-% Notes:
-%   - Ensure the correct paths to the refactored TPPSM model are added.
-%   - Intended for MATLAB R2024b.
-%
-% Example:
-%   % Run tests from the MATLAB command window:
-%   results = runtests('test_get_tppsm_data');
-%
-% Author:
-%   Rodrigo de Lima Florindo
-%   ORCID: https://orcid.org/0000-0003-0412-5583
-%   Email: rdlfresearch@gmail.com
+    % test_get_tppsm_data
+    %
+    % Syntax:
+    %   results = runtests('test_get_tppsm_data')
+    %
+    % Description:
+    %   Unit tests for the get_tppsm_data function. This suite tests that the
+    %   TPPSM simulation returns outputs with correct type and size for valid
+    %   inputs, and that it errors for invalid inputs. In addition, it verifies
+    %   that when an external 'rhof_veff_ratio_L1' is provided, the function uses it
+    %   (i.e. by checking that the corresponding message is printed).
+    %
+    % Inputs:
+    %   (None) - No input arguments.
+    %
+    % Outputs:
+    %   results - Test results from MATLAB unit testing framework.
+    %
+    % Notes:
+    %   - Ensure the correct paths to the refactored TPPSM model are added.
+    %   - Intended for MATLAB R2024b.
+    %
+    % Example:
+    %   % Run tests from the MATLAB command window:
+    %   results = runtests('test_get_tppsm_data');
+    %
+    % Author:
+    %   Rodrigo de Lima Florindo
+    %   ORCID: https://orcid.org/0000-0003-0412-5583
+    %   Email: rdlfresearch@gmail.com
 
     properties
         validScenario = 'Moderate';
@@ -38,7 +40,7 @@ classdef test_get_tppsm_data < matlab.unittest.TestCase
     methods (TestClassSetup)
         function addPaths(testCase)
             % Add the paths for the tests
-            tppsm_paths = genpath(fullfile(pwd,'..','..','scintillation_models/refactored_tppsm'));
+            tppsm_paths = genpath(fullfile(pwd,'..','..','scintillation_models','refactored_tppsm'));
             get_received_functions_path = fullfile(pwd,'..');
             all_paths = [tppsm_paths, ';' , get_received_functions_path];
             addpath(all_paths);
@@ -49,7 +51,7 @@ classdef test_get_tppsm_data < matlab.unittest.TestCase
     
     methods (Test)
         function testValidOutput(testCase)
-            [psi_tppsm, ps_realization, general_params, irr_params_set, seedOut] = ...
+            [psi_tppsm, ps_realization, ~, ~, seedOut] = ...
                 get_tppsm_data(testCase.validScenario, ...
                 'simulation_time', testCase.simulation_time, ...
                 'sampling_interval', testCase.sampling_interval, ...
@@ -93,6 +95,27 @@ classdef test_get_tppsm_data < matlab.unittest.TestCase
             % Test that a non-numeric sampling_interval input triggers the built-in error.
             testCase.verifyError(@() get_tppsm_data(testCase.validScenario, 'sampling_interval', 'invalid'), ...
                 'MATLAB:invalidType');
+        end
+        
+        function testExternalRhofVeffRatio(testCase)
+            % Test that providing an external rhof_veff_ratio_L1 works as expected.
+            external_ratio = 1;
+            % Capture command-window output.
+            outputStr = evalc('[psi_tppsm, ps_realization, gp, ip, seedOut] = get_tppsm_data(testCase.validScenario, ''simulation_time'', testCase.simulation_time, ''sampling_interval'', testCase.sampling_interval, ''seed'', testCase.seed, ''rhof_veff_ratio_L1'', external_ratio);');
+            
+            % Verify that the printed message indicates the external ratio is used.
+            expectedMsg = sprintf('Using externally provided rhof_veff_ratio_L1: %g', external_ratio);
+            testCase.verifyNotEmpty(strfind(outputStr, expectedMsg));
+            
+            % Also, check that outputs are valid.
+            [psi_tppsm, ps_realization, ~, ~, seedOut] = get_tppsm_data(testCase.validScenario, ...
+                'simulation_time', testCase.simulation_time, ...
+                'sampling_interval', testCase.sampling_interval, ...
+                'seed', testCase.seed, ...
+                'rhof_veff_ratio_L1', external_ratio);
+            testCase.verifyNotEmpty(psi_tppsm);
+            testCase.verifyNotEmpty(ps_realization);
+            testCase.verifyEqual(seedOut, testCase.seed);
         end
     end
 end
