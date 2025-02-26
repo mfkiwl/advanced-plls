@@ -1,26 +1,39 @@
-% Script: script_KFAR_estimates_comparison.m
+% Script: script_KFAR_RMSE_monte_carlo_with_process_noise_sweep.m
 %
 % Description:
-%   This script generates received signal data for both CSM and TPPSM scenarios
-%   under severe scintillation, configures the Kalman PLL (KFAR) and standard KF 
-%   algorithms with different adaptive update options, computes the 
-%   corresponding state estimates, and then plots the comparison.
+%   This script performs a Monte Carlo simulation where the process noise variance is
+%   swept over a logarithmically spaced range. For each value of process noise variance and 
+%   for a given number of Monte Carlo runs, the script:
+%     1. Generates received signal data for both CSM and TPPSM scenarios under severe scintillation.
+%     2. Configures the Kalman PLL (KFAR) and standard KF algorithms with different adaptive 
+%        update options.
+%     3. Computes the corresponding state estimates.
+%     4. Computes the RMSE metrics for three phase types:
+%          - LOS phase error,
+%          - Scintillation phase error (only for AR-augmented estimates),
+%          - Joint phase error (LOS + scintillation).
+%     5. Stores these RMSE values for each algorithm variant:
+%          - KF-AR      : KF with AR augmentation (no adaptive update)
+%          - AKF-AR     : KF with AR augmentation using simplified adaptation (hard_limited = false)
+%          - AHL-KF-AR  : KF with AR augmentation using simplified adaptation (hard_limited = true)
+%          - KF-std     : Standard KF (no AR augmentation; training_scint_model = 'none')
+%          - AKF-std    : Standard KF using simplified adaptation (hard_limited = false)
+%          - AHL-KF-std : Standard KF using simplified adaptation (hard_limited = true)
 %
-%   The following variants are computed:
-%     - KF-AR      : KF with AR augmentation (no adaptive update)
-%     - AKF-AR     : KF with AR augmentation using simplified adaptation (hard_limited = false)
-%     - AHL-KF-AR  : KF with AR augmentation using simplified adaptation (hard_limited = true)
-%     - KF-std     : Standard KF (no AR augmentation; training_scint_model = 'none', no adaptive update)
-%     - AKF-std    : Standard KF using simplified adaptation (hard_limited = false)
-%     - AHL-KF-std : Standard KF using simplified adaptation (hard_limited = true)
+%   The RMSE is computed over the valid time vector (i.e. after a settling time) by comparing
+%   the estimated phase with the “true” phase (for LOS: unwrap(angle(rx_sig)) - los_phase; for scintillation: angle(psi); and for joint: their sum).
+%
+%   All RMSE values are stored in a structured array named "results" that organizes the metrics by
+%   scenario (CSM, TPPSM), phase type (los, scint, joint), and algorithm variant.
 %
 % [1] R. A. M. Lopes, F. Antreich, F. Fohlmeister, M. Kriegel and H. K. Kuga, "Ionospheric 
 %     Scintillation Mitigation With Kalman PLLs Employing Radial Basis Function Networks," 
 %     in IEEE Transactions on Aerospace and Electronic Systems, vol. 59, no. 5, pp. 6878-6893,
 %     Oct. 2023, doi: 10.1109/TAES.2023.3281431
+%
 % Author: Rodrigo de Lima Florindo
-%  ORCID: https://orcid.org/0000-0003-0412-5583
-%  Email: rdlfresearch@gmail.com
+% ORCID: https://orcid.org/0000-0003-0412-5583
+% Email: rdlfresearch@gmail.com
 
 clear all; clc;
 
@@ -45,6 +58,7 @@ valid_time_vector    = ((settling_time/sampling_interval + 1) : simulation_time/
 % AR Model Parameters
 var_model_order        = 5;              % AR model order
 initial_process_noise_variance = 2.6e-6; % Process noise variance (e.g., from reference [1])
+
 
 % Initial state distribution boundaries. It is assumed that the initial
 % values are sampled from a uniform distribution.
@@ -71,6 +85,7 @@ training_data_config_none = struct(...
 % Miscellaneous Settings
 cache_dir = fullfile(fileparts(mfilename('fullpath')), 'cache');
 scint_index = length(doppler_profile) + 1;  % Column index for scintillation phase (LOS is in column 1)
+is_enable_cmd_print_get_kf_cfg_fnc = false;
 
 %% Define adaptive configuration structures
 % For the simplified adaptive update, we require L1_C_over_N0_dBHz, sampling_interval, and threshold.
@@ -155,17 +170,21 @@ results.tppsm.joint.ahl_kf_std  = zeros(monte_carlo_runs,pnv_amount);
 
 %% Monte Carlo Loop 
 for pnv_idx = 1:pnv_amount
+    fprintf('Processing noise variance %d/%d: %g\n', pnv_idx, pnv_amount, pnv_array(pnv_idx));
+
     discrete_wiener_model_config{1,4}(3) = pnv_array(pnv_idx);
     
     general_config_csm.discrete_wiener_model_config = discrete_wiener_model_config;
     general_config_tppsm.discrete_wiener_model_config = discrete_wiener_model_config;
     general_config_none.discrete_wiener_model_config = discrete_wiener_model_config;
     
-    [~, ~] = get_kalman_pll_config(general_config_csm, cache_dir);
-    [~, ~] = get_kalman_pll_config(general_config_tppsm, cache_dir);
-    [kf_cfg, ~] = get_kalman_pll_config(general_config_none, cache_dir);
-
+    [~, ~] = get_kalman_pll_config(general_config_csm, cache_dir, is_enable_cmd_print_get_kf_cfg_fnc);
+    [~, ~] = get_kalman_pll_config(general_config_tppsm, cache_dir, is_enable_cmd_print_get_kf_cfg_fnc);
+    [kf_cfg, ~] = get_kalman_pll_config(general_config_none, cache_dir, is_enable_cmd_print_get_kf_cfg_fnc);
+    
     for m = 1:monte_carlo_runs
+        fprintf('  Monte Carlo run: %d/%d\n', m, monte_carlo_runs);
+
         rng(m);
 
         init_estimates_csm = get_initial_estimates(general_config_csm, kf_cfg);

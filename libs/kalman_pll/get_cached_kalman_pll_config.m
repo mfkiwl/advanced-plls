@@ -1,4 +1,4 @@
-function [kalman_pll_config, is_cache_used] = get_cached_kalman_pll_config(general_config, cache_file)
+function [kalman_pll_config, is_cache_used] = get_cached_kalman_pll_config(general_config, cache_file, is_enable_cmd_print)
 % get_cached_kalman_pll_general_config
 %
 % Syntax:
@@ -16,7 +16,9 @@ function [kalman_pll_config, is_cache_used] = get_cached_kalman_pll_config(gener
 % Outputs:
 %   kalman_pll_config - A struct with the computed or loaded Kalman filter settings.
 %   is_cache_used     - A boolean flag that is true if the cached configuration was used.
-%
+%   is_enable_cmd_print - Boolean flag for enabling the command prints.
+%                         It is recommended to disable this option for
+%                         monte carlo runs.
 % Notes:
 %   - If cache_file is omitted or empty, the function uses the default cache file path.
 %   - The function ensures that the cache directory exists before attempting to load or
@@ -60,7 +62,9 @@ function [kalman_pll_config, is_cache_used] = get_cached_kalman_pll_config(gener
 
     % Load from cache if available
     if isfile(cache_file)
-        fprintf('Cache file found. Loading cached kalman_pll_config.\n');
+        if is_enable_cmd_print
+            fprintf('Cache file found. Loading cached kalman_pll_config.\n');
+        end
         load(cache_file, 'kalman_pll_config');
 
         % Check if the required configuration exists in the cache
@@ -68,17 +72,25 @@ function [kalman_pll_config, is_cache_used] = get_cached_kalman_pll_config(gener
            ~isempty(fieldnames(kalman_pll_config.(general_config.scintillation_training_data_config.scintillation_model)))
        
             if general_config.is_use_cached_settings
-                fprintf('Using cached values for %s.\n', general_config.scintillation_training_data_config.scintillation_model);
+                if is_enable_cmd_print
+                    fprintf('Using cached values for %s.\n', general_config.scintillation_training_data_config.scintillation_model);
+                end
                 is_cache_used = true;
                 return;
             else
-                fprintf('Recomputing values for %s and updating cache.\n', general_config.scintillation_training_data_config.scintillation_model);
+                if is_enable_cmd_print
+                    fprintf('Recomputing values for %s and updating cache.\n', general_config.scintillation_training_data_config.scintillation_model);
+                end
             end
         else
-            fprintf('Cache found but missing required settings. Computing and caching new values.\n');
+            if is_enable_cmd_print
+                fprintf('Cache found but missing required settings. Computing and caching new values.\n');
+            end
         end
     else
-        fprintf('No cache file found. Initializing kalman_pll_config.\n');
+        if is_enable_cmd_print
+            fprintf('No cache file found. Initializing kalman_pll_config.\n');
+        end
         
         % Initialize a new kalman_pll_config structure
         kalman_pll_config = struct('CSM', struct(), 'TPPSM', struct(), 'none', struct());

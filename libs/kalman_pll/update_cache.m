@@ -1,4 +1,4 @@
-function kalman_pll_config = update_cache(general_config, cache_file, kalman_pll_config, is_cache_used)
+function kalman_pll_config = update_cache(general_config, cache_file, kalman_pll_config, is_cache_used, is_enable_cmd_print)
 % update_cache
 %
 % Syntax:
@@ -37,7 +37,9 @@ function kalman_pll_config = update_cache(general_config, cache_file, kalman_pll
 %   cache_file        - String specifying the file path for caching results.
 %   kalman_pll_config - Struct to hold or update the Kalman PLL settings.
 %   is_cache_used     - Boolean indicating whether cached settings should be used.
-%
+%   is_enable_cmd_print - Boolean flag for enabling the command prints.
+%                         It is recommended to disable this option for
+%                         monte carlo runs.
 % Outputs:
 %   kalman_pll_config - Struct containing the computed or retrieved Kalman filter settings
 %                       (F, Q, H, R, F_los, Q_los, F_var, Q_var, etc.).
@@ -94,9 +96,13 @@ function kalman_pll_config = update_cache(general_config, cache_file, kalman_pll
     validateattributes(sampling_interval, {'numeric'}, {'scalar','real','positive'}, mfilename, 'sampling_interval');
 
     if is_cache_used
-        fprintf('Using cached Kalman filter-based PLL settings.\n');
+        if is_enable_cmd_print
+            fprintf('Using cached Kalman filter-based PLL settings.\n');
+        end
     else
-        fprintf('Computing Kalman filter-based PLL settings.\n');
+        if is_enable_cmd_print
+            fprintf('Computing Kalman filter-based PLL settings.\n');
+        end
 
         % Compute the LOS dynamics model
         [F_los, Q_los] = get_discrete_wiener_model(general_config.discrete_wiener_model_config{:});
@@ -113,7 +119,9 @@ function kalman_pll_config = update_cache(general_config, cache_file, kalman_pll
             );
 
         % Save updated kalman_pll_config to the cache file
-        fprintf('Caching Kalman filter-based PLL settings.\n');
+        if is_enable_cmd_print
+            fprintf('Caching Kalman filter-based PLL settings.\n');
+        end
         save(cache_file, 'kalman_pll_config');
     end
 end
