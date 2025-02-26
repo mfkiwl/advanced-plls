@@ -33,7 +33,7 @@ rng(seed);
 %% Generating the received signal for CSM and TPPSM under severe scintillation scenarios
 doppler_profile = [0, 1000, 0.94];
 L1_C_over_N0_dBHz = 42;
-simulation_time = 900;
+simulation_time = 300;
 S4 = 0.8;
 tau0 = 0.5;
 settling_time = 50;
