@@ -72,7 +72,7 @@ fprintf('Simulation Parameters: C/N0: %d dB-Hz; Seed: %d; Process Noise Variance
     cnr, seed, process_noise_variance, ar_order);
 
 %% Create uifigure with tab group
-fig = uifigure('Position',[50 50 1200 530]);
+fig = uifigure('Position',[50 50 1200 490]);
 tabGroup = uitabgroup(fig, 'Units', 'normalized', 'Position', [0 0 1 1]);
 
 % Create tabs for each type of estimate
@@ -102,7 +102,7 @@ xlabel(ax1, 'Time [sec]');
 ylabel(ax1, 'Phase [rad]');
 title(ax1, 'CSM - LOS Estimates');
 legend(ax1, {'True Unwrapped Phase (LOS detrended)', 'KF-AR LOS','AKF-AR LOS','AHL-KF-AR LOS'}, ...
-    'Location', 'best');
+    'Location', 'northwest');
 
 % Subplot for TPPSM LOS estimates
 ax2 = nexttile(tloLOS);
@@ -121,7 +121,7 @@ xlabel(ax2, 'Time [sec]');
 ylabel(ax2, 'Phase [rad]');
 title(ax2, 'TPPSM - LOS Estimates');
 legend(ax2, {'True Unwrapped Phase (LOS detrended)','KF-AR LOS','AKF-AR LOS','AHL-KF-AR LOS'}, ...
-    'Location', 'best');
+    'Location', 'southwest');
 if is_save_figures
     save_tab(tabLOS, 'comparison_los');
 end
@@ -146,7 +146,7 @@ grid(ax3, 'on');
 xlabel(ax3, 'Time [sec]');
 ylabel(ax3, 'Phase [rad]');
 title(ax3, 'CSM - Scintillation Estimates (AR only)');
-legend(ax3, {'True Wrapped Phase (LOS detrended)', 'KF-AR scint','AKF-AR scint','AHL-KF-AR scint'}, 'Location', 'best');
+legend(ax3, {'True Wrapped Phase (LOS detrended)', 'KF-AR scint','AKF-AR scint','AHL-KF-AR scint'}, 'Location', 'southwest');
 
 % Subplot for TPPSM Scintillation estimates
 ax4 = nexttile(tloScint);
@@ -164,7 +164,7 @@ grid(ax4, 'on');
 xlabel(ax4, 'Time [sec]');
 ylabel(ax4, 'Phase [rad]');
 title(ax4, 'TPPSM - Scintillation Estimates (AR only)');
-legend(ax4, {'True Wrapped Phase (LOS detrended)', 'KF-AR scint','AKF-AR scint','AHL-KF-AR scint'}, 'Location', 'best');
+legend(ax4, {'True Wrapped Phase (LOS detrended)', 'KF-AR scint','AKF-AR scint','AHL-KF-AR scint'}, 'Location', 'southwest');
 
 if is_save_figures
     save_tab(tabScint, 'comparison_scint');
@@ -196,7 +196,7 @@ xlabel(ax5, 'Time [sec]');
 ylabel(ax5, 'Phase [rad]');
 title(ax5, 'CSM - Joint Estimates');
 legend(ax5, {'True Phase (LOS detrended)', 'KF-AR joint','AKF-AR joint','AHL-KF-AR joint',...
-    'KF-std joint','AKF-std joint','AHL-KF-std joint'}, 'Location', 'best');
+    'KF-std joint','AKF-std joint','AHL-KF-std joint'}, 'Location', 'northwest');
 
 % Subplot for TPPSM Joint estimates
 ax6 = nexttile(tloJoint);
@@ -220,7 +220,7 @@ xlabel(ax6, 'Time [sec]');
 ylabel(ax6, 'Phase [rad]');
 title(ax6, 'TPPSM - Joint Estimates');
 legend(ax6, {'True Phase (LOS detrended)', 'KF-AR joint','AKF-AR joint','AHL-KF-AR joint',...
-    'KF-std joint','AKF-std joint','AHL-KF-std joint'}, 'Location', 'best');
+    'KF-std joint','AKF-std joint','AHL-KF-std joint'}, 'Location', 'southwest');
 
 if is_save_figures
     save_tab(tabJoint, 'comparison_joint');
