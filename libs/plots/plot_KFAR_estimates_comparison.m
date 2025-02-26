@@ -72,7 +72,7 @@ fprintf('Simulation Parameters: C/N0: %d dB-Hz; Seed: %d; Process Noise Variance
     cnr, seed, process_noise_variance, ar_order);
 
 %% Create uifigure with tab group
-fig = uifigure('Position',[50 50 1200 800]);
+fig = uifigure('Position',[50 50 1200 530]);
 tabGroup = uitabgroup(fig, 'Units', 'normalized', 'Position', [0 0 1 1]);
 
 % Create tabs for each type of estimate
