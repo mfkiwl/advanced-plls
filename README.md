@@ -54,6 +54,19 @@ kalman_pll_testbench/
 - MATLAB R2024b or newer: The project is developed and tested using MATLAB R2024b.
 - Git: Used for version control and managing submodules.
 
+## Git Hooks
+The repository includes a folder named hook_examples that contains sample Git hook configurations. These hooks are designed to automate tasks such as deinitializing submodules when switching branches. Since Git does not track hook scripts by default (they reside in the .git/hooks directory), these examples are provided for your convenience.
+
+To use a hook:
+
+1. Copy the desired hook file (e.g., post-checkout) from the hook_examples folder into your local repository's .git/hooks directory.
+2. Ensure the file is named exactly as required by Git (without any extension, e.g., rename post-checkout.sample to post-checkout).
+3. Make the file executable. On Unix-like systems, you can run:
+```bash
+chmod +x .git/hooks/post-checkout
+```
+This setup can help streamline your workflow by automatically managing submodules and maintaining a clean working directory across branches.
+
 ## Contributing
 Contributions are welcome! To contribute:
 
