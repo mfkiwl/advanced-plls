@@ -26,6 +26,10 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_
 %       - initial_states_distributions_boundaries: Non-empty cell array where each element is a
 %         1×2 numeric vector (with the first element less than the second).
 %       - real_doppler_profile: Non-empty numeric vector.
+%       - augmentation_model_initializer: 
+%           * 'arfit' (Initializes multivariate autoregressive model parameters. It also calculates an intercept vector.), 
+%           * 'aryule' (Initializes the autoregressive model using the Yule-Walker method, OBS: Signal Processing Toolbox needed), 
+%           * 'rbf', (Initializes the Radial Basis Function Network Weights); 
 %       - is_use_cached_settings: Boolean flag indicating whether cached configurations should be used.
 %       - is_generate_random_initial_estimates: Boolean flag indicating whether initial estimates are randomly generated.
 %
@@ -68,7 +72,8 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_
     required_fields = {'discrete_wiener_model_config', 'scintillation_training_data_config', ...
                        'var_minimum_order', 'var_maximum_order', 'C_over_N0_array_dBHz', ...
                        'initial_states_distributions_boundaries', 'real_doppler_profile', ...
-                       'is_use_cached_settings', 'is_generate_random_initial_estimates'};
+                       'augmentation_model_initializer', 'is_use_cached_settings', ...
+                       'is_generate_random_initial_estimates'};
     for i = 1:numel(required_fields)
         if ~isfield(general_config, required_fields{i})
             error('get_kalman_pll_config:MissingField', ...
@@ -102,6 +107,12 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_
     % Validate C_over_N0_array_dBHz: non-empty, positive numeric vector.
     validateattributes(general_config.C_over_N0_array_dBHz, {'numeric'}, {'nonempty','vector','positive'}, mfilename, 'C_over_N0_array_dBHz');
     
+    % Validate `augmentation_model_initializer`: char or string, non-empty.
+    validateattributes(general_config.augmentation_model_initializer, {'char', 'string'}, {'nonempty'}, mfilename, 'augmentation_model_initializer');
+    
+    if ~any(strcmp(general_config.augmentation_model_initializer, {'arfit','aryule','rbf'}))
+        error('get_kalman_pll_config:invalid_general_config_input:augmentation_model_initializer', 'It should be `arfit`, `aryule` or `rbf`. Received, `%s` instead.', general_config.augmentation_model_initializer)
+    end
     % Validate `cache_file` path
     validateattributes(cache_dir, {'char', 'string'}, {'nonempty'}, mfilename, 'cache_file');
 

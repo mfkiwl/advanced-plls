@@ -37,18 +37,19 @@ function [state_estimates, error_covariance_estimates] = get_kalman_pll_estimate
 %                              P_hat_init: Numeric square matrix (initial error covariance)
 %   training_scint_model - A string with the name of the scintillation model used to
 %                          train the AR model. Options: {'CSM', 'TPPSM', 'none'}.
-%   adaptive_config      - Struct with adaptive configuration options for the
+%   adaptive_config      - A Struct with adaptive configuration options for the
 %                          Kalman filter algorithm. It must have the fields:
-%         .algorithm    - {'simplified','NWBP','none'}. If 'simplified', a simplified adaptive
-%                         update is applied (using a placeholder based on [3, Equation 64]).
-%                         If 'NWBP' is selected, an error is thrown (not yet implemented).
-%                         If 'none' is selected, no adaptation is performed.
-%         .hard_limited - Logical; if true, a hard-limited constraint (as in [5, Eq.24])
-%                         is applied (using a placeholder large value in case of too-small noise).
-%                         When algorithm is 'simplified', adaptive_config must also have:
-%                            - L1_C_over_N0_dBHz
-%                            - sampling_interval
-%                            - threshold
+%         .algorithm     - {'simplified','NWBP','none'}. If 'simplified', a simplified adaptive
+%                          update is applied (using a placeholder based on [3, Equation 64]).
+%                          -> If 'NWBP' is selected, an error is thrown (not yet implemented).
+%                          -> If 'none' is selected, no adaptation is performed.
+%                          -> When algorithm is 'simplified', adaptive_config struct must also have:
+%                             - L1_C_over_N0_dBHz
+%                             - sampling_interval
+%                             - threshold
+%         .hard_limited  - Logical; if true, a hard-limited constraint (as in [5, Eq.24])
+%                          is applied (using a placeholder large value in case of too-small noise).
+%                          
 %
 % Outputs:
 %   state_estimates            - Numeric matrix of state estimates. Each row corresponds

@@ -54,6 +54,7 @@ classdef test_get_kalman_pll_config < matlab.unittest.TestCase
                 'C_over_N0_array_dBHz', 35, ...
                 'initial_states_distributions_boundaries', { {[-pi,pi], [-5,5], [-0.1,0.1]} }, ...
                 'real_doppler_profile', [0, 1000, 0.94], ...
+                'augmentation_model_initializer', 'arfit', ...
                 'is_use_cached_settings', false, ...
                 'is_generate_random_initial_estimates', true ...
             );
@@ -107,6 +108,17 @@ classdef test_get_kalman_pll_config < matlab.unittest.TestCase
             config = testCase.default_config;
             config.C_over_N0_array_dBHz = -35;
             testCase.verifyError(@() get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print), 'MATLAB:get_kalman_pll_config:expectedPositive');
+        end
+
+        function test_augmentation_model_initializer_validation(testCase)
+            config = testCase.default_config;
+            config.augmentation_model_initializer = [];
+            testCase.verifyError(@() get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print), 'MATLAB:get_kalman_pll_config:invalidType');
+            config.augmentation_model_initializer = 3;
+            testCase.verifyError(@() get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print), 'MATLAB:get_kalman_pll_config:invalidType');
+            config.augmentation_model_initializer = 'invalid';
+            testCase.verifyError(@() get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print), 'get_kalman_pll_config:invalid_general_config_input:augmentation_model_initializer');
+
         end
     end
     
