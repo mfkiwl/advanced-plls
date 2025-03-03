@@ -81,16 +81,8 @@ function kalman_pll_config = build_kalman_pll_config(kalman_pll_config, ...
 %   Email: rdlfresearch@gmail.com
 
     % Validate inputs
-    validateattributes(kalman_pll_config, {'struct'}, {}, mfilename, 'kalman_pll_config');
-    
+    validateattributes(kalman_pll_config, {'struct'}, {'nonempty'}, mfilename, 'kalman_pll_config');
     validateattributes(scintillation_training_data_config, {'struct'}, {'nonempty'}, mfilename, 'scintillation_training_data_config');
-    if ~isfield(scintillation_training_data_config, 'sampling_interval')
-        error('build_kalman_pll_config:MissingField', ...
-            'scintillation_training_data_config is missing the field "sampling_interval".');
-    end
-    sampling_interval = scintillation_training_data_config.sampling_interval;
-    validateattributes(sampling_interval, {'numeric'}, {'scalar','real','positive'}, mfilename, 'sampling_interval');
-    
     validateattributes(var_minimum_order, {'numeric'}, {'scalar', 'integer', '>=', 1}, mfilename, 'var_minimum_order');
     validateattributes(var_maximum_order, {'numeric'}, {'scalar', 'integer', '>=', var_minimum_order}, mfilename, 'var_maximum_order');
     validateattributes(C_over_N0_array_dBHz, {'numeric'}, {'vector', 'real', 'positive'}, mfilename, 'C_over_N0_array_dBHz');
@@ -117,7 +109,7 @@ function kalman_pll_config = build_kalman_pll_config(kalman_pll_config, ...
     % Construct Full Kalman Filter Matrices
     [F, Q, H, R, W] = construct_kalman_matrices(F_los, Q_los, F_var, Q_var, ...
         intercept_vector, var_states_amount, var_model_order, ...
-        C_over_N0_array_dBHz, sampling_interval);
+        C_over_N0_array_dBHz, scintillation_training_data_config.sampling_interval);
 
     % Store Results in Output Struct
     modelField = scintillation_training_data_config.scintillation_model;
