@@ -1,4 +1,4 @@
-function [received_signal, los_phase, psi_settled, ps_realization] = get_received_signal(C_over_N0_dBHz, scint_model, doppler_profile, is_enable_cmd_print, varargin)
+function [received_signal, los_phase, psi_settled, ps_realization] = get_received_signal(C_over_N0_dBHz, scint_model, doppler_profile, varargin)
 % get_received_signal
 % Simulates the baseband received signal, including ionospheric scintillation
 % effects, thermal noise, and line-of-sight (LOS) phase dynamics.
@@ -62,6 +62,7 @@ addParameter(p, 'is_refractive_effects_removed', true, @(x) islogical(x) && issc
 addParameter(p, 'S4', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && (x >= 0) && (x <= 1)));
 addParameter(p, 'tau0', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && (x > 0)));
 addParameter(p, 'tppsm_scenario', [], @(x) isempty(x) || ismember(x, {'Weak', 'Moderate', 'Severe'}));
+addParameter(p, 'is_enable_cmd_print', true, @(x) validateattributes(x, {'logical'}, {'nonempty'}));
 
 parse(p, C_over_N0_dBHz, scint_model, doppler_profile, varargin{:});
 
@@ -72,6 +73,7 @@ is_refractive_effects_removed = p.Results.is_refractive_effects_removed;
 S4 = p.Results.S4;
 tau0 = p.Results.tau0;
 tppsm_scenario = p.Results.tppsm_scenario;
+is_enable_cmd_print = p.Results.is_enable_cmd_print;
 
 scint_model = validatestring(p.Results.scint_model, {'CSM', 'TPPSM', 'none'}, mfilename, 'scint_model');
 
