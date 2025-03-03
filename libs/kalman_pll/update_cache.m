@@ -68,33 +68,11 @@ function kalman_pll_config = update_cache(general_config, cache_file, kalman_pll
 
     % Validate inputs
     validateattributes(general_config, {'struct'}, {'nonempty'}, mfilename, 'general_config');
-    req_config_fields = {
-        'discrete_wiener_model_config', ...
-        'scintillation_training_data_config', ...
-        'var_minimum_order', ...
-        'var_maximum_order', ...
-        'C_over_N0_array_dBHz'
-    };
-    for fc = 1:numel(req_config_fields)
-        if ~isfield(general_config, req_config_fields{fc})
-            error('update_cache:MissingField', ...
-                'Config struct is missing the field "%s".', req_config_fields{fc});
-        end
-    end
-    
     validateattributes(cache_file, {'char','string'}, {'nonempty'}, mfilename, 'cache_file');
     validateattributes(kalman_pll_config, {'struct'}, {'nonempty'}, mfilename, 'kalman_pll_config');
     validateattributes(is_cache_used, {'logical'}, {'scalar'}, mfilename, 'is_cache_used');
 
     scint_training_data_cfg = general_config.scintillation_training_data_config;
-    validateattributes(scint_training_data_cfg, {'struct'}, {'nonempty'}, mfilename, 'scintillation_training_data_config');
-    if ~isfield(scint_training_data_cfg, 'sampling_interval')
-        error('update_cache:MissingField', 'scintillation_training_data_config is missing the field "sampling_interval".');
-    end
-    % Extract and validate sampling_interval from st_config.
-    sampling_interval = scint_training_data_cfg.sampling_interval;
-    validateattributes(sampling_interval, {'numeric'}, {'scalar','real','positive'}, mfilename, 'sampling_interval');
-
     if is_cache_used
         if is_enable_cmd_print
             fprintf('Using cached Kalman filter-based PLL settings.\n');

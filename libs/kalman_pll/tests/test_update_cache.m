@@ -134,36 +134,6 @@ classdef test_update_cache < matlab.unittest.TestCase
                 'The contents of the cache file must match the updated kalman_pll_config.');
         end
         
-        function testMissingGeneralConfigField(testCase)
-            % Remove a required field (e.g., discrete_wiener_model_config) from
-            % general_config and verify that an error is thrown.
-            config = testCase.default_general_config;
-            config = rmfield(config, 'discrete_wiener_model_config');
-            cache_file = testCase.default_cache_file;
-            kalman_pll_config = testCase.default_kalman_pll_config;
-            is_cache_used = false;
-            
-            testCase.verifyError(@() update_cache(config, cache_file, kalman_pll_config, is_cache_used, testCase.default_is_enable_cmd_print), ...
-                'update_cache:MissingField', ...
-                'An error is expected when a required field is missing from general_config.');
-        end
-        
-        function testMissingSamplingInterval(testCase)
-            % Remove the sampling_interval from scintillation_training_data_config and 
-            % verify that an error is thrown.
-            config = testCase.default_general_config;
-            st_config = config.scintillation_training_data_config;
-            st_config = rmfield(st_config, 'sampling_interval');
-            config.scintillation_training_data_config = st_config;
-            cache_file = testCase.default_cache_file;
-            kalman_pll_config = testCase.default_kalman_pll_config;
-            is_cache_used = false;
-            
-            testCase.verifyError(@() update_cache(config, cache_file, kalman_pll_config, is_cache_used, testCase.default_is_enable_cmd_print), ...
-                'update_cache:MissingField', ...
-                'An error is expected when sampling_interval is missing in scintillation_training_data_config.');
-        end
-        
         function testInvalidCacheFile(testCase)
             % Provide an invalid (empty) cache_file and verify that an error is thrown.
             config = testCase.default_general_config;
