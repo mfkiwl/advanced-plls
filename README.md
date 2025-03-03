@@ -76,6 +76,20 @@ Contributions are welcome! To contribute:
 
 For any issues or questions, please open an issue in the GitHub repository.
 
+## Planning on the steps for implementing Felix suggestions (Written by Rodrigo at 03/03/2025)
+
+### Adding features: **Adaptive AR/RBF modules**
+1. use the aryule instead of ARfit for now, or at least look if it is possible to remove the intercept vector from the parameter estimation of the arfit function;
+2. Introduce Block AR model parameter estimation algorithm;
+3. Introduce Sliding AR model parameter estimation algorithm;
+4. Introduce the Dual Kalman filter algoritm from Frederieke. If it is necessary to use the error state instead of the actual states, avoid this for now, since it'd be necessary to refactor a big part of the code.
+5. Introduce the RBF model which could be configured for any amount of neurons.
+
+### Stashed features:
+1. Add Kalman/Classical smoothing option.
+2. Maybe we could also try to implement multi-frequency carrier 
+ - (Rodrigo): I think that we need to first figure out how to properly avoid cycle-slips using AR/RBF modules on single-frequency carrier phase tracking.
+
 ## License
 This project is licensed under the [Your License Name Here] License.
 
