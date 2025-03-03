@@ -83,11 +83,11 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_
     % Validate configurations using helper functions.
     [~, ~, sampling_interval_dw, ~, ~] = validateDiscreteWienerModelConfig(general_config.discrete_wiener_model_config);
     scint_config = validateScintillationTrainingDataConfig(general_config.scintillation_training_data_config);
-    validateVARModelOrders(general_config.var_minimum_order, general_config.var_maximum_order);
-    validateCN0(general_config.C_over_N0_array_dBHz);
-    validateInitialStatesBoundaries(general_config.initial_states_distributions_boundaries);
+    validate_var_model_orders(general_config.var_minimum_order, general_config.var_maximum_order);
+    validate_C_N0(general_config.C_over_N0_array_dBHz);
+    validate_initial_states_boundaries(general_config.initial_states_distributions_boundaries);
     validateattributes(general_config.real_doppler_profile, {'numeric'}, {'nonempty','vector'}, mfilename, 'real_doppler_profile');
-    validateAugmentationModel(general_config.augmentation_model_initializer);
+    validate_augmentation_model(general_config.augmentation_model_initializer);
     validateattributes(cache_dir, {'char', 'string'}, {'nonempty'}, mfilename, 'cache_dir');
     validateattributes(is_enable_cmd_print, {'logical'}, {'scalar'}, mfilename, 'is_enable_cmd_print');
 
@@ -212,7 +212,7 @@ function scint_config = validateScintillationTrainingDataConfig(scint_config)
     end
 end
 
-function validateVARModelOrders(min_order, max_order)
+function validate_var_model_orders(min_order, max_order)
     % Validate VAR model orders.
     validateattributes(min_order, {'numeric'}, {'scalar', 'integer', '>=', 1}, mfilename, 'var_minimum_order');
     % Use a local variable to ensure the lower bound is evaluated.
@@ -220,12 +220,12 @@ function validateVARModelOrders(min_order, max_order)
     validateattributes(max_order, {'numeric'}, {'scalar', 'integer', '>=', min_order_local}, mfilename, 'var_maximum_order');
 end
 
-function validateCN0(CN0_array)
+function validate_C_N0(CN0_array)
     % Validate C/N0 values.
     validateattributes(CN0_array, {'numeric'}, {'nonempty','vector','positive'}, mfilename, 'C_over_N0_array_dBHz');
 end
 
-function validateInitialStatesBoundaries(boundaries)
+function validate_initial_states_boundaries(boundaries)
     % Validate that boundaries is a non-empty cell array and each cell
     % contains a 1x2 numeric vector with the first element less than the second.
     if ~iscell(boundaries) || isempty(boundaries)
@@ -240,7 +240,7 @@ function validateInitialStatesBoundaries(boundaries)
     end
 end
 
-function validateAugmentationModel(model_initializer)
+function validate_augmentation_model(model_initializer)
     % Validate that the augmentation model initializer is a nonempty string and one of the allowed values.
     validateattributes(model_initializer, {'char', 'string'}, {'nonempty'}, mfilename, 'augmentation_model_initializer');
     if ~any(strcmpi(model_initializer, {'arfit','aryule','rbf'}))
