@@ -33,6 +33,9 @@ function [psi_tppsm, ps_realization, general_params, irr_params_set, seed] = get
 %   'rhof_veff_ratio'     - (Optional) A numeric value for the computed 
 %                           rhof/veff ratio for L1. If provided (and nonempty), 
 %                           the function will skip its internal computation.
+%   'is_enable_cmd_print' - logical value that configures whether command
+%                           lines would appear on the regarding of the 
+%                           usage of external rhof_veff_ratio.
 %
 % Outputs:
 %   psi_tppsm        - Scintillation field time series (complex), as a row vector.
@@ -64,6 +67,7 @@ addParameter(p, 'general_params', [], @(x) isempty(x) || isstruct(x));
 addParameter(p, 'irr_params_set', [], @(x) isempty(x) || isstruct(x));
 addParameter(p, 'seed', 1, @(x) validateattributes(x, {'numeric'}, {'scalar', 'real'}));
 addParameter(p, 'rhof_veff_ratio', [], @(x) isempty(x) || isnumeric(x));
+addParameter(p, 'is_enable_cmd_print', true, @(x) validateattributes(x, {'logical'}, {'nonempty'}));
 parse(p, scenario, varargin{:});
 
 scenario = validatestring(p.Results.scenario, {'Weak', 'Moderate', 'Severe'}, mfilename, 'scenario');
@@ -73,6 +77,7 @@ general_params = p.Results.general_params;
 irr_params_set = p.Results.irr_params_set;
 seed = p.Results.seed;
 rhof_veff_ratio = p.Results.rhof_veff_ratio;
+is_enable_cmd_print = p.Results.is_enable_cmd_print;
 
 if simulation_time < sampling_interval
     error('get_tppsm_data:simulationTimeSmallerThanSamplingInterval', ...
@@ -102,7 +107,9 @@ irr_params = irr_params_set.(scenario);
 if isempty(rhof_veff_ratio)
     rhof_veff_ratio = get_rhof_veff_ratio(general_params);
 else
-    %fprintf('Using externally provided rhof_veff_ratio: %g\n', rhof_veff_ratio);
+    if is_enable_cmd_print
+        fprintf('Using externally provided rhof_veff_ratio: %g\n', rhof_veff_ratio);
+    end
 end
 
 rng(seed);

@@ -1,4 +1,4 @@
-function [received_signal, los_phase, psi_settled, ps_realization] = get_received_signal(C_over_N0_dBHz, scint_model, doppler_profile, varargin)
+function [received_signal, los_phase, psi_settled, ps_realization] = get_received_signal(C_over_N0_dBHz, scint_model, doppler_profile, is_enable_cmd_print, varargin)
 % get_received_signal
 % Simulates the baseband received signal, including ionospheric scintillation
 % effects, thermal noise, and line-of-sight (LOS) phase dynamics.
@@ -19,6 +19,9 @@ function [received_signal, los_phase, psi_settled, ps_realization] = get_receive
 %   'S4'                           - Scintillation index (0<=S4<=1); required if scint_model is 'CSM'
 %   'tau0'                         - Signal intensity decorrelation time (s); required if scint_model is 'CSM'
 %   'tppsm_scenario'               - TPPSM scenario ('Weak', 'Moderate', or 'Severe'); required if scint_model is 'TPPSM'
+%   'is_enable_cmd_print'          - logical value that configures whether command
+%                                    lines would appear on the regarding of the 
+%                                    usage of external rhof_veff_ratio.
 %
 % Inputs:
 %   C_over_N0_dBHz  - Carrier-to-noise density ratio in dB-Hz.
@@ -108,7 +111,7 @@ thermal_noise = get_thermal_noise(simulation_time, sampling_interval, rx_mean_po
 switch scint_model
     case 'TPPSM'
         % Call get_tppsm_data with the provided tppsm_scenario.
-        [psi, ps_realization] = get_tppsm_data(tppsm_scenario, 'simulation_time', simulation_time, 'sampling_interval', sampling_interval);
+        [psi, ps_realization] = get_tppsm_data(tppsm_scenario, 'is_enable_cmd_print', is_enable_cmd_print, 'simulation_time', simulation_time, 'sampling_interval', sampling_interval);
         % Remove refractive effects if requested.
         if is_refractive_effects_removed
             psi = psi .* exp(-1j * ps_realization);

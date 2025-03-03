@@ -31,7 +31,7 @@ classdef test_get_tppsm_data < matlab.unittest.TestCase
     %   Email: rdlfresearch@gmail.com
 
     properties
-        validScenario = 'Moderate';
+        valid_scenario = 'Moderate';
         simulation_time = 300;
         sampling_interval = 0.01;
         seed = 42;
@@ -50,9 +50,9 @@ classdef test_get_tppsm_data < matlab.unittest.TestCase
     end
     
     methods (Test)
-        function testValidOutput(testCase)
+        function test_valid_output(testCase)
             [psi_tppsm, ps_realization, ~, ~, seedOut] = ...
-                get_tppsm_data(testCase.validScenario, ...
+                get_tppsm_data(testCase.valid_scenario, ...
                 'simulation_time', testCase.simulation_time, ...
                 'sampling_interval', testCase.sampling_interval, ...
                 'seed', testCase.seed);
@@ -72,50 +72,58 @@ classdef test_get_tppsm_data < matlab.unittest.TestCase
             testCase.verifyEqual(seedOut, testCase.seed);
         end
         
-        function testInvalidScenario(testCase)
+        function test_invalid_scenario(testCase)
             % Test that providing an invalid scenario produces an error.
             testCase.verifyError(@() get_tppsm_data('InvalidScenario'), ...
                 'MATLAB:get_tppsm_data:unrecognizedStringChoice');
         end
         
-        function testSimulationTimeLessThanSampling(testCase)
+        function test_simulation_time_less_than_sampling(testCase)
             % Test that simulation_time less than sampling_interval triggers an error.
-            testCase.verifyError(@() get_tppsm_data(testCase.validScenario, ...
+            testCase.verifyError(@() get_tppsm_data(testCase.valid_scenario, ...
                 'simulation_time', 0.005, 'sampling_interval', 0.01), ...
                 'get_tppsm_data:simulationTimeSmallerThanSamplingInterval');
         end
         
-        function testNonNumericSimulationTime(testCase)
+        function test_non_numeric_simulation_time(testCase)
             % Test that a non-numeric simulation_time input triggers the built-in error.
-            testCase.verifyError(@() get_tppsm_data(testCase.validScenario, 'simulation_time', 'invalid'), ...
+            testCase.verifyError(@() get_tppsm_data(testCase.valid_scenario, 'simulation_time', 'invalid'), ...
                 'MATLAB:invalidType');
         end
         
-        function testNonNumericSamplingInterval(testCase)
+        function test_non_numeric_sampling_interval(testCase)
             % Test that a non-numeric sampling_interval input triggers the built-in error.
-            testCase.verifyError(@() get_tppsm_data(testCase.validScenario, 'sampling_interval', 'invalid'), ...
+            testCase.verifyError(@() get_tppsm_data(testCase.valid_scenario, 'sampling_interval', 'invalid'), ...
                 'MATLAB:invalidType');
         end
         
-        function testExternalRhofVeffRatio(testCase)
+        function test_external_rhof_veff_ratio(testCase)
             % Test that providing an external rhof_veff_ratio_L1 works as expected.
-            external_ratio = 1;
-            % Capture command-window output.
-            outputStr = evalc('[psi_tppsm, ps_realization, gp, ip, seedOut] = get_tppsm_data(testCase.validScenario, ''simulation_time'', testCase.simulation_time, ''sampling_interval'', testCase.sampling_interval, ''seed'', testCase.seed, ''rhof_veff_ratio_L1'', external_ratio);');
-            
-            % Verify that the printed message indicates the external ratio is used.
-            expectedMsg = sprintf('Using externally provided rhof_veff_ratio_L1: %g', external_ratio);
-            testCase.verifyNotEmpty(strfind(outputStr, expectedMsg));
-            
-            % Also, check that outputs are valid.
-            [psi_tppsm, ps_realization, ~, ~, seedOut] = get_tppsm_data(testCase.validScenario, ...
+            external_rhof_veff_ratio = 1;
+
+            % Check that outputs are valid.
+            [psi_tppsm, ps_realization, ~, ~, seedOut] = get_tppsm_data(testCase.valid_scenario, ...
                 'simulation_time', testCase.simulation_time, ...
                 'sampling_interval', testCase.sampling_interval, ...
                 'seed', testCase.seed, ...
-                'rhof_veff_ratio_L1', external_ratio);
+                'rhof_veff_ratio', external_rhof_veff_ratio);
             testCase.verifyNotEmpty(psi_tppsm);
             testCase.verifyNotEmpty(ps_realization);
             testCase.verifyEqual(seedOut, testCase.seed);
+        end
+        function test_is_enable_cmd_print_functionalty(testCase)
+            % Test that providing an external rhof_veff_ratio_L1 works as expected.
+            external_rhof_veff_ratio = 1;
+            % Capture command-window output.
+            outputStr_when_true = evalc('[psi_tppsm, ps_realization, gp, ip, seedOut] = get_tppsm_data(testCase.valid_scenario, ''is_enable_cmd_print'', true, ''simulation_time'', testCase.simulation_time, ''sampling_interval'', testCase.sampling_interval, ''seed'', testCase.seed, ''rhof_veff_ratio'', external_rhof_veff_ratio);');
+            outputStr_when_false = evalc('[psi_tppsm, ps_realization, gp, ip, seedOut] = get_tppsm_data(testCase.valid_scenario, ''is_enable_cmd_print'', false, ''simulation_time'', testCase.simulation_time, ''sampling_interval'', testCase.sampling_interval, ''seed'', testCase.seed, ''rhof_veff_ratio'', external_rhof_veff_ratio);');
+
+            % Verify that the printed message indicates the external ratio is used.
+            expectedMsg = sprintf('Using externally provided rhof_veff_ratio: %g', external_rhof_veff_ratio);
+            testCase.verifyNotEmpty(strfind(outputStr_when_true, expectedMsg));
+            testCase.verifyEmpty(outputStr_when_false);
+            testCase.verifyError(@()get_tppsm_data(testCase.valid_scenario, ...
+                'is_enable_cmd_print', 'invalid'), 'MATLAB:invalidType');
         end
     end
 end
