@@ -10,29 +10,25 @@ function kalman_pll_config = update_cache(general_config, cache_file, kalman_pll
 %   struct, and saves it to the specified cache file.
 %
 % Inputs:
-%   general_config - Struct containing configuration details with required fields:
-%       - discrete_wiener_model_config: Cell array for LOS dynamics parameters used by
-%         get_discrete_wiener_model.
-%       - scintillation_training_data_config: Struct containing scintillation model settings.
-%           For CSM, expected fields:
-%               scintillation_model - Must be 'CSM'
-%               S4                  - Scintillation index (0 <= S4 <= 1)
-%               tau0                - Signal decorrelation time (positive scalar)
-%               simulation_time     - Duration of simulation (positive scalar)
-%               sampling_interval   - Sampling interval (positive scalar)
-%           For TPPSM, expected fields:
-%               scintillation_model - Must be 'TPPSM'
-%               scenario            - A string specifying the scenario ('Weak', 'Moderate', 'Severe')
-%               simulation_time     - Duration of simulation (positive scalar)
-%               sampling_interval   - Sampling interval (positive scalar)
-%               is_refractive_effects_removed - Boolean flag (true or false)
+%   general_config - Struct containing all configuration details with required fields:
+%       - discrete_wiener_model_config: Cell array for LOS dynamics parameters to be used by
+%         the get_los_phase function. Example: {1, 3, 0.01, [0,0,1], 1}.
+%
+%       - scintillation_training_data_config: Struct with fields:
+%             S4, tau0, simulation_time, and sampling_interval.
+%
 %       - var_minimum_order: Minimum VAR model order.
 %       - var_maximum_order: Maximum VAR model order.
-%       - C_over_N0_array_dBHz: Array of average C/N0 values for each frequency band (in dB-Hz).
-%       - initial_states_distributions_boundaries: Cell array for initial state distribution boundaries.
-%       - real_doppler_profile: Array or structure with the real Doppler profile.
-%       - is_use_cached_settings: Boolean flag indicating whether to use cached settings.
-%       - is_generate_random_initial_estimates: Boolean flag for generating random initial estimates.
+%       - C_over_N0_array_dBHz: Numeric vector (positive) of average C/N0 values.
+%       - initial_states_distributions_boundaries: Non-empty cell array where each element is a
+%         1×2 numeric vector (with the first element less than the second).
+%       - real_doppler_profile: Non-empty numeric vector.
+%       - augmentation_model_initializer: 
+%           * 'arfit' (Initializes multivariate autoregressive model parameters. It also calculates an intercept vector.), 
+%           * 'aryule' (Initializes the autoregressive model using the Yule-Walker method, OBS: Signal Processing Toolbox needed), 
+%           * 'rbf', (Initializes the Radial Basis Function Network Weights); 
+%       - is_use_cached_settings: Boolean flag indicating whether cached configurations should be used.
+%       - is_generate_random_initial_estimates: Boolean flag indicating whether initial estimates are randomly generated.
 %
 %   cache_file        - String specifying the file path for caching results.
 %   kalman_pll_config - Struct to hold or update the Kalman PLL settings.
@@ -53,6 +49,7 @@ function kalman_pll_config = update_cache(general_config, cache_file, kalman_pll
 %       'C_over_N0_array_dBHz', C_over_N0_array_dBHz, ...
 %       'initial_states_distributions_boundaries', {initial_states_distributions_boundaries}, ...
 %       'real_doppler_profile', real_doppler_profile, ...
+%       'augmentation_model_initializer', 'aryule', ...
 %       'is_use_cached_settings', is_use_cached_settings, ...
 %       'is_generate_random_initial_estimates', is_generate_random_initial_estimates ...
 %   );
@@ -61,10 +58,9 @@ function kalman_pll_config = update_cache(general_config, cache_file, kalman_pll
 %   is_cache_used = false;
 %   kalman_pll_config = update_cache(general_config, cache_file, kalman_pll_config, is_cache_used);
 %
-% Author:
-%   Rodrigo de Lima Florindo
-%   ORCID: https://orcid.org/0000-0003-0412-5583
-%   Email: rdlfresearch@gmail.com
+% Author: Rodrigo de Lima Florindo
+% ORCID: https://orcid.org/0000-0003-0412-5583
+% Email: rdlfresearch@gmail.com
 
     % Validate inputs
     validateattributes(general_config, {'struct'}, {'nonempty'}, mfilename, 'general_config');
