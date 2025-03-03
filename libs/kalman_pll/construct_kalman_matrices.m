@@ -51,8 +51,6 @@ function [F, Q, H, R, W] = construct_kalman_matrices(F_los, Q_los, F_var, Q_var,
         validateattributes(var_model_order, {'numeric'}, {'scalar', 'integer', '>=', 1}, mfilename, 'var_model_order');
         validateattributes(var_states_amount, {'numeric'}, {'scalar', 'integer', '>=', 1}, mfilename, 'var_states_amount');
     end
-    validateattributes(C_over_N0_array_dBHz, {'numeric'}, {'vector', 'real', 'positive'}, mfilename, 'C_over_N0_array_dBHz');
-    validateattributes(sampling_interval, {'numeric'}, {'scalar', 'real', 'positive'}, mfilename, 'sampling_interval');
     
     % Ensure Q_los is symmetric and positive semi-definite
     if ~isequal(Q_los, Q_los') 

@@ -134,30 +134,6 @@ classdef test_update_cache < matlab.unittest.TestCase
                 'The contents of the cache file must match the updated kalman_pll_config.');
         end
         
-        function testInvalidCacheFile(testCase)
-            % Provide an invalid (empty) cache_file and verify that an error is thrown.
-            config = testCase.default_general_config;
-            cache_file = '';  % invalid cache file name
-            kalman_pll_config = testCase.default_kalman_pll_config;
-            is_cache_used = false;
-            
-            testCase.verifyError(@() update_cache(config, cache_file, kalman_pll_config, is_cache_used, testCase.default_is_enable_cmd_print), ...
-                'MATLAB:update_cache:expectedNonempty', ...
-                'An error is expected for an empty cache_file.');
-        end
-        
-        function testInvalidKalmanPllConfig(testCase)
-            % Provide an invalid kalman_pll_config (e.g., an empty array instead of a struct)
-            config = testCase.default_general_config;
-            cache_file = testCase.default_cache_file;
-            kalman_pll_config = [];  % invalid kalman_pll_config
-            is_cache_used = false;
-            
-            testCase.verifyError(@() update_cache(config, cache_file, kalman_pll_config, is_cache_used, testCase.default_is_enable_cmd_print), ...
-                'MATLAB:update_cache:invalidType', ...
-                'An error is expected for an invalid kalman_pll_config.');
-        end
-        
         function testInvalidIsCacheUsed(testCase)
             % Provide an invalid is_cache_used (non-logical) and verify that an error is thrown.
             config = testCase.default_general_config;

@@ -76,6 +76,9 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_
 %   );
 %   [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_config, 'cache', true);
 %
+% Dependencies:
+%   get_cached_kalman_pll_config, update_cache, get_initial_estimates
+%
 % Author: Rodrigo de Lima Florindo
 % ORCID: https://orcid.org/0000-0003-0412-5583
 % Email: rdlfresearch@gmail.com

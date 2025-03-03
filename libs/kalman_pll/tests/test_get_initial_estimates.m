@@ -64,14 +64,6 @@ classdef test_get_initial_estimates < matlab.unittest.TestCase
             testCase.verifySize(initial_estimates.P_hat_init, [5, 5], 'P_hat_init size mismatch for perfect estimates.');
         end
         
-        function testMissingConfigField(testCase)
-            % Remove a required field from general_config and expect an error.
-            config = testCase.DefaultConfig;
-            config = rmfield(config, 'initial_states_distributions_boundaries');
-            testCase.verifyError(@() get_initial_estimates(config, testCase.DefaultKalmanPLLConfig), ...
-                'get_initial_estimates:MissingConfigField');
-        end
-        
         function testBoundaryProfileMismatch(testCase)
             % Set boundaries count different from the length of real_doppler_profile.
             config = testCase.DefaultConfig;

@@ -81,11 +81,6 @@ function kalman_pll_config = build_kalman_pll_config(kalman_pll_config, ...
 %   Email: rdlfresearch@gmail.com
 
     % Validate inputs
-    validateattributes(kalman_pll_config, {'struct'}, {'nonempty'}, mfilename, 'kalman_pll_config');
-    validateattributes(scintillation_training_data_config, {'struct'}, {'nonempty'}, mfilename, 'scintillation_training_data_config');
-    validateattributes(var_minimum_order, {'numeric'}, {'scalar', 'integer', '>=', 1}, mfilename, 'var_minimum_order');
-    validateattributes(var_maximum_order, {'numeric'}, {'scalar', 'integer', '>=', var_minimum_order}, mfilename, 'var_maximum_order');
-    validateattributes(C_over_N0_array_dBHz, {'numeric'}, {'vector', 'real', 'positive'}, mfilename, 'C_over_N0_array_dBHz');
     validateattributes(F_los, {'numeric'}, {'2d'}, mfilename, 'F_los');
     validateattributes(Q_los, {'numeric'}, {'2d'}, mfilename, 'Q_los');
 

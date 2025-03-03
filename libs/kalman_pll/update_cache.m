@@ -63,8 +63,6 @@ function kalman_pll_config = update_cache(general_config, cache_file, kalman_pll
 % Email: rdlfresearch@gmail.com
 
     % Validate inputs
-    validateattributes(general_config, {'struct'}, {'nonempty'}, mfilename, 'general_config');
-    validateattributes(cache_file, {'char','string'}, {'nonempty'}, mfilename, 'cache_file');
     validateattributes(kalman_pll_config, {'struct'}, {'nonempty'}, mfilename, 'kalman_pll_config');
     validateattributes(is_cache_used, {'logical'}, {'scalar'}, mfilename, 'is_cache_used');
 

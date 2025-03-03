@@ -41,28 +41,7 @@ function initial_estimates = get_initial_estimates(general_config, kalman_pll_co
 % Author: Rodrigo de Lima Florindo
 % ORCID: https://orcid.org/0000-0003-0412-5583
 % Email: rdlfresearch@gmail.com
-
-    % Validate general_config is a nonempty struct.
-    validateattributes(general_config, {'struct'}, {'nonempty'}, mfilename, 'general_config');
     
-    % Check required fields in general_config.
-    required_general_config_fields = {'is_generate_random_initial_estimates', ...
-                                      'initial_states_distributions_boundaries', ...
-                                      'real_doppler_profile', ...
-                                      'scintillation_training_data_config'};
-    for iField = 1:numel(required_general_config_fields)
-        if ~isfield(general_config, required_general_config_fields{iField})
-            error('get_initial_estimates:MissingConfigField', ...
-                'The general_config struct must contain the field "%s".', required_general_config_fields{iField});
-        end
-    end
-    
-    % Validate types and sizes.
-    validateattributes(general_config.is_generate_random_initial_estimates, {'logical'}, {'scalar'}, mfilename, 'is_generate_random_initial_estimates');
-    validateattributes(general_config.initial_states_distributions_boundaries, {'cell'}, {'nonempty'}, mfilename, 'initial_states_distributions_boundaries');
-    validateattributes(general_config.real_doppler_profile, {'numeric'}, {'nonempty','vector'}, mfilename, 'real_doppler_profile');
-    validateattributes(general_config.scintillation_training_data_config.scintillation_model, {'char','string'}, {'nonempty'}, mfilename, 'training_scint_model');
-
     % Check that the number of boundaries matches the length of real_doppler_profile.
     if numel(general_config.initial_states_distributions_boundaries) ~= numel(general_config.real_doppler_profile)
         error('get_initial_estimates:BoundaryProfileMismatch', ...

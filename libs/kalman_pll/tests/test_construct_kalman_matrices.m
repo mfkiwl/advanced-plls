@@ -121,18 +121,5 @@ classdef test_construct_kalman_matrices < matlab.unittest.TestCase
             testCase.verifyError(@() construct_kalman_matrices(F_los, Q_los, F_var, Q_var, intercept_vector, 2, 2, 35, 0.01), ...
                 'MATLAB:construct_kalman_matrices:expectedColumn');
         end
-
-        function testInvalidCOverN0(testCase)
-            % C/N0 must be positive; this should trigger an error.
-            F_los = eye(2);
-            Q_los = eye(2);
-            F_var = eye(2);
-            Q_var = eye(2);
-            intercept_vector = [0.1; -0.1];
-            C_over_N0_array_dBHz = -35; % Invalid (negative value)
-
-            testCase.verifyError(@() construct_kalman_matrices(F_los, Q_los, F_var, Q_var, intercept_vector, 2, 2, C_over_N0_array_dBHz, 0.01), ...
-                'MATLAB:construct_kalman_matrices:expectedPositive');
-        end
     end
 end

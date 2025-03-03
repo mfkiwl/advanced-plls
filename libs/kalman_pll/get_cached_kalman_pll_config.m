@@ -39,26 +39,8 @@ function [kalman_pll_config, is_cache_used] = get_cached_kalman_pll_config(gener
 %   ORCID: https://orcid.org/0000-0003-0412-5583
 %   Email: rdlfresearch@gmail.com
 
-
-    % Default cache path if not provided
-    if nargin < 2 || isempty(cache_file)
-        cache_dir = fullfile(fileparts(mfilename('fullpath')), 'cache');
-        cache_file = fullfile(cache_dir, 'kalman_pll_cache.mat');
-    else
-        % Extract the directory from the provided cache file path
-        cache_dir = fileparts(cache_file);
-    end
-
-    % Ensure cache directory exists
-    if ~exist(cache_dir, 'dir')
-        mkdir(cache_dir);
-    end
-
     % Initialize the output flag
     is_cache_used = false;
-
-    % Validate general_config input
-    validateattributes(general_config, {'struct'}, {'nonempty'}, mfilename, 'general_config');
 
     % Load from cache if available
     if isfile(cache_file)
