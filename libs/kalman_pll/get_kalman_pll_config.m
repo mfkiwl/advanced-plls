@@ -81,7 +81,7 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_
 % Email: rdlfresearch@gmail.com
 
     % Validate configurations using helper functions.
-    [~, ~, sampling_interval_dw, ~, ~] = validateDiscreteWienerModelConfig(general_config.discrete_wiener_model_config);
+    [~, ~, sampling_interval_dw, ~, ~] = validate_discrete_wiener_model_config(general_config.discrete_wiener_model_config);
     scint_config = validateScintillationTrainingDataConfig(general_config.scintillation_training_data_config);
     validate_var_model_orders(general_config.var_minimum_order, general_config.var_maximum_order);
     validate_C_N0(general_config.C_over_N0_array_dBHz);
@@ -111,7 +111,7 @@ end
 
 %% Helper Functions
 
-function [L, M, sampling_interval, sigma, delta] = validateDiscreteWienerModelConfig(dw_config)
+function [L, M, sampling_interval, sigma, delta] = validate_discrete_wiener_model_config(dw_config)
     % Validate that dw_config is a cell array with 5 elements.
     validateattributes(dw_config, {'cell'}, {'numel', 5}, mfilename, 'general_config.discrete_wiener_model_config');
     L = dw_config{1};
