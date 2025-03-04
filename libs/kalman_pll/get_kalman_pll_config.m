@@ -246,7 +246,7 @@ end
 function validate_augmentation_model(model_initializer)
     % Validate that the augmentation model initializer is a nonempty string and one of the allowed values.
     validateattributes(model_initializer, {'char', 'string'}, {'nonempty'}, mfilename, 'augmentation_model_initializer');
-    if ~any(strcmpi(model_initializer, {'arfit','aryule','rbf'}))
+    if ~any(strcmpi(model_initializer, {'arfit', 'aryule', 'rbf', 'none'}))
         error('get_kalman_pll_config:InvalidAugmentationModel', ...
             'augmentation_model_initializer must be ''arfit'', ''aryule'', or ''rbf''. Received: `%s`.', model_initializer);
     end

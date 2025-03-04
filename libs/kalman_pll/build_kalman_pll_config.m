@@ -99,16 +99,21 @@ function kalman_pll_config = build_kalman_pll_config(general_config, ...
     % Preprocess Training Data
     training_data = preprocess_training_data(general_config.scintillation_training_data_config);
 
-    % Fit VAR Model (if applicable)
-    if strcmp(general_config.scintillation_training_data_config.scintillation_model, 'none')
-        intercept_vector = []; 
-        var_coefficient_matrices = []; 
-        var_covariance_matrices = [];
-    else
-        [intercept_vector, var_coefficient_matrices, var_covariance_matrices] = ...
-            arfit(training_data, general_config.var_minimum_order, general_config.var_maximum_order);
+    switch general_config.augmentation_model_initializer
+
+        case 'arfit'
+            [intercept_vector, var_coefficient_matrices, var_covariance_matrices] = ...
+                arfit(training_data, general_config.var_minimum_order, general_config.var_maximum_order);
+        case 'aryule'
+
+        case 'rbf'
+
+        case 'none'
+            intercept_vector = []; 
+            var_coefficient_matrices = []; 
+            var_covariance_matrices = [];
     end
-    
+
     % Construct State Transition and Process Noise Matrices
     [F_var, Q_var, var_states_amount, var_model_order] = construct_var_matrices( ...
         var_coefficient_matrices, var_covariance_matrices);
