@@ -95,7 +95,7 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_
     validate_C_N0(general_config.C_over_N0_array_dBHz);
     validate_initial_states_boundaries(general_config.initial_states_distributions_boundaries);
     validateattributes(general_config.real_doppler_profile, {'numeric'}, {'nonempty','vector'}, mfilename, 'real_doppler_profile');
-    validate_augmentation_model(general_config.augmentation_model_initializer);
+    validate_augmentation_model(general_config.augmentation_model_initializer, general_config);
     validateattributes(cache_dir, {'char', 'string'}, {'nonempty'}, mfilename, 'cache_dir');
     validateattributes(is_enable_cmd_print, {'logical'}, {'scalar'}, mfilename, 'is_enable_cmd_print');
 
@@ -248,7 +248,7 @@ function validate_initial_states_boundaries(boundaries)
     end
 end
 
-function validate_augmentation_model(model_initializer)
+function validate_augmentation_model(model_initializer, general_config)
     % Validate that the augmentation model initializer is a nonempty string and one of the allowed values.
     validateattributes(model_initializer, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer');
     if ~any(strcmpi(model_initializer.id, {'arfit', 'aryule', 'rbf', 'none'}))
@@ -261,6 +261,11 @@ function validate_augmentation_model(model_initializer)
             validateattributes(model_initializer.model_params, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params');
             validateattributes(model_initializer.model_params.model_order, {'double'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params.model_order');
         case 'aryule'
+            if general_config.discrete_wiener_model_config{1} ~= 1
+                error('get_kalman_pll_config:incompatible_model_with_multi_frequency_tracking', ...
+                    ['The aryule model_initializer is not compatible with multi-frequency carrier phase tracking systems. ' ...
+                    'This happens because the function `aryule` is restricted to the scalar case.']);
+            end
             validateattributes(model_initializer.model_params, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params');
             validateattributes(model_initializer.model_params.model_order, {'double'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params.model_order');
         case 'rbf'

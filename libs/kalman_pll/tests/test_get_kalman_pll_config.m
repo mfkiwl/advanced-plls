@@ -195,6 +195,17 @@ classdef test_get_kalman_pll_config < matlab.unittest.TestCase
             [kcfg, ~] = get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print);
             testCase.verifyTrue(isstruct(kcfg));
         end
+        function testInvalidAugmentationModelAryuleWithMultiFrequency(testCase)
+            % For a valid 'aryule' initializer.
+            config = testCase.default_config;
+            config.discrete_wiener_model_config{1} = 2;
+            config.discrete_wiener_model_config{4} = [0,0,0,1];
+            config.discrete_wiener_model_config{5} = [1,0.9];
+            config.augmentation_model_initializer.id = 'aryule';
+            config.augmentation_model_initializer.model_params = struct('model_order', 4);
+            testCase.verifyError(@() get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print), ...
+                'get_kalman_pll_config:incompatible_model_with_multi_frequency_tracking');
+        end
     
         function testValidAugmentationModelRbf(testCase)
             % For a valid 'rbf' initializer.
