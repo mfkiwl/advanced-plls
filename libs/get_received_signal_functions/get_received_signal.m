@@ -1,4 +1,4 @@
-function [received_signal, los_phase, psi_settled, ps_realization] = get_received_signal(C_over_N0_dBHz, scint_model, doppler_profile, varargin)
+function [received_signal, los_phase, psi_settled, ps_realization_settled] = get_received_signal(C_over_N0_dBHz, scint_model, doppler_profile, varargin)
 % get_received_signal
 % Simulates the baseband received signal, including ionospheric scintillation
 % effects, thermal noise, and line-of-sight (LOS) phase dynamics.
@@ -135,6 +135,11 @@ settling_samples = round(settling_time / sampling_interval);
 psi_settled(1:settling_samples) = 1 + 0j;
 if settling_samples < nSamples
     psi_settled(settling_samples+1:end) = psi(settling_samples+1:end);
+end
+
+if ~isempty(ps_realization)
+    ps_realization_settled(1:settling_samples) = 0;
+    ps_realization_settled(settling_samples+1:end) = ps_realization(settling_samples+1:end);
 end
 
 % Construct the baseband received signal
