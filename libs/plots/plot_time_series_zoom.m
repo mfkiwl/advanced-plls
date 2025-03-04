@@ -62,8 +62,9 @@ function plot_time_series_zoom(...
 %   ar_order           - Order of the AR model.
 %   is_save_figures    - Flag to save the figures in pdf and .fig
 %
-% Author: [Your Name]
-% Date: [Today's Date]
+% Author: Rodrigo de Lima Florindo
+% ORCID: https://orcid.org/0000-0003-0412-5583
+% Email: rdlfresearch@gmail.com
 
 % Index for scintillation component (LOS is column 1)
 scint_idx = length(doppler_profile) + 1;

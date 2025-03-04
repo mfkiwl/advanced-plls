@@ -20,6 +20,8 @@ function plot_time_series_full(...
     seed, ...
     process_noise_variance, ...
     ar_order, ...
+    ps_realization, ...
+    is_refractive_effects_removed, ...
     is_save_figures)
 % plot_KFAR_estimates_comparison
 %   Creates a uifigure containing a tab group with three tabs:
@@ -62,8 +64,9 @@ function plot_time_series_full(...
 %   ar_order           - Order of the AR model.
 %   is_save_figures    - Flag to save the figures in pdf and .fig
 %
-% Author: [Your Name]
-% Date: [Today's Date]
+% Author: Rodrigo de Lima Florindo
+% ORCID: https://orcid.org/0000-0003-0412-5583
+% Email: rdlfresearch@gmail.com
 
 % Index for scintillation component (LOS is column 1)
 scint_idx = length(doppler_profile) + 1;
@@ -151,6 +154,9 @@ legend(ax3, {'True Wrapped Phase (LOS detrended)', 'KF-AR scint','AKF-AR scint',
 % Subplot for TPPSM Scintillation estimates
 ax4 = nexttile(tloScint);
 true_wrapped_tppsm = angle(psi_tppsm);
+if ~is_refractive_effects_removed
+    true_wrapped_tppsm = wrapToPi(ps_realization) - true_wrapped_tppsm;
+end
 scint_kf_ar_tppsm = kf_ar_tppsm(:,scint_idx);
 scint_akf_ar_tppsm = akf_ar_tppsm(:,scint_idx);
 scint_ahl_kf_ar_tppsm = ahl_kf_ar_tppsm(:,scint_idx);

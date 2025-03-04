@@ -58,7 +58,7 @@ classdef test_get_received_signal < matlab.unittest.TestCase
     methods(Test)
         function testValidNoneModel(testCase)
             % Test valid input for the 'none' scintillation model.
-            [rx_sig, los_phase, psi, ps_realization] = get_received_signal(...
+            [rx_sig, los_phase, psi, diffractive_phase, refractive_phase] = get_received_signal(...
                 testCase.C_over_N0_dBHz, 'none', testCase.doppler_profile, ...
                 'simulation_time', testCase.simulation_time, ...
                 'settling_time', testCase.settling_time, ...
@@ -69,27 +69,30 @@ classdef test_get_received_signal < matlab.unittest.TestCase
             % psi is expected to be a vector of ones.
             expected_size = round(testCase.simulation_time/testCase.sampling_interval);
             testCase.verifyEqual(psi, ones(expected_size, 1), 'psi must equal a ones vector for ''none'' model.');
-            testCase.verifyEmpty(ps_realization, 'ps_realization should be empty for ''none'' model.');
+            testCase.verifyEqual(refractive_phase, zeros(expected_size, 1), 'refractive_phase must equal a zeros vector for ''none'' model.');
+            testCase.verifyEqual(diffractive_phase, zeros(expected_size, 1), 'diffractive_phase must equal a zeros vector for ''none'' model.');
         end
         
         function testValidCSMModel(testCase)
             % Test valid input for the 'CSM' scintillation model.
-            [rx_sig, los_phase, psi, ps_realization] = get_received_signal(...
+            [rx_sig, los_phase, psi, diffractive_phase, refractive_phase] = get_received_signal(...
                 testCase.C_over_N0_dBHz, 'CSM', testCase.doppler_profile, ...
                 'S4', testCase.S4, 'tau0', testCase.tau0, ...
                 'simulation_time', testCase.simulation_time, ...
                 'settling_time', testCase.settling_time, ...
                 'sampling_interval', testCase.sampling_interval);
-            
+            % psi is expected to be a vector of ones.
+            expected_size = round(testCase.simulation_time/testCase.sampling_interval);
             testCase.verifyNotEmpty(rx_sig, 'Received signal should not be empty for CSM model.');
             testCase.verifyNotEmpty(los_phase, 'LOS phase should not be empty for CSM model.');
             testCase.verifyNotEmpty(psi, 'psi should not be empty for CSM model.');
-            testCase.verifyEmpty(ps_realization, 'ps_realization must be empty for CSM model.');
+            testCase.verifyEqual(refractive_phase, zeros(expected_size, 1), 'refractive_phase must be a zeros vector for CSM model.');
+            testCase.verifyNotEmpty(diffractive_phase, 'diffractive_phase should not be empty for CSM model.');
         end
         
         function testValidTPPSMModel(testCase)
             % Test valid input for the 'TPPSM' scintillation model.
-            [rx_sig, los_phase, psi, ps_realization] = get_received_signal(...
+            [rx_sig, los_phase, psi, diffractive_phase, refractive_phase] = get_received_signal(...
                 testCase.C_over_N0_dBHz, 'TPPSM', testCase.doppler_profile, ...
                 'tppsm_scenario', testCase.tppsm_scenario, ...
                 'simulation_time', testCase.simulation_time, ...
@@ -100,7 +103,8 @@ classdef test_get_received_signal < matlab.unittest.TestCase
             testCase.verifyNotEmpty(rx_sig, 'Received signal should not be empty for TPPSM model.');
             testCase.verifyNotEmpty(los_phase, 'LOS phase should not be empty for TPPSM model.');
             testCase.verifyNotEmpty(psi, 'psi should not be empty for TPPSM model.');
-            testCase.verifyNotEmpty(ps_realization, 'ps_realization should not be empty for TPPSM model.');
+            testCase.verifyNotEmpty(refractive_phase, 'refractive_phase, should not be empty for TPPSM model.');
+            testCase.verifyNotEmpty(diffractive_phase, 'diffractive_phase should not be empty for TPPSM model.');
         end
         
         function testMissingParametersCSM(testCase)

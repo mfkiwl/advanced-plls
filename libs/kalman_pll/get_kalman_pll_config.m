@@ -69,7 +69,7 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_
 % Example:
 %   general_config = struct( ...
 %       'discrete_wiener_model_config', { {1, 3, 0.01, [0,0,1e-2], 1} }, ...
-%       'scintillation_training_data_config', struct('scintillation_model', 'CSM', 'S4', 0.8, 'tau0', 0.7, 'simulation_time', 300, 'sampling_interval', 0.01), ...
+%       'scintillation_training_data_config', struct('scintillation_model', 'CSM', 'S4', 0.8, 'tau0', 0.7, 'simulation_time', 300, 'sampling_interval', 0.01, 'is_unwrapping_used', false), ...
 %       'var_minimum_order', 1, ...
 %       'var_maximum_order', 6, ...
 %       'C_over_N0_array_dBHz', [35], ...
@@ -91,7 +91,7 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_
     % Validate configurations using helper functions.
     [~, ~, sampling_interval_dw, ~, ~] = validate_discrete_wiener_model_config(general_config.discrete_wiener_model_config);
     scint_config = validateScintillationTrainingDataConfig(general_config.scintillation_training_data_config);
-    validate_C_N0(general_config.C_over_N0_array_dBHz);
+    validateattributes(general_config.C_over_N0_array_dBHz, {'numeric'}, {'nonempty','vector','positive'}, mfilename, 'C_over_N0_array_dBHz');
     validate_initial_states_boundaries(general_config.initial_states_distributions_boundaries);
     validateattributes(general_config.real_doppler_profile, {'numeric'}, {'nonempty','vector'}, mfilename, 'real_doppler_profile');
     validate_augmentation_model(general_config);
@@ -150,46 +150,30 @@ end
 function scint_config = validateScintillationTrainingDataConfig(scint_config)
     % Validate that scint_config is a nonempty struct.
     validateattributes(scint_config, {'struct'}, {'nonempty'}, mfilename, 'general_config.scintillation_training_data_config');
-    
-    % Check for the 'scintillation_model' field.
-    if ~isfield(scint_config, 'scintillation_model')
-        error('validateScintConfig:MissingScintillationModelField', ...
-            'general_config.scintillation_training_data_config must contain a ''scintillation_model'' field.');
-    end
-    if ~(ischar(scint_config.scintillation_model) || isstring(scint_config.scintillation_model))
-        error('validateScintConfig:InvalidModelType', ...
-            'Field ''scintillation_model'' must be a character array or string.');
-    end
-    model = strtrim(scint_config.scintillation_model);
-    if isempty(model)
-        error('validateScintConfig:EmptyModel', 'Field ''scintillation_model'' cannot be empty.');
-    end
+    validateattributes(scint_config.scintillation_model, {'char','string'}, {'nonempty'}, mfilename, 'general_config.scintillation_training_data_config.scintillation_model');
     
     % For models other than 'NONE', common fields must be present.
-    if ~strcmpi(model, 'NONE')
-        commonFields = {'simulation_time', 'sampling_interval'};
-        for i = 1:numel(commonFields)
-            if ~isfield(scint_config, commonFields{i})
-                error('validateScintConfig:MissingCommonField', ...
-                    'For model %s, the field ''%s'' is required in general_config.scintillation_training_data_config.', model, commonFields{i});
-            end
+    if ~strcmp(scint_config.scintillation_model, 'none')
+        actual_fields = fieldnames(scint_config);
+        common_fields = {'simulation_time', 'sampling_interval', 'is_unwrapping_used'};
+        [found, ~] = ismember(common_fields, actual_fields);
+        %TODO: Refactor the test unit to comprehend this new validation
+        if ~all(found)
+            missing_fields = common_fields(~found);
+            error("MATLAB:missing_inputs_scintillation_training_data_config",...
+                  "Inputs missing: %s", strjoin(missing_fields, ', '));
         end
         validateattributes(scint_config.simulation_time, {'numeric'}, ...
             {'scalar', 'positive', 'finite', 'nonnan'}, mfilename, 'simulation_time');
         validateattributes(scint_config.sampling_interval, {'numeric'}, ...
             {'scalar', 'positive', 'finite', 'nonnan'}, mfilename, 'sampling_interval');
+        validateattributes(scint_config.is_unwrapping_used, {'logical'}, ...
+            {'nonempty'}, mfilename, 'is_unwrapping_used');
     end
     
     % Model-specific validations.
-    switch upper(model)
+    switch upper(scint_config.scintillation_model)
         case 'CSM'
-            requiredCSMFields = {'S4', 'tau0'};
-            for i = 1:numel(requiredCSMFields)
-                if ~isfield(scint_config, requiredCSMFields{i})
-                    error('validateScintConfig:MissingCSMField', ...
-                        'For CSM, the field ''%s'' is required in general_config.scintillation_training_data_config.', requiredCSMFields{i});
-                end
-            end
             validateattributes(scint_config.S4, {'numeric'}, ...
                 {'scalar', 'real', '>=', 0, '<=', 1}, mfilename, 'S4');
             validateattributes(scint_config.tau0, {'numeric'}, ...
@@ -219,10 +203,7 @@ function scint_config = validateScintillationTrainingDataConfig(scint_config)
     end
 end
 
-function validate_C_N0(CN0_array)
-    % Validate C/N0 values.
-    validateattributes(CN0_array, {'numeric'}, {'nonempty','vector','positive'}, mfilename, 'C_over_N0_array_dBHz');
-end
+
 
 function validate_initial_states_boundaries(boundaries)
     % Validate that boundaries is a non-empty cell array and each cell

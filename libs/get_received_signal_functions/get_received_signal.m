@@ -1,4 +1,4 @@
-function [received_signal, los_phase, psi_settled, ps_realization_settled] = get_received_signal(C_over_N0_dBHz, scint_model, doppler_profile, varargin)
+function [received_signal, los_phase, psi, diffractive_phase_settled, refractive_phase_settled] = get_received_signal(C_over_N0_dBHz, scint_model, doppler_profile, varargin)
 % get_received_signal
 % Simulates the baseband received signal, including ionospheric scintillation
 % effects, thermal noise, and line-of-sight (LOS) phase dynamics.
@@ -34,14 +34,16 @@ function [received_signal, los_phase, psi_settled, ps_realization_settled] = get
 %   los_phase       - LOS phase time series (radians).
 %   psi             - Complex scintillation field. For 'CSM', contains only diffractive
 %                     effects; for 'TPPSM', contains the model's combined effects.
-%   ps_realization  - Phase screen realization (only meaningful for TPPSM; empty for CSM or 'none').
+%   refractive_phase  - Phase screen realization (only meaningful for TPPSM; empty for CSM or 'none').
+%   diffractive_phase - Diffractive phase of the ionospheric scintillation
+%                       complex time series
 %
 % Example 1 (using CSM):
 %   [rx_sig, los_phase, psi] = get_received_signal(45, 'CSM', [0,1000,0.94,0.01], ...
 %         'S4', 0.8, 'tau0', 0.7, 'simulation_time', 300, 'settling_time', 50, 'is_refractive_effects_removed', false);
 %
 % Example 2 (using TPPSM):
-%   [rx_sig, los_phase, psi, ps_realization] = get_received_signal(45, 'TPPSM', [0,1000,0.94,0.01], ...
+%   [rx_sig, los_phase, psi, refractive_phase] = get_received_signal(45, 'TPPSM', [0,1000,0.94,0.01], ...
 %         'tppsm_scenario', 'Moderate', 'simulation_time', 300, 'settling_time', 50, 'is_refractive_effects_removed', true);
 %
 % Author: Rodrigo de Lima Florindo
@@ -113,36 +115,46 @@ thermal_noise = get_thermal_noise(simulation_time, sampling_interval, rx_mean_po
 switch scint_model
     case 'TPPSM'
         % Call get_tppsm_data with the provided tppsm_scenario.
-        [psi, ps_realization] = get_tppsm_data(tppsm_scenario, 'is_enable_cmd_print', is_enable_cmd_print, 'simulation_time', simulation_time, 'sampling_interval', sampling_interval);
+        [psi, refractive_phase] = get_tppsm_data(tppsm_scenario, 'is_enable_cmd_print', is_enable_cmd_print, 'simulation_time', simulation_time, 'sampling_interval', sampling_interval);
         % Remove refractive effects if requested.
         if is_refractive_effects_removed
-            psi = psi .* exp(-1j * ps_realization);
+            psi = psi .* exp(-1j * refractive_phase);
+            diffractive_phase = wrapToPi(unwrap(angle(psi)) - refractive_phase);
+        else
+            diffractive_phase = angle(psi);
         end
+        
     case 'CSM'
         % Use the Cornell Scintillation Model with S4 and tau0.
         csm_params = struct('S4', S4, 'tau0', tau0, 'simulation_time', simulation_time, 'sampling_interval', sampling_interval);
         psi = get_csm_data(csm_params);
-        ps_realization = [];
+        refractive_phase = [];
+        diffractive_phase = angle(psi);
     case 'none'
         psi = ones(round(simulation_time / sampling_interval), 1);
-        ps_realization = [];
+        refractive_phase = [];
+        diffractive_phase = angle(psi); % NOTE: All zeros
 end
 
 % Apply settling period: initial period without scintillation effects
 nSamples = round(simulation_time / sampling_interval);
 psi_settled = zeros(nSamples, 1);
 settling_samples = round(settling_time / sampling_interval);
-psi_settled(1:settling_samples) = 1 + 0j;
-if settling_samples < nSamples
-    psi_settled(settling_samples+1:end) = psi(settling_samples+1:end);
-end
 
-if ~isempty(ps_realization)
-    ps_realization_settled(1:settling_samples) = 0;
-    ps_realization_settled(settling_samples+1:end) = ps_realization(settling_samples+1:end);
+diffractive_phase_settled = zeros(nSamples, 1);
+refractive_phase_settled = zeros(nSamples, 1);
+
+psi_settled(1:settling_samples) = 1 + 0j;
+psi_settled(settling_samples+1:end) = psi(settling_samples+1:end);
+
+diffractive_phase_settled(1:settling_samples) = 0;
+diffractive_phase_settled(settling_samples+1:end) = diffractive_phase(settling_samples+1:end);
+
+if ~isempty(refractive_phase)
+    refractive_phase_settled(1:settling_samples) = 0;
+    refractive_phase_settled(settling_samples+1:end) = refractive_phase(settling_samples+1:end);
 end
 
 % Construct the baseband received signal
 received_signal = sqrt(rx_mean_power) * psi_settled .* exp(1j * los_phase) + thermal_noise;
-
 end

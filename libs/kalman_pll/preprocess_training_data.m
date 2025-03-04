@@ -1,8 +1,8 @@
-function training_data = preprocess_training_data(scintillation_training_data_config)
+function training_data = preprocess_training_data(scint_training_data_cfg)
 % preprocess_training_data
 %
 % Syntax:
-%   training_data = preprocess_training_data(scintillation_training_data_config)
+%   training_data = preprocess_training_data(scint_training_data_cfg)
 %
 % Description:
 %   This function generates training data for a given scintillation model.
@@ -10,13 +10,16 @@ function training_data = preprocess_training_data(scintillation_training_data_co
 %   removing refractive effects for the TPPSM model.
 %
 % Inputs:
-%   scintillation_training_data_config - Struct containing scintillation model settings.
+%   scint_training_data_cfg - Struct containing scintillation model settings.
 %       For CSM, expected fields:
 %           scintillation_model - Must be 'CSM'
 %           S4                  - Scintillation index (0 <= S4 <= 1)
 %           tau0                - Signal decorrelation time (positive scalar)
 %           simulation_time     - Duration of simulation (positive scalar)
 %           sampling_interval   - Sampling interval (positive scalar)
+%           is_unwrapping_used - Boolean flag (true or false) to use
+%                                unwrapping function for training the 
+%                                augmentation models.
 %
 %       For TPPSM, expected fields:
 %           scintillation_model - Must be 'TPPSM'
@@ -24,6 +27,9 @@ function training_data = preprocess_training_data(scintillation_training_data_co
 %           simulation_time     - Duration of simulation (positive scalar)
 %           sampling_interval   - Sampling interval (positive scalar)
 %           is_refractive_effects_removed - Boolean flag (true or false)
+%           is_unwrapping_used - Boolean flag (true or false) to use
+%                                unwrapping function for training the 
+%                                augmentation models.
 %
 % Outputs:
 %   training_data - Phase data extracted from the scintillation field.
@@ -53,26 +59,31 @@ function training_data = preprocess_training_data(scintillation_training_data_co
 %   ORCID: https://orcid.org/0000-0003-0412-5583
 %   Email: rdlfresearch@gmail.com
 
-    switch upper(scintillation_training_data_config.scintillation_model)
+    switch upper(scint_training_data_cfg.scintillation_model)
         case 'CSM'
             % Generate CSM data
-            csm_config = rmfield(scintillation_training_data_config,'scintillation_model');
+            csm_config = rmfield(scint_training_data_cfg,'scintillation_model');
             scint_complex_field = get_csm_data(csm_config);
             training_data = angle(scint_complex_field);
+            if scint_training_data_cfg.is_unwrapping_used
+                training_data = unwrap(training_data);
+            end
 
         case 'TPPSM'
             % Build name-value pairs from the struct except the "scintillation_model" field
-            tppsm_config = rmfield(scintillation_training_data_config, {'scintillation_model','is_refractive_effects_removed'});
+            tppsm_config = rmfield(scint_training_data_cfg, {'scintillation_model','is_refractive_effects_removed','is_unwrapping_used'});
             nv = struct_to_nv_pairs(tppsm_config);
             [scint_complex_field, ps_realization, ~, ~, ~] = ...
-                get_tppsm_data(scintillation_training_data_config.scenario, nv{:});
+                get_tppsm_data(scint_training_data_cfg.scenario, nv{:});
 
             % Optionally remove refractive effects
-            if scintillation_training_data_config.is_refractive_effects_removed
+            if scint_training_data_cfg.is_refractive_effects_removed
                 scint_complex_field = scint_complex_field .* exp(-1j * ps_realization);
             end
             training_data = angle(scint_complex_field);
-
+            if scint_training_data_cfg.is_unwrapping_used
+                training_data = unwrap(training_data);
+            end
         case 'NONE'
             % For 'none', we can define training_data as an empty array
             training_data = [];

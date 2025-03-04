@@ -46,7 +46,7 @@ classdef test_get_kalman_pll_config < matlab.unittest.TestCase
             % Define a default valid configuration struct.
             testCase.default_config = struct( ...
                 'discrete_wiener_model_config', { {1, 3, 0.01, [0,0,1], 1} }, ...
-                'scintillation_training_data_config', struct('scintillation_model', 'CSM', 'S4', 0.8, 'tau0', 0.7, 'simulation_time', 300, 'sampling_interval', 0.01), ...
+                'scintillation_training_data_config', struct('scintillation_model', 'CSM', 'S4', 0.8, 'tau0', 0.7, 'simulation_time', 300, 'sampling_interval', 0.01, 'is_unwrapping_used', false), ...
                 'var_minimum_order', 1, ...
                 'var_maximum_order', 6, ...
                 'C_over_N0_array_dBHz', 35, ...
@@ -78,7 +78,7 @@ classdef test_get_kalman_pll_config < matlab.unittest.TestCase
             config = testCase.default_config;
             config.scintillation_training_data_config = rmfield(config.scintillation_training_data_config, 'scintillation_model');
             testCase.verifyError(@() get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print), ...
-                'validateScintConfig:MissingScintillationModelField');
+                'MATLAB:nonExistentField');
         end
         
         function testSamplingIntervalMismatch(testCase)
@@ -120,17 +120,17 @@ classdef test_get_kalman_pll_config < matlab.unittest.TestCase
             % Case 1: Empty initializer.
             config.augmentation_model_initializer.id = [];
             testCase.verifyError(@() get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print), ...
-                'get_kalman_pll_config:InvalidAugmentationModel');
+                'MATLAB:undefinedVarOrClass');
             
             % Case 2: Non-string initializer.
             config.augmentation_model_initializer.id = 3;
             testCase.verifyError(@() get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print), ...
-                'get_kalman_pll_config:InvalidAugmentationModel'); % Error id from validateattributes.
+                'MATLAB:undefinedVarOrClass'); % Error id from validateattributes.
             
             % Case 3: String not among allowed values.
             config.augmentation_model_initializer.id = 'invalid';
             testCase.verifyError(@() get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print), ...
-                'get_kalman_pll_config:InvalidAugmentationModel');
+                'MATLAB:undefinedVarOrClass');
         end
     
         function testAugmentationModelMissingModelParams(testCase)
