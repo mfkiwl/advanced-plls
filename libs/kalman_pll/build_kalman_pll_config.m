@@ -1,6 +1,5 @@
-function kalman_pll_config = build_kalman_pll_config(kalman_pll_config, ...
-    scintillation_training_data_config, var_minimum_order, ...
-    var_maximum_order, C_over_N0_array_dBHz, F_los, Q_los)
+function kalman_pll_config = build_kalman_pll_config(general_config, ...
+    kalman_pll_config, F_los, Q_los)
 % build_kalman_pll_config
 %
 % Computes the Kalman filter settings and VAR model matrices based on the
@@ -34,24 +33,38 @@ function kalman_pll_config = build_kalman_pll_config(kalman_pll_config, ...
 %           F_los, Q_los, F_var, Q_var, F, Q, H, R, W, intercept_vector,
 %           var_model_order, and var_states_amount.
 %
-%   scintillation_training_data_config - Struct containing scintillation model settings.
-%       For CSM, expected fields:
-%           scintillation_model - Must be 'CSM'
-%           S4                  - Scintillation index (0 <= S4 <= 1)
-%           tau0                - Signal decorrelation time (positive scalar)
-%           simulation_time     - Duration of simulation (positive scalar)
-%           sampling_interval   - Sampling interval for the Kalman filter (positive scalar)
+%   general_config - Struct containing configuration settings:
+%       discrete_wiener_model_config: Cell array {L, M, sampling_interval, sigma, delta}
+%           L        - Number of carriers (positive integer scalar)
+%           M        - Order of the Wiener process (positive integer scalar)
+%           sampling_interval - Sampling interval for LOS dynamics (positive scalar)
+%           sigma    - Numeric vector of variances; length must equal (L + M - 1)
+%           delta    - Numeric vector of normalized frequencies; length must equal L
 %
-%       For TPPSM, expected fields:
-%           scintillation_model - Must be 'TPPSM'
-%           scenario            - A string specifying the scenario ('Weak', 'Moderate', 'Severe')
-%           simulation_time     - Duration of simulation (positive scalar)
-%           sampling_interval   - Sampling interval for the Kalman filter (positive scalar)
-%           is_refractive_effects_removed - Boolean flag (true or false)
+%       scintillation_training_data_config: Struct with scintillation model settings.
+%           scintillation_model - String indicating the model ('CSM', 'TPPSM', or 'NONE')
+%           For CSM:
+%               S4              - Scintillation index (numeric scalar in [0,1])
+%               tau0            - Signal decorrelation time (positive scalar)
+%               simulation_time - Duration of simulation (positive scalar)
+%               sampling_interval - Sampling interval (positive scalar)
+%           For TPPSM:
+%               scenario        - String: 'Weak', 'Moderate', or 'Severe'
+%               simulation_time - Duration of simulation (positive scalar)
+%               sampling_interval - Sampling interval (positive scalar)
+%               is_refractive_effects_removed - Logical flag (true/false; defaults to false)
 %
-%   var_minimum_order     - Minimum VAR model order (scalar integer >= 1).
-%   var_maximum_order     - Maximum VAR model order (scalar integer >= var_minimum_order).
-%   C_over_N0_array_dBHz  - Array of carrier-to-noise density ratios in dB-Hz.
+%       var_minimum_order - Minimum order for the VAR model (integer >= 1)
+%       var_maximum_order - Maximum order for the VAR model (integer >= var_minimum_order)
+%       C_over_N0_array_dBHz - Numeric vector (positive) of average C/N0 values (in dBHz)
+%       initial_states_distributions_boundaries - Non-empty cell array; each cell contains a 1x2 numeric vector
+%           specifying lower and upper bounds (first element < second element).
+%       real_doppler_profile - Non-empty numeric vector of Doppler profile values.
+%       augmentation_model_initializer - String specifying the initialization method:
+%           'arfit', 'aryule', or 'rbf'.
+%       is_use_cached_settings - Boolean flag to use cached configurations if available.
+%       is_generate_random_initial_estimates - Boolean flag to generate initial estimates randomly.
+%
 %   F_los, Q_los          - LOS dynamics state transition and covariance matrices.
 %
 % Outputs:
@@ -85,16 +98,16 @@ function kalman_pll_config = build_kalman_pll_config(kalman_pll_config, ...
     validateattributes(Q_los, {'numeric'}, {'2d'}, mfilename, 'Q_los');
 
     % Preprocess Training Data
-    training_data = preprocess_training_data(scintillation_training_data_config);
+    training_data = preprocess_training_data(general_config.scintillation_training_data_config);
 
     % Fit VAR Model (if applicable)
-    if strcmp(scintillation_training_data_config.scintillation_model, 'none')
+    if strcmp(general_config.scintillation_training_data_config.scintillation_model, 'none')
         intercept_vector = []; 
         var_coefficient_matrices = []; 
         var_covariance_matrices = [];
     else
         [intercept_vector, var_coefficient_matrices, var_covariance_matrices] = ...
-            arfit(training_data, var_minimum_order, var_maximum_order);
+            arfit(training_data, general_config.var_minimum_order, general_config.var_maximum_order);
     end
     
     % Construct State Transition and Process Noise Matrices
@@ -104,11 +117,10 @@ function kalman_pll_config = build_kalman_pll_config(kalman_pll_config, ...
     % Construct Full Kalman Filter Matrices
     [F, Q, H, R, W] = construct_kalman_matrices(F_los, Q_los, F_var, Q_var, ...
         intercept_vector, var_states_amount, var_model_order, ...
-        C_over_N0_array_dBHz, scintillation_training_data_config.sampling_interval);
+        general_config.C_over_N0_array_dBHz, general_config.scintillation_training_data_config.sampling_interval);
 
     % Store Results in Output Struct
-    modelField = scintillation_training_data_config.scintillation_model;
-    kalman_pll_config.(modelField) = struct( ...
+    kalman_pll_config.(general_config.scintillation_training_data_config.scintillation_model) = struct( ...
         'F_los', F_los, ...
         'Q_los', Q_los, ...
         'F_var', F_var, ...
