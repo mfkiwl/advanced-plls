@@ -1,5 +1,5 @@
 function kalman_pll_config = build_kalman_pll_config(general_config, ...
-    kalman_pll_config, F_los, Q_los)
+    kalman_pll_config)
 % build_kalman_pll_config
 %
 % Computes the Kalman filter settings and VAR model matrices based on the
@@ -93,9 +93,8 @@ function kalman_pll_config = build_kalman_pll_config(general_config, ...
 %   ORCID: https://orcid.org/0000-0003-0412-5583
 %   Email: rdlfresearch@gmail.com
 
-    % Validate inputs
-    validateattributes(F_los, {'numeric'}, {'2d'}, mfilename, 'F_los');
-    validateattributes(Q_los, {'numeric'}, {'2d'}, mfilename, 'Q_los');
+    % Compute the LOS dynamics model
+    [F_los, Q_los] = get_discrete_wiener_model(general_config.discrete_wiener_model_config{:});
 
     % Preprocess Training Data
     training_data = preprocess_training_data(general_config.scintillation_training_data_config);
