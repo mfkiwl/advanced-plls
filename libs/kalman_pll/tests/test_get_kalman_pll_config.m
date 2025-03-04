@@ -174,7 +174,7 @@ classdef test_get_kalman_pll_config < matlab.unittest.TestCase
             % Provide a model_params struct without 'neurons_amount'.
             config.augmentation_model_initializer.model_params = struct();
             testCase.verifyError(@() get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print), ...
-                'MATLAB:nonExistentField');
+                'MATLAB:RBFUnavailable');
         end
     
         function testValidAugmentationModelNone(testCase)
@@ -206,15 +206,16 @@ classdef test_get_kalman_pll_config < matlab.unittest.TestCase
             testCase.verifyError(@() get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print), ...
                 'get_kalman_pll_config:incompatible_model_with_multi_frequency_tracking');
         end
-    
-        function testValidAugmentationModelRbf(testCase)
-            % For a valid 'rbf' initializer.
-            config = testCase.default_config;
-            config.augmentation_model_initializer.id = 'rbf';
-            config.augmentation_model_initializer.model_params = struct('neurons_amount', 10);
-            [kcfg, ~] = get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print);
-            testCase.verifyTrue(isstruct(kcfg));
-        end
+        
+        % This test should be uncommented when RBF case is being developed.
+        % function testValidAugmentationModelRbf(testCase)
+        %     % For a valid 'rbf' initializer.
+        %     config = testCase.default_config;
+        %     config.augmentation_model_initializer.id = 'rbf';
+        %     config.augmentation_model_initializer.model_params = struct('neurons_amount', 10);
+        %     [kcfg, ~] = get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print);
+        %     testCase.verifyTrue(isstruct(kcfg));
+        % end
     end
     
     methods(Static)

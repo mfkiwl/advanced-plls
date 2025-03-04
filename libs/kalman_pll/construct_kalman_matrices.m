@@ -47,9 +47,15 @@ function [F, Q, H, R, W] = construct_kalman_matrices(F_los, Q_los, F_var, Q_var,
     if ~isnan(var_model_order)
         validateattributes(F_var, {'numeric'}, {'2d', 'nonempty'}, mfilename, 'F_var');
         validateattributes(Q_var, {'numeric'}, {'2d', 'nonempty', 'square'}, mfilename, 'Q_var');
-        validateattributes(intercept_vector, {'numeric'}, {'column'}, mfilename, 'intercept_vector');
         validateattributes(var_model_order, {'numeric'}, {'scalar', 'integer', '>=', 1}, mfilename, 'var_model_order');
         validateattributes(var_states_amount, {'numeric'}, {'scalar', 'integer', '>=', 1}, mfilename, 'var_states_amount');
+        % Ensure Q_var is symmetric and positive semi-definite
+        if ~isequal(Q_var, Q_var') 
+            error('construct_kalman_matrices:QvarNotSymmetric', 'Q_var must be symmetric.');
+        end
+        if any(eig(Q_var) < -1e-10) 
+            error('construct_kalman_matrices:QvarNotPositiveSemiDefinite', 'Q_var must be positive semi-definite.');
+        end
     end
     
     % Ensure Q_los is symmetric and positive semi-definite
@@ -60,13 +66,6 @@ function [F, Q, H, R, W] = construct_kalman_matrices(F_los, Q_los, F_var, Q_var,
         error('construct_kalman_matrices:QlosNotPositiveSemiDefinite', 'Q_los must be positive semi-definite.');
     end
 
-    % Ensure Q_var is symmetric and positive semi-definite
-    if ~isequal(Q_var, Q_var') 
-        error('construct_kalman_matrices:QvarNotSymmetric', 'Q_var must be symmetric.');
-    end
-    if any(eig(Q_var) < -1e-10) 
-        error('construct_kalman_matrices:QvarNotPositiveSemiDefinite', 'Q_var must be positive semi-definite.');
-    end
 
     % Combine LOS and VAR state transitions
     F = blkdiag(F_los, F_var);
@@ -77,17 +76,10 @@ function [F, Q, H, R, W] = construct_kalman_matrices(F_los, Q_los, F_var, Q_var,
     % Compute measurement noise covariance matrix R from C/N0 values and sampling_interval.
     R = diag(compute_phase_variances(C_over_N0_array_dBHz, sampling_interval));
 
-    if ~isnan(var_model_order)
-        % Construct measurement matrix H.
-        % H is defined as [1, zeros(1, size(F_los,1)-1), 1, zeros(1, var_states_amount*var_model_order-1)]
-        H = [1, zeros(1, size(F_los,1)-1), 1, zeros(1, var_states_amount*var_model_order - 1)];
-        
-        % Construct the augmented intercept vector W.
-        W = [zeros(size(F_los,1), 1); intercept_vector; zeros(var_states_amount*(var_model_order-1),1)];
-    else
-        H = [1, zeros(1, size(F_los,1)-1)];
-        W = zeros(size(F_los,1), 1);
-    end
-
+    % Construct measurement matrix H.
+    % H is defined as [1, zeros(1, size(F_los,1)-1), 1, zeros(1, var_states_amount*var_model_order-1)]
+    H = [1, zeros(1, size(F_los,1)-1), 1, zeros(1, var_states_amount*var_model_order - 1)];
     
+    % Construct the augmented intercept vector W.
+    W = [zeros(size(F_los,1), 1); intercept_vector; zeros(var_states_amount*(var_model_order-1),1)];
 end

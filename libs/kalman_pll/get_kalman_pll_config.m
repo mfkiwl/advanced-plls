@@ -269,7 +269,10 @@ function validate_augmentation_model(model_initializer, general_config)
             validateattributes(model_initializer.model_params, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params');
             validateattributes(model_initializer.model_params.model_order, {'double'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params.model_order');
         case 'rbf'
-            validateattributes(model_initializer.model_params, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params');
-            validateattributes(model_initializer.model_params.neurons_amount, {'double'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params.neurons_amount');
+            error("MATLAB:RBFUnavailable","RBF model initializer is still under development.")
+            % These validations below should be used later when RBF module
+            % is developed.
+            %validateattributes(model_initializer.model_params, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params');
+            %validateattributes(model_initializer.model_params.neurons_amount, {'double'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params.neurons_amount');
     end
 end

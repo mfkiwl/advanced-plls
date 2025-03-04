@@ -54,8 +54,6 @@ function kalman_pll_config = build_kalman_pll_config(general_config, ...
 %               sampling_interval - Sampling interval (positive scalar)
 %               is_refractive_effects_removed - Logical flag (true/false; defaults to false)
 %
-%       var_minimum_order - Minimum order for the VAR model (integer >= 1)
-%       var_maximum_order - Maximum order for the VAR model (integer >= var_minimum_order)
 %       C_over_N0_array_dBHz - Numeric vector (positive) of average C/N0 values (in dBHz)
 %       initial_states_distributions_boundaries - Non-empty cell array; each cell contains a 1x2 numeric vector
 %           specifying lower and upper bounds (first element < second element).
@@ -105,34 +103,44 @@ function kalman_pll_config = build_kalman_pll_config(general_config, ...
     training_data = preprocess_training_data(general_config.scintillation_training_data_config);
 
     switch general_config.augmentation_model_initializer.id
-
         case 'arfit'
             [intercept_vector, var_coefficient_matrices, var_covariance_matrices] = ...
                 arfit(training_data, general_config.augmentation_model_initializer.model_params.model_order, general_config.augmentation_model_initializer.model_params.model_order);
+            % Construct State Transition and Process Noise Matrices
+            [F_var, Q_var, var_states_amount, var_model_order] = construct_var_matrices( ...
+                var_coefficient_matrices, var_covariance_matrices);
+        
+            % Construct Full Kalman Filter Matrices
+            [F, Q, H, R, W] = construct_kalman_matrices(F_los, Q_los, F_var, Q_var, ...
+                intercept_vector, var_states_amount, var_model_order, ...
+                general_config.C_over_N0_array_dBHz, general_config.scintillation_training_data_config.sampling_interval);
         case 'aryule'
-            % I'll change this later
-            intercept_vector = []; 
-            var_coefficient_matrices = []; 
-            var_covariance_matrices = [];
+            [ar_coefficients, ar_variance] = aryule(training_data, general_config.augmentation_model_initializer.model_params.model_order);
+            % Construct State Transition and Process Noise Matrices
+            [F_var, Q_var, var_states_amount, var_model_order] = construct_var_matrices( ...
+                ar_coefficients, ar_variance);
+        
+            % Construct Full Kalman Filter Matrices
+            [F, Q, H, R, W] = construct_kalman_matrices(F_los, Q_los, F_var, Q_var, ...
+                [], var_states_amount, var_model_order, ...
+                general_config.C_over_N0_array_dBHz, general_config.scintillation_training_data_config.sampling_interval);
         case 'rbf'
-            % I'll change this later
-            intercept_vector = []; 
-            var_coefficient_matrices = []; 
-            var_covariance_matrices = [];
+            % NOTE: For now, does nothing. This part is under development.
+            % This case well never happen, considering that there is an
+            % error in get_kalman_pll_config.m that is rasing to prevent it.
         case 'none'
-            intercept_vector = []; 
-            var_coefficient_matrices = []; 
-            var_covariance_matrices = [];
+            % For 'none', no augmentation is applied.
+            % In this simple implementation, we leave the related matrices undefined.
+            var_model_order = [];
+            var_states_amount = [];
+            F_var = [];
+            Q_var = [];
+            F = F_los;
+            Q = Q_los;
+            H = [1, zeros(1, size(F_los,1)-1)];
+            R = diag(compute_phase_variances(general_config.C_over_N0_array_dBHz, general_config.discrete_wiener_model_config{3}));
+            W = zeros(size(F_los,1), 1);
     end
-
-    % Construct State Transition and Process Noise Matrices
-    [F_var, Q_var, var_states_amount, var_model_order] = construct_var_matrices( ...
-        var_coefficient_matrices, var_covariance_matrices);
-
-    % Construct Full Kalman Filter Matrices
-    [F, Q, H, R, W] = construct_kalman_matrices(F_los, Q_los, F_var, Q_var, ...
-        intercept_vector, var_states_amount, var_model_order, ...
-        general_config.C_over_N0_array_dBHz, general_config.scintillation_training_data_config.sampling_interval);
 
     % Store Results in Output Struct
     kalman_pll_config.(general_config.scintillation_training_data_config.scintillation_model) = struct( ...
@@ -145,7 +153,6 @@ function kalman_pll_config = build_kalman_pll_config(general_config, ...
         'H', H, ...
         'R', R, ...
         'W', W, ...
-        'intercept_vector', intercept_vector, ...
         'var_model_order', var_model_order, ...
         'var_states_amount', var_states_amount ...
     );

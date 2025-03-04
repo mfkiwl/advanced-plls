@@ -109,17 +109,5 @@ classdef test_construct_kalman_matrices < matlab.unittest.TestCase
             testCase.verifyError(@() construct_kalman_matrices(F_los, Q_los, F_var, Q_var, intercept_vector, 2, 2, 35, 0.01), ...
                 'construct_kalman_matrices:QvarNotPositiveSemiDefinite');
         end
-
-        function testInvalidInterceptVector(testCase)
-            % Intercept vector must be a column; this should trigger an error.
-            F_los = eye(2);
-            Q_los = eye(2);
-            F_var = eye(2);
-            Q_var = eye(2);
-            intercept_vector = [0.1, -0.1]; % Row vector (invalid)
-
-            testCase.verifyError(@() construct_kalman_matrices(F_los, Q_los, F_var, Q_var, intercept_vector, 2, 2, 35, 0.01), ...
-                'MATLAB:construct_kalman_matrices:expectedColumn');
-        end
     end
 end
