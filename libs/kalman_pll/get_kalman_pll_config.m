@@ -38,8 +38,13 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_
 %       initial_states_distributions_boundaries - Non-empty cell array; each cell contains a 1x2 numeric vector
 %           specifying lower and upper bounds (first element < second element).
 %       real_doppler_profile - Non-empty numeric vector of Doppler profile values.
-%       augmentation_model_initializer - String specifying the initialization method:
-%           'arfit', 'aryule', or 'rbf'.
+%       augmentation_model_initializer - Struct specifying the augmentation model initialization method and its parameters:
+%           Fields:
+%               id - A string indicating the initialization method. Allowed values are: 'arfit', 'aryule', 'rbf', or 'none'.
+%               model_params - A struct containing method-specific parameters:
+%                   * For 'arfit' and 'aryule': must include the field 'model_order' (a numeric value).
+%                   * For 'rbf': must include the field 'neurons_amount' (a numeric value).
+%
 %       is_use_cached_settings - Boolean flag to use cached configurations if available.
 %       is_generate_random_initial_estimates - Boolean flag to generate initial estimates randomly.
 %

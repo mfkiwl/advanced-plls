@@ -23,10 +23,13 @@ function kalman_pll_config = update_cache(general_config, cache_file, kalman_pll
 %       - initial_states_distributions_boundaries: Non-empty cell array where each element is a
 %         1×2 numeric vector (with the first element less than the second).
 %       - real_doppler_profile: Non-empty numeric vector.
-%       - augmentation_model_initializer: 
-%           * 'arfit' (Initializes multivariate autoregressive model parameters. It also calculates an intercept vector.), 
-%           * 'aryule' (Initializes the autoregressive model using the Yule-Walker method, OBS: Signal Processing Toolbox needed), 
-%           * 'rbf', (Initializes the Radial Basis Function Network Weights); 
+%       augmentation_model_initializer - Struct specifying the augmentation model initialization method and its parameters:
+%           Fields:
+%               id - A string indicating the initialization method. Allowed values are: 'arfit', 'aryule', 'rbf', or 'none'.
+%               model_params - A struct containing method-specific parameters:
+%                   * For 'arfit' and 'aryule': must include the field 'model_order' (a numeric value).
+%                   * For 'rbf': must include the field 'neurons_amount' (a numeric value).
+%
 %       - is_use_cached_settings: Boolean flag indicating whether cached configurations should be used.
 %       - is_generate_random_initial_estimates: Boolean flag indicating whether initial estimates are randomly generated.
 %
