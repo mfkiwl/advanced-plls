@@ -37,7 +37,7 @@ simulation_time = 300;
 S4 = 0.8;
 tau0 = 0.5;
 settling_time = 50;
-is_refractive_effects_removed = false;
+is_refractive_effects_removed = true;
 [rx_sig_csm, los_phase, psi_csm] = get_received_signal(L1_C_over_N0_dBHz, 'CSM', doppler_profile, ...
     'S4', S4, 'tau0', tau0, 'simulation_time', simulation_time, 'settling_time', settling_time);
 [rx_sig_tppsm, ~, psi_tppsm, diffractive_phase_tppsm] = get_received_signal(L1_C_over_N0_dBHz, 'TPPSM', doppler_profile, ...

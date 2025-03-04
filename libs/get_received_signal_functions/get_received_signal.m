@@ -116,12 +116,10 @@ switch scint_model
     case 'TPPSM'
         % Call get_tppsm_data with the provided tppsm_scenario.
         [psi, refractive_phase] = get_tppsm_data(tppsm_scenario, 'is_enable_cmd_print', is_enable_cmd_print, 'simulation_time', simulation_time, 'sampling_interval', sampling_interval);
+        diffractive_phase = wrapToPi(unwrap(angle(psi)) - refractive_phase);
         % Remove refractive effects if requested.
         if is_refractive_effects_removed
             psi = psi .* exp(-1j * refractive_phase);
-            diffractive_phase = wrapToPi(unwrap(angle(psi)) - refractive_phase);
-        else
-            diffractive_phase = angle(psi);
         end
         
     case 'CSM'
