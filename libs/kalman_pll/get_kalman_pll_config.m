@@ -245,9 +245,21 @@ end
 
 function validate_augmentation_model(model_initializer)
     % Validate that the augmentation model initializer is a nonempty string and one of the allowed values.
-    validateattributes(model_initializer, {'char', 'string'}, {'nonempty'}, mfilename, 'augmentation_model_initializer');
-    if ~any(strcmpi(model_initializer, {'arfit', 'aryule', 'rbf', 'none'}))
+    validateattributes(model_initializer, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer');
+    if ~any(strcmpi(model_initializer.id, {'arfit', 'aryule', 'rbf', 'none'}))
         error('get_kalman_pll_config:InvalidAugmentationModel', ...
-            'augmentation_model_initializer must be ''arfit'', ''aryule'', or ''rbf''. Received: `%s`.', model_initializer);
+            'augmentation_model_initializer must be ''arfit'', ''aryule'', or ''rbf''. Received: `%s`.', model_initializer.id);
+    end
+    validateattributes(model_initializer.model_params, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params');
+    switch model_initializer.id
+        case 'arfit'
+            validateattributes(model_initializer.model_params, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params');
+            validateattributes(model_initializer.model_params.model_order, {'double'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params.model_order');
+        case 'aryule'
+            validateattributes(model_initializer.model_params, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params');
+            validateattributes(model_initializer.model_params.model_order, {'double'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params.model_order');
+        case 'rbf'
+            validateattributes(model_initializer.model_params, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params');
+            validateattributes(model_initializer.model_params.neurons_amount, {'double'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params.neurons_amount');
     end
 end

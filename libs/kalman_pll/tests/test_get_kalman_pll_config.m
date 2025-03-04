@@ -52,7 +52,7 @@ classdef test_get_kalman_pll_config < matlab.unittest.TestCase
                 'C_over_N0_array_dBHz', 35, ...
                 'initial_states_distributions_boundaries', { {[-pi,pi], [-5,5], [-0.1,0.1]} }, ...
                 'real_doppler_profile', [0, 1000, 0.94], ...
-                'augmentation_model_initializer', 'arfit', ...
+                'augmentation_model_initializer', struct('id', 'arfit', 'model_params', struct('model_order', 3)), ...
                 'is_use_cached_settings', false, ...
                 'is_generate_random_initial_estimates', true ...
             );
@@ -118,19 +118,91 @@ classdef test_get_kalman_pll_config < matlab.unittest.TestCase
             config = testCase.default_config;
             
             % Case 1: Empty initializer.
-            config.augmentation_model_initializer = [];
-            testCase.verifyError(@() get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print), ...
-                'MATLAB:get_kalman_pll_config:invalidType');
-            
-            % Case 2: Non-string initializer.
-            config.augmentation_model_initializer = 3;
-            testCase.verifyError(@() get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print), ...
-                'MATLAB:get_kalman_pll_config:invalidType'); % Error id from validateattributes.
-            
-            % Case 3: String not among allowed values.
-            config.augmentation_model_initializer = 'invalid';
+            config.augmentation_model_initializer.id = [];
             testCase.verifyError(@() get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print), ...
                 'get_kalman_pll_config:InvalidAugmentationModel');
+            
+            % Case 2: Non-string initializer.
+            config.augmentation_model_initializer.id = 3;
+            testCase.verifyError(@() get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print), ...
+                'get_kalman_pll_config:InvalidAugmentationModel'); % Error id from validateattributes.
+            
+            % Case 3: String not among allowed values.
+            config.augmentation_model_initializer.id = 'invalid';
+            testCase.verifyError(@() get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print), ...
+                'get_kalman_pll_config:InvalidAugmentationModel');
+        end
+    
+        function testAugmentationModelMissingModelParams(testCase)
+            % Remove the model_params field altogether.
+            config = testCase.default_config;
+            config.augmentation_model_initializer = rmfield(config.augmentation_model_initializer, 'model_params');
+            testCase.verifyError(@() get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print), ...
+                'MATLAB:nonExistentField');
+        end
+    
+        function testAugmentationModelEmptyModelParams(testCase)
+            % Set model_params to an empty struct.
+            config = testCase.default_config;
+            config.augmentation_model_initializer.model_params = struct();
+            testCase.verifyError(@() get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print), ...
+                'MATLAB:nonExistentField');
+        end
+    
+        function testAugmentationModelMissingSubfieldForArfit(testCase)
+            % For 'arfit', remove the required field 'model_order'.
+            config = testCase.default_config;
+            config.augmentation_model_initializer.id = 'arfit';
+            config.augmentation_model_initializer.model_params = rmfield(config.augmentation_model_initializer.model_params, 'model_order');
+            testCase.verifyError(@() get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print), ...
+                'MATLAB:nonExistentField');
+        end
+    
+        function testAugmentationModelMissingSubfieldForAryule(testCase)
+            % For 'aryule', remove the required field 'model_order'.
+            config = testCase.default_config;
+            config.augmentation_model_initializer.id = 'aryule';
+            config.augmentation_model_initializer.model_params = rmfield(config.augmentation_model_initializer.model_params, 'model_order');
+            testCase.verifyError(@() get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print), ...
+                'MATLAB:nonExistentField');
+        end
+    
+        function testAugmentationModelMissingSubfieldForRbf(testCase)
+            % For 'rbf', remove the required field 'neurons_amount'.
+            config = testCase.default_config;
+            config.augmentation_model_initializer.id = 'rbf';
+            % Provide a model_params struct without 'neurons_amount'.
+            config.augmentation_model_initializer.model_params = struct();
+            testCase.verifyError(@() get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print), ...
+                'MATLAB:nonExistentField');
+        end
+    
+        function testValidAugmentationModelNone(testCase)
+            % For initializer 'none', as long as model_params is a nonempty struct, the function should succeed.
+            config = testCase.default_config;
+            config.augmentation_model_initializer.id = 'none';
+            config.augmentation_model_initializer.model_params = struct('dummy', 1); % Dummy nonempty struct.
+            [kcfg, initEst] = get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print);
+            testCase.verifyTrue(isstruct(kcfg));
+            testCase.verifyTrue(isstruct(initEst));
+        end
+    
+        function testValidAugmentationModelAryule(testCase)
+            % For a valid 'aryule' initializer.
+            config = testCase.default_config;
+            config.augmentation_model_initializer.id = 'aryule';
+            config.augmentation_model_initializer.model_params = struct('model_order', 4);
+            [kcfg, ~] = get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print);
+            testCase.verifyTrue(isstruct(kcfg));
+        end
+    
+        function testValidAugmentationModelRbf(testCase)
+            % For a valid 'rbf' initializer.
+            config = testCase.default_config;
+            config.augmentation_model_initializer.id = 'rbf';
+            config.augmentation_model_initializer.model_params = struct('neurons_amount', 10);
+            [kcfg, ~] = get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print);
+            testCase.verifyTrue(isstruct(kcfg));
         end
     end
     

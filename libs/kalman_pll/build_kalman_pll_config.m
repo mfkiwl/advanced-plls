@@ -99,15 +99,21 @@ function kalman_pll_config = build_kalman_pll_config(general_config, ...
     % Preprocess Training Data
     training_data = preprocess_training_data(general_config.scintillation_training_data_config);
 
-    switch general_config.augmentation_model_initializer
+    switch general_config.augmentation_model_initializer.id
 
         case 'arfit'
             [intercept_vector, var_coefficient_matrices, var_covariance_matrices] = ...
-                arfit(training_data, general_config.var_minimum_order, general_config.var_maximum_order);
+                arfit(training_data, general_config.augmentation_model_initializer.model_params.model_order, general_config.augmentation_model_initializer.model_params.model_order);
         case 'aryule'
-
+            % I'll change this later
+            intercept_vector = []; 
+            var_coefficient_matrices = []; 
+            var_covariance_matrices = [];
         case 'rbf'
-
+            % I'll change this later
+            intercept_vector = []; 
+            var_coefficient_matrices = []; 
+            var_covariance_matrices = [];
         case 'none'
             intercept_vector = []; 
             var_coefficient_matrices = []; 
