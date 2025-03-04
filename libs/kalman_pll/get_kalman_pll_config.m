@@ -91,11 +91,10 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_
     % Validate configurations using helper functions.
     [~, ~, sampling_interval_dw, ~, ~] = validate_discrete_wiener_model_config(general_config.discrete_wiener_model_config);
     scint_config = validateScintillationTrainingDataConfig(general_config.scintillation_training_data_config);
-    validate_var_model_orders(general_config.var_minimum_order, general_config.var_maximum_order);
     validate_C_N0(general_config.C_over_N0_array_dBHz);
     validate_initial_states_boundaries(general_config.initial_states_distributions_boundaries);
     validateattributes(general_config.real_doppler_profile, {'numeric'}, {'nonempty','vector'}, mfilename, 'real_doppler_profile');
-    validate_augmentation_model(general_config.augmentation_model_initializer, general_config);
+    validate_augmentation_model(general_config);
     validateattributes(cache_dir, {'char', 'string'}, {'nonempty'}, mfilename, 'cache_dir');
     validateattributes(is_enable_cmd_print, {'logical'}, {'scalar'}, mfilename, 'is_enable_cmd_print');
 
@@ -220,14 +219,6 @@ function scint_config = validateScintillationTrainingDataConfig(scint_config)
     end
 end
 
-function validate_var_model_orders(min_order, max_order)
-    % Validate VAR model orders.
-    validateattributes(min_order, {'numeric'}, {'scalar', 'integer', '>=', 1}, mfilename, 'var_minimum_order');
-    % Use a local variable to ensure the lower bound is evaluated.
-    min_order_local = min_order;
-    validateattributes(max_order, {'numeric'}, {'scalar', 'integer', '>=', min_order_local}, mfilename, 'var_maximum_order');
-end
-
 function validate_C_N0(CN0_array)
     % Validate C/N0 values.
     validateattributes(CN0_array, {'numeric'}, {'nonempty','vector','positive'}, mfilename, 'C_over_N0_array_dBHz');
@@ -248,26 +239,26 @@ function validate_initial_states_boundaries(boundaries)
     end
 end
 
-function validate_augmentation_model(model_initializer, general_config)
+function validate_augmentation_model(general_config)
     % Validate that the augmentation model initializer is a nonempty string and one of the allowed values.
-    validateattributes(model_initializer, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer');
-    if ~any(strcmpi(model_initializer.id, {'arfit', 'aryule', 'rbf', 'none'}))
+    validateattributes(general_config.augmentation_model_initializer, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer');
+    if ~any(strcmpi(general_config.augmentation_model_initializer.id, {'arfit', 'aryule', 'rbf', 'none'}))
         error('get_kalman_pll_config:InvalidAugmentationModel', ...
             'augmentation_model_initializer must be ''arfit'', ''aryule'', or ''rbf''. Received: `%s`.', model_initializer.id);
     end
-    validateattributes(model_initializer.model_params, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params');
-    switch model_initializer.id
+    validateattributes(general_config.augmentation_model_initializer.model_params, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params');
+    switch general_config.augmentation_model_initializer.id
         case 'arfit'
-            validateattributes(model_initializer.model_params, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params');
-            validateattributes(model_initializer.model_params.model_order, {'double'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params.model_order');
+            validateattributes(general_config.augmentation_model_initializer.model_params, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params');
+            validateattributes(general_config.augmentation_model_initializer.model_params.model_order, {'double'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params.model_order');
         case 'aryule'
             if general_config.discrete_wiener_model_config{1} ~= 1
                 error('get_kalman_pll_config:incompatible_model_with_multi_frequency_tracking', ...
                     ['The aryule model_initializer is not compatible with multi-frequency carrier phase tracking systems. ' ...
                     'This happens because the function `aryule` is restricted to the scalar case.']);
             end
-            validateattributes(model_initializer.model_params, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params');
-            validateattributes(model_initializer.model_params.model_order, {'double'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params.model_order');
+            validateattributes(general_config.augmentation_model_initializer.model_params, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params');
+            validateattributes(general_config.augmentation_model_initializer.model_params.model_order, {'double'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params.model_order');
         case 'rbf'
             error("MATLAB:RBFUnavailable","RBF model initializer is still under development.")
             % These validations below should be used later when RBF module
