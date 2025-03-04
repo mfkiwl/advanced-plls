@@ -20,8 +20,7 @@ function plot_time_series_full(...
     seed, ...
     process_noise_variance, ...
     ar_order, ...
-    ps_realization, ...
-    is_refractive_effects_removed, ...
+    diffractive_phase_tppsm, ...
     is_save_figures)
 % plot_KFAR_estimates_comparison
 %   Creates a uifigure containing a tab group with three tabs:
@@ -153,15 +152,11 @@ legend(ax3, {'True Wrapped Phase (LOS detrended)', 'KF-AR scint','AKF-AR scint',
 
 % Subplot for TPPSM Scintillation estimates
 ax4 = nexttile(tloScint);
-true_wrapped_tppsm = angle(psi_tppsm);
-if ~is_refractive_effects_removed
-    true_wrapped_tppsm = wrapToPi(ps_realization) - true_wrapped_tppsm;
-end
 scint_kf_ar_tppsm = kf_ar_tppsm(:,scint_idx);
 scint_akf_ar_tppsm = akf_ar_tppsm(:,scint_idx);
 scint_ahl_kf_ar_tppsm = ahl_kf_ar_tppsm(:,scint_idx);
 hold(ax4, 'on');
-plot(ax4, time_vector, true_wrapped_tppsm, 'k', 'LineWidth', 2.0);
+plot(ax4, time_vector, diffractive_phase_tppsm, 'k', 'LineWidth', 2.0);
 plot(ax4, time_vector, scint_kf_ar_tppsm, 'r', 'LineWidth', 1.0);
 plot(ax4, time_vector, scint_akf_ar_tppsm, 'b', 'LineWidth', 1.0);
 plot(ax4, time_vector, scint_ahl_kf_ar_tppsm, 'g', 'LineWidth', 1.0);
