@@ -37,7 +37,7 @@ classdef test_get_initial_estimates < matlab.unittest.TestCase
                 'is_generate_random_initial_estimates', true ...
             );
             % Set up a default kalman_pll_config for model 'CSM'
-            cache_file = fullfile(fileparts(mfilename('fullpath')), 'cache_test_get_initial_estimates','kalman_pll_config');
+            cache_file = fullfile(fileparts(mfilename('fullpath')), 'cache_test_get_kalman_estimates','kalman_pll_config');
             [kalman_pll_config, is_cache_used] = get_cached_kalman_pll_config(testCase.default_general_config, cache_file, false);
             kalman_pll_config = update_cache(testCase.default_general_config, cache_file, kalman_pll_config, is_cache_used, false);
             testCase.default_kalman_pll_config = kalman_pll_config;
