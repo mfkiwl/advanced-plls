@@ -229,9 +229,7 @@ classdef test_get_kalman_pll_config < matlab.unittest.TestCase
         function kcfg = update_cache(~, ~, kcfg, ~, ~)
             % Return a dummy configuration struct with a field "CSM" to simulate a valid update.
             kcfg.CSM = struct( ...
-                'F', eye(2), 'Q', eye(2), 'H', ones(1,2), 'R', eye(2), ...
-                'F_los', eye(2), 'Q_los', eye(2), 'F_var', eye(2), 'Q_var', eye(2), ...
-                'intercept_vector', [0; 0], 'var_states_amount', 2, 'var_model_order', 1);
+                'F', eye(2), 'Q', eye(2), 'H', ones(1,2), 'R', eye(2), 'W', [0,0], 'augmentation_model_initializer', struct());
         end
         
         function estimates = get_initial_estimates(~, kcfg)
