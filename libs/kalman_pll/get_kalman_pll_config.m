@@ -43,7 +43,9 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_
 %               id - A string indicating the initialization method. Allowed values are: 'arfit', 'aryule', 'rbf', or 'none'.
 %               model_params - A struct containing method-specific parameters:
 %                   * For 'arfit' and 'aryule': must include the field 'model_order' (a numeric value).
-%                   * For 'rbf': must include the field 'neurons_amount' (a numeric value).
+%                   * For 'kalman': must include the kalman matrices.
+%                   * For 'rbf': must include the field 'rbf_cfg' (a numeric value).
+%                   
 %
 %       is_use_cached_settings - Boolean flag to use cached configurations if available.
 %       is_generate_random_initial_estimates - Boolean flag to generate initial estimates randomly.
@@ -240,6 +242,8 @@ function validate_augmentation_model(general_config)
             end
             validateattributes(general_config.augmentation_model_initializer.model_params, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params');
             validateattributes(general_config.augmentation_model_initializer.model_params.model_order, {'double'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params.model_order');
+        case 'kalman'
+            error("MATLAB:KalmanUnavailable","Kalman model initializer is still under development.")
         case 'rbf'
             error("MATLAB:RBFUnavailable","RBF model initializer is still under development.")
             % These validations below should be used later when RBF module

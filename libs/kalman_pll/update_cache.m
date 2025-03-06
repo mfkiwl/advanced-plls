@@ -43,18 +43,13 @@ function kalman_pll_config = update_cache(general_config, cache_file, kalman_pll
 %   kalman_pll_config - Struct containing the computed Kalman filter settings.
 %       A field is added to the struct with the name of the scintillation model (e.g., 'CSM'
 %       or 'TPPSM'). This substruct has the following fields:
-%           * F_los             : LOS dynamics state transition matrix.
-%           * Q_los             : LOS dynamics process noise covariance matrix.
-%           * F_var             : VAR model state transition matrix.
-%           * Q_var             : VAR model process noise covariance matrix.
 %           * F                 : Full state transition matrix.
 %           * Q                 : Full process noise covariance matrix.
 %           * H                 : Measurement matrix.
 %           * R                 : Measurement noise covariance matrix.
 %           * W                 : Additional matrix from construct_kalman_matrices.
-%           * intercept_vector  : VAR model intercept vector.
-%           * var_model_order   : Order of the VAR model.
-%           * var_states_amount : Number of VAR model states.
+%           * augmentation_model_initializer: struct with data on the
+%           regarding of the augmentation model used in the KF state space.
 %
 % Example:
 %   general_config = struct( ...

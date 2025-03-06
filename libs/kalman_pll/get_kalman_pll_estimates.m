@@ -1,4 +1,4 @@
-function [state_estimates, error_covariance_estimates] = get_kalman_pll_estimates(received_signal, kalman_pll_config, initial_estimates, training_scint_model, adaptive_config)
+function [state_estimates, error_covariance_estimates] = get_kalman_pll_estimates(received_signal, kalman_pll_config, initial_estimates, training_scint_model, adaptive_config, online_mdl_learning_cfg)
 % get_kalman_pll_estimates
 % Generates Kalman filter state and error covariance estimates based on the
 % received signal and the provided Kalman PLL configuration.
@@ -51,6 +51,19 @@ function [state_estimates, error_covariance_estimates] = get_kalman_pll_estimate
 %                          is applied (using a placeholder large value in case of too-small noise).
 %                          
 %
+%   online_mdl_learning_cfg - struct with settings for the online model.
+%       'is_online': Boolean flag that determines if the simulations
+%           will use online augmentation model learning or not. 
+%       for AR augmentation models ('arfit', 'aryule'):
+%        'learning_method': string or char with one of the
+%              following types of learning methods: {sliding_window, block_window, kalman}
+%        'window_size' (optional): Window sizes of the
+%              `sliding_window` or `block_window` methods.
+%        'kalman_cfg' (optional): Kalman configuration for the online AR
+%              model parameter estimation
+%       for RBF augmentation model ('rbf'):
+%        'rbf_cfg': RBF network configuration for online model learning.
+%
 % Outputs:
 %   state_estimates            - Numeric matrix of state estimates. Each row corresponds
 %                                to a time step; the number of columns equals the length of x_hat_init.
@@ -80,99 +93,50 @@ function [state_estimates, error_covariance_estimates] = get_kalman_pll_estimate
 % ORCID: https://orcid.org/0000-0003-0412-5583
 % Email: rdlfresearch@gmail.com
 
-    %% Validate inputs
-    validateattributes(received_signal, {'numeric'}, {'nonempty','2d'}, mfilename, 'received_signal');
-    validateattributes(kalman_pll_config, {'struct'}, {'nonempty'}, mfilename, 'kalman_pll_config');
-    validateattributes(initial_estimates, {'struct'}, {'nonempty'}, mfilename, 'initial_estimates');
+    validate_received_signal(received_signal);
+    validate_initial_estimates(initial_estimates);
+    validate_training_scint_model(training_scint_model, kalman_pll_config);
+    validate_adaptive_config(adaptive_config);
+    validate_online_learning_cfg(online_mdl_learning_cfg, kalman_pll_config, training_scint_model);
     
-    if ~isfield(initial_estimates, 'x_hat_init') || ~isfield(initial_estimates, 'P_hat_init')
-        error('get_kalman_pll_estimates:MissingField', 'initial_estimates must have fields x_hat_init and P_hat_init.');
-    end
-    validateattributes(initial_estimates.x_hat_init, {'numeric'}, {'nonempty','vector'}, mfilename, 'initial_estimates.x_hat_init');
-    n = numel(initial_estimates.x_hat_init);
-    validateattributes(initial_estimates.P_hat_init, {'numeric'}, {'nonempty','2d','size',[n n]}, mfilename, 'initial_estimates.P_hat_init');
-    
-    if ~(ischar(training_scint_model) || isstring(training_scint_model))
-        error('get_kalman_pll_estimates:InvalidType', 'training_scint_model must be a char or string.');
-    end
-    training_scint_model = char(training_scint_model); % Convert to char if needed.
-    % Validate training_scint_model option.
-    validModels = {'CSM','TPPSM','none'};
-    if ~any(strcmpi(training_scint_model, validModels))
-        error('get_kalman_pll_estimates:InvalidTrainingModel', 'training_scint_model must be one of: %s.', strjoin(validModels, ', '));
-    end
-    if ~isfield(kalman_pll_config, training_scint_model)
-        error('get_kalman_pll_estimates:InvalidTrainingModel', 'kalman_pll_config does not have the field for training_scint_model: %s', training_scint_model);
-    end
-
-    % Validate adaptive configuration input.
-    validateattributes(adaptive_config, {'struct'}, {'nonempty'}, mfilename, 'adaptive_config');
-    if ~isfield(adaptive_config, 'algorithm')
-        error('get_kalman_pll_estimates:MissingField', 'adaptive_config must have field "algorithm".');
-    end
-    if ~isfield(adaptive_config, 'hard_limited')
-        error('get_kalman_pll_estimates:MissingField', 'adaptive_config must have field "hard_limited".');
-    end
-    % Validate the algorithm field.
-    validAlgos = {'simplified','NWBP','none'};
-    if ~any(strcmpi(adaptive_config.algorithm, validAlgos))
-        error('get_kalman_pll_estimates:InvalidAlgorithm', 'Invalid adaptive algorithm. Allowed values: %s.', strjoin(validAlgos,', '));
-    end
-    if strcmpi(adaptive_config.algorithm, 'NWBP')
-        error('get_kalman_pll_estimates:NotImplemented', 'The NWBP adaptive algorithm is not implemented in this version.');
-    end
-    % Validate the hard_limited field.
-    if ~(islogical(adaptive_config.hard_limited) || isnumeric(adaptive_config.hard_limited))
-        error('get_kalman_pll_estimates:InvalidHardLimited', 'adaptive_config.hard_limited must be a logical value.');
-    end
-
-    % If the simplified algorithm is chosen, require additional fields.
-    if strcmpi(adaptive_config.algorithm, 'simplified')
-        requiredSimplifiedFields = {'L1_C_over_N0_dBHz','sampling_interval','threshold'};
-        for i = 1:length(requiredSimplifiedFields)
-            if ~isfield(adaptive_config, requiredSimplifiedFields{i})
-                error('get_kalman_pll_estimates:MissingField', 'adaptive_config must have field "%s" when using the simplified algorithm.', requiredSimplifiedFields{i});
-            end
-        end
-        baseline_L1_c_over_N0_dBHz = adaptive_config.L1_C_over_N0_dBHz;
-        baseline_L1_c_over_n0_linear = 10^(baseline_L1_c_over_N0_dBHz/10); % convert from dBHz to linear scale
-        sampling_interval = adaptive_config.sampling_interval;
-        threshold = adaptive_config.threshold;
-    end
-
-    %% Retrieve Kalman filter matrices from configuration.
-    configStruct = kalman_pll_config.(training_scint_model);
-    requiredConfigFields = {'F','Q','H','R','W'};
-    for i = 1:length(requiredConfigFields)
-        if ~isfield(configStruct, requiredConfigFields{i})
-            error('get_kalman_pll_estimates:MissingConfigField', ...
-                'kalman_pll_config.%s is missing the field %s.', training_scint_model, requiredConfigFields{i});
+    % Retrieve Kalman filter matrices from configuration.
+    config_struct = kalman_pll_config.(training_scint_model);
+    required_config_fields = {'F', 'Q', 'H', 'R', 'W'};
+    for i = 1:length(required_config_fields)
+        if ~isfield(config_struct, required_config_fields{i})
+            error('get_kalman_pll_estimates:missing_config_field', 'kalman_pll_config.%s is missing the field %s.', training_scint_model, required_config_fields{i});
         end
     end
-    F = configStruct.F;
-    Q = configStruct.Q;
-    H = configStruct.H;
-    R = configStruct.R;
-    W = configStruct.W;
+    F = config_struct.F;
+    Q = config_struct.Q;
+    H = config_struct.H;
+    R = config_struct.R;
+    W = config_struct.W;
     
-    %% Preallocate output arrays.
-    N = size(received_signal,1);
+    % Preallocate output arrays.
+    N = size(received_signal, 1);
     state_estimates = zeros(N, numel(initial_estimates.x_hat_init));
     error_covariance_estimates = zeros(N, size(initial_estimates.P_hat_init,1), size(initial_estimates.P_hat_init,2));
     
-    %% Initialize estimates.
+    % Initialize estimates.
     x_hat_project_ahead = initial_estimates.x_hat_init;
     P_hat_project_ahead = initial_estimates.P_hat_init;
+    
+    % If the simplified adaptive algorithm is chosen, compute baseline parameters.
+    if strcmpi(adaptive_config.algorithm, 'simplified')
+        baseline_L1_c_over_N0_dBHz = adaptive_config.L1_C_over_N0_dBHz;
+        baseline_L1_c_over_n0_linear = 10^(baseline_L1_c_over_N0_dBHz / 10);
+        sampling_interval = adaptive_config.sampling_interval;
+        threshold = adaptive_config.threshold;
+    end
     
     %% Main filtering loop.
     for step = 1:N
         if step > 1
             % Determine the measurement noise covariance adapt_R.
-            % If the adaptive algorithm is 'none', no adaptation is applied.
             if strcmpi(adaptive_config.algorithm, 'none')
                 adapt_R = R;
             elseif strcmpi(adaptive_config.algorithm, 'simplified')
-                % Simplified adaptive update (placeholder for [3, Equation 64]).
                 current_intensity = abs(received_signal(step-1,1))^2;
                 estimated_L1_c_over_n0_linear = baseline_L1_c_over_n0_linear * current_intensity;
                 phase_noise_variance = (1/(2 * estimated_L1_c_over_n0_linear * sampling_interval)) * ...
@@ -180,19 +144,20 @@ function [state_estimates, error_covariance_estimates] = get_kalman_pll_estimate
                 adapt_R = phase_noise_variance;
                 % Apply hard-limited constraint if enabled.
                 if adaptive_config.hard_limited
-                    if (10*log10(estimated_L1_c_over_n0_linear) < threshold)
+                    if (10 * log10(estimated_L1_c_over_n0_linear) < threshold)
                         adapt_R = 1e6;
                     end
                 end
             else
-                % Should not reach here because NWBP is not implemented.
                 adapt_R = R;
             end
+            if online_mdl_learning_cfg.is_online
+                [F, Q, W] = update_filter_matrices(F, Q, W, step, state_estimates, online_mdl_learning_cfg, kalman_pll_config.(training_scint_model).augmentation_model_initializer);
+            end
+            % Compute Kalman gain.
+            K = P_hat_project_ahead * H.' * ((H * P_hat_project_ahead * H.' + adapt_R) \ eye(size(R, 1)));
             
-            % Compute Kalman gain using the (possibly adapted) measurement noise covariance.
-            K = P_hat_project_ahead * H.' * ((H * P_hat_project_ahead * H.' + adapt_R) \ eye(size(R,1)));
-            
-            % Update state estimate using the phase error from the received signal.
+            % Update state estimate.
             x_hat_update = x_hat_project_ahead + K * angle(received_signal(step-1,1) * exp(-1j * (H * x_hat_project_ahead)));
             
             % Update error covariance.
@@ -207,7 +172,131 @@ function [state_estimates, error_covariance_estimates] = get_kalman_pll_estimate
         P_hat_project_ahead = F * P_hat_update * F.' + Q;
         
         % Save estimates.
-        state_estimates(step,:) = x_hat_project_ahead.';
-        error_covariance_estimates(step,:,:) = P_hat_project_ahead;
+        state_estimates(step, :) = x_hat_project_ahead.';
+        error_covariance_estimates(step, :, :) = P_hat_project_ahead;
     end
 end
+
+%% Helper Functions
+
+function validate_received_signal(received_signal)
+    validateattributes(received_signal, {'numeric'}, {'nonempty', '2d'}, mfilename, 'received_signal');
+end
+
+function validate_initial_estimates(initial_estimates)
+    validateattributes(initial_estimates, {'struct'}, {'nonempty'}, mfilename, 'initial_estimates');
+    if ~isfield(initial_estimates, 'x_hat_init') || ~isfield(initial_estimates, 'P_hat_init')
+        error('get_kalman_pll_estimates:missing_field', 'initial_estimates must have fields "x_hat_init" and "P_hat_init".');
+    end
+    validateattributes(initial_estimates.x_hat_init, {'numeric'}, {'nonempty', 'vector'}, mfilename, 'initial_estimates.x_hat_init');
+    n = numel(initial_estimates.x_hat_init);
+    validateattributes(initial_estimates.P_hat_init, {'numeric'}, {'nonempty', '2d', 'size', [n n]}, mfilename, 'initial_estimates.P_hat_init');
+end
+
+function validate_training_scint_model(training_scint_model, kalman_pll_config)
+    if ~(ischar(training_scint_model) || isstring(training_scint_model))
+        error('get_kalman_pll_estimates:invalid_type', 'training_scint_model must be a char or string.');
+    end
+    training_scint_model = char(training_scint_model);
+    valid_models = {'CSM', 'TPPSM', 'none'};
+    if ~any(strcmpi(training_scint_model, valid_models))
+        error('get_kalman_pll_estimates:invalid_training_model', 'training_scint_model must be one of: %s.', strjoin(valid_models, ', '));
+    end
+    if ~isfield(kalman_pll_config, training_scint_model)
+        error('get_kalman_pll_estimates:invalid_training_model', 'kalman_pll_config does not have the field for training_scint_model: %s', training_scint_model);
+    end
+end
+
+function validate_adaptive_config(adaptive_config)
+    validateattributes(adaptive_config, {'struct'}, {'nonempty'}, mfilename, 'adaptive_config');
+    if ~isfield(adaptive_config, 'algorithm')
+        error('get_kalman_pll_estimates:missing_field', 'adaptive_config must have field "algorithm".');
+    end
+    if ~isfield(adaptive_config, 'hard_limited')
+        error('get_kalman_pll_estimates:missing_field', 'adaptive_config must have field "hard_limited".');
+    end
+    valid_algos = {'simplified', 'NWBP', 'none'};
+    if ~any(strcmpi(adaptive_config.algorithm, valid_algos))
+        error('get_kalman_pll_estimates:invalid_algorithm', 'Invalid adaptive algorithm. Allowed values: %s.', strjoin(valid_algos, ', '));
+    end
+    if strcmpi(adaptive_config.algorithm, 'NWBP')
+        error('get_kalman_pll_estimates:not_implemented', 'The NWBP adaptive algorithm is not implemented in this version.');
+    end
+    if ~(islogical(adaptive_config.hard_limited) || isnumeric(adaptive_config.hard_limited))
+        error('get_kalman_pll_estimates:invalid_hard_limited', 'adaptive_config.hard_limited must be a logical value.');
+    end
+    if strcmpi(adaptive_config.algorithm, 'simplified')
+        required_fields = {'L1_C_over_N0_dBHz', 'sampling_interval', 'threshold'};
+        for i = 1:length(required_fields)
+            if ~isfield(adaptive_config, required_fields{i})
+                error('get_kalman_pll_estimates:missing_field', 'adaptive_config must have field "%s" when using the simplified algorithm.', required_fields{i});
+            end
+        end
+    end
+end
+
+function validate_online_learning_cfg(online_mdl_learning_cfg, kalman_pll_config, training_scint_model)
+    validateattributes(online_mdl_learning_cfg, {'struct'}, {'nonempty'}, mfilename, 'online_mdl_learning_cfg');
+    
+    if ~isfield(online_mdl_learning_cfg, 'is_online')
+        error('get_kalman_pll_estimates:missing_field', ...
+              'online_mdl_learning_cfg must have a field "is_online" that indicates if online model learning is enabled.');
+    end
+    validateattributes(online_mdl_learning_cfg.is_online, {'logical'}, {}, mfilename, 'online_mdl_learning_cfg.is_online');
+    
+    if online_mdl_learning_cfg.is_online
+        % Get the offline augmentation model identifier.
+        if ~isfield(kalman_pll_config.(training_scint_model), 'augmentation_model_initializer')
+            error('get_kalman_pll_estimates:missing_field', ...
+                  'kalman_pll_config must have a field "augmentation_model_initializer" specifying the offline augmentation model.');
+        end
+        if ~isfield(kalman_pll_config.(training_scint_model).augmentation_model_initializer, 'id')
+            error('get_kalman_pll_estimates:missing_field', ...
+                  'kalman_pll_config.augmentation_model_initializer must contain the field "id" that identifies the augmentation model used in offline training.');
+        end
+        offline_id = kalman_pll_config.(training_scint_model).augmentation_model_initializer.id;
+        if ~(ischar(offline_id) || isstring(offline_id))
+            error('get_kalman_pll_estimates:invalid_type', ...
+                  'The field kalman_pll_config.augmentation_model_initializer.id must be a char or string.');
+        end
+        offline_id = char(offline_id);
+        
+        switch lower(offline_id)
+            case {'arfit', 'aryule'}
+                % For AR models, require the fields directly in online_mdl_learning_cfg.
+                if ~isfield(online_mdl_learning_cfg, 'learning_method')
+                    error('get_kalman_pll_estimates:missing_field', ...
+                          'For offline augmentation model id "%s", online_mdl_learning_cfg must have a field "learning_method".', offline_id);
+                end
+                validateattributes(online_mdl_learning_cfg.learning_method, {'char','string'}, {'nonempty'}, mfilename, 'online_mdl_learning_cfg.learning_method');
+                method = lower(char(online_mdl_learning_cfg.learning_method));
+                if ismember(method, {'sliding_window', 'block_window'})
+                    if ~isfield(online_mdl_learning_cfg, 'window_size')
+                        error('get_kalman_pll_estimates:missing_field', ...
+                              'For learning method "%s" with offline model id "%s", online_mdl_learning_cfg must include a "window_size" field.', method, offline_id);
+                    end
+                    validateattributes(online_mdl_learning_cfg.window_size, {'numeric'}, {'scalar','positive'}, mfilename, 'online_mdl_learning_cfg.window_size');
+                end
+                
+            case 'kalman'
+                if ~isfield(online_mdl_learning_cfg, 'kalman_cfg')
+                    error('get_kalman_pll_estimates:missing_field', ...
+                          'For offline augmentation model id "kalman", online_mdl_learning_cfg must have a field "kalman_cfg".');
+                end
+                validateattributes(online_mdl_learning_cfg.kalman_cfg, {'struct'}, {'nonempty'}, mfilename, 'online_mdl_learning_cfg.kalman_cfg');
+                
+            case 'rbf'
+                if ~isfield(online_mdl_learning_cfg, 'rbf_cfg')
+                    error('get_kalman_pll_estimates:missing_field', ...
+                          'For offline augmentation model id "rbf", online_mdl_learning_cfg must have a field "rbf_cfg".');
+                end
+                validateattributes(online_mdl_learning_cfg.rbf_cfg, {'struct'}, {'nonempty'}, mfilename, 'online_mdl_learning_cfg.rbf_cfg');
+            case 'none'
+                % Does nothing
+            otherwise
+                error('get_kalman_pll_estimates:invalid_augmentation_id', ...
+                      'Unsupported offline augmentation model id "%s" found in kalman_pll_config.augmentation_model_initializer.id', offline_id);
+        end
+    end
+end
+
