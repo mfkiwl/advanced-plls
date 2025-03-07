@@ -120,6 +120,18 @@ function kalman_pll_config = build_kalman_pll_config(general_config, ...
             [F, Q, H, R, W] = construct_kalman_matrices(F_los, Q_los, F_var, Q_var, ...
                 0, var_states_amount, var_model_order, ...
                 general_config.C_over_N0_array_dBHz, general_config.scintillation_training_data_config.sampling_interval);
+        case 'second_wiener_mdl'
+            L_aug = 1; % Single-frequency tracking
+            M_aug = general_config.augmentation_model_initializer.model_params.wiener_mdl_order;
+            sampling_interval = general_config.discrete_wiener_model_config{3};
+            sigma_aug = [0,0,general_config.augmentation_model_initializer.model_params.process_noise_variance];
+            delta_array_aug = 1;
+            [F_wiener_aug, Q_wiener_aug] = get_discrete_wiener_model(L_aug, M_aug, sampling_interval, sigma_aug, delta_array_aug);
+            F = blkdiag(F_los,F_wiener_aug);
+            Q = blkdiag(Q_los,Q_wiener_aug);
+            H = [1, zeros(1, size(F_los,1) - 1), 1, zeros(1, size(F_wiener_aug,1)-1)];
+            R = diag(compute_phase_variances(general_config.C_over_N0_array_dBHz, general_config.discrete_wiener_model_config{3}));
+            W = zeros(size(F_los,1) + size(F_wiener_aug,1), 1);
         case 'rbf'
             % NOTE: For now, does nothing. This part is under development.
             % This case well never happen, considering that there is an
@@ -130,7 +142,8 @@ function kalman_pll_config = build_kalman_pll_config(general_config, ...
             F = F_los;
             Q = Q_los;
             H = [1, zeros(1, size(F_los,1)-1)];
-            R = diag(compute_phase_variances(general_config.C_over_N0_array_dBHz, general_config.discrete_wiener_model_config{3}));
+            sampling_interval = general_config.discrete_wiener_model_config{3};
+            R = diag(compute_phase_variances(general_config.C_over_N0_array_dBHz, sampling_interval));
             W = zeros(size(F_los,1), 1);
     end
 

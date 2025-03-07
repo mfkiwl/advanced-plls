@@ -277,20 +277,13 @@ function validate_online_learning_cfg(online_mdl_learning_cfg, kalman_pll_config
                     end
                     validateattributes(online_mdl_learning_cfg.window_size, {'numeric'}, {'scalar','positive'}, mfilename, 'online_mdl_learning_cfg.window_size');
                 end
-                
-            case 'kalman'
-                if ~isfield(online_mdl_learning_cfg, 'kalman_cfg')
-                    error('get_kalman_pll_estimates:missing_field', ...
-                          'For offline augmentation model id "kalman", online_mdl_learning_cfg must have a field "kalman_cfg".');
+                if ismember(method, 'kalman')
+                    error('get_kalman_pll_estimates:NotSupportedLearningMethod', 'Adapting the AR coefficients using a Kalman filter is not yet supported.')
                 end
-                validateattributes(online_mdl_learning_cfg.kalman_cfg, {'struct'}, {'nonempty'}, mfilename, 'online_mdl_learning_cfg.kalman_cfg');
-                
             case 'rbf'
-                if ~isfield(online_mdl_learning_cfg, 'rbf_cfg')
-                    error('get_kalman_pll_estimates:missing_field', ...
-                          'For offline augmentation model id "rbf", online_mdl_learning_cfg must have a field "rbf_cfg".');
-                end
-                validateattributes(online_mdl_learning_cfg.rbf_cfg, {'struct'}, {'nonempty'}, mfilename, 'online_mdl_learning_cfg.rbf_cfg');
+                error('get_kalman_pll_estimates:NotSupported', 'RBF online learning is not yet supported.');
+            case 'second_wiener_mdl'
+                error('Online model estimation for ''second_wiener_mdl'' is not yet supported.');
             case 'none'
                 % Does nothing
             otherwise

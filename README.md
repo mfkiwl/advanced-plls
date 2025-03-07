@@ -88,10 +88,15 @@ This section consolidates the current progress on the Adaptive AR/RBF modules wi
 
 - **AR Parameter Estimation:**
   - **Aryule vs. ARfit:** Use the aryule method (or modify ARfit to remove the intercept vector).  
+
     **Status:** Done!
+
   - **Block AR Model:** Introduced the Block AR model parameter estimation algorithm.  
+
     **Status:** Done!
-  - **Sliding AR Model:** Introduced the Sliding AR model parameter estimation algorithm.  
+
+  - **Sliding AR Model:** Introduced the Sliding AR model parameter estimation algorithm. 
+ 
     **Status:** Done!
 
 ---
@@ -99,43 +104,67 @@ This section consolidates the current progress on the Adaptive AR/RBF modules wi
 ### 2. Planned Features
 
 #### 2.1. Smoothing and Filtering
-**Status:** Stashed.
+
 - **Kalman Smoother:** Implement a Kalman Smoother.
+
   **Status:** Stashed.
+
 - **Classical Batch Smoothing:** Implement a classical batch smoothing technique.
+
   **Status:** Stashed.
 
 #### 2.3. New Augmentation Models to implement
+
 - **Discrete Wiener Augmentation:** Implement an augmentation model using a second discrete Wiener model.
+
 - **ARIMA Augmentation:** Implement an ARIMA augmentation model.
 
 #### 2.2. Adaptive Augmentation Models
+
 - **Dual Kalman Filter:** Introduce the Dual Kalman filter algorithm from Frederieke.  
+
   *Note:* Avoid using the error state (to prevent major refactoring). 
+
   **Status:** Stashed. (We've observed under the development of online learning AR models that it did not helped the single-frequency KF to not track the refractive + diffractive phase fluctuations. In addition, when the models are only trained with the diffractive phase, they present unmeaningful estimates of diffractive phase under refractive + diffractive phase scenario.)
+
 - **RBF Network:** Introduce an RBF model that can be configured with any number of neurons.  
+
   **Status:** Stashed.
 
 #### 2.4. Adaptability and Covariance Estimation
+
 - **Robust Covariance Estimation:** Develop robust techniques for estimating state and measurement covariances.
+
   **Status:** Under Development.
+
 - **Reinforcement Learning for Covariances:** Implement a reinforcement learning network technique to adapt state and measurement covariances.
+
   **Status:** Under Development.
 
 #### 2.5. Bayesian Estimation Techniques
 - **Extended Kalman Filter:** Implement the Extended Kalman Filter.
+
   **Status:** Under Development.
+
 - **Unscented Kalman Filter:** Implement the Unscented Kalman Filter.
+
   **Status:** Under Development.
+
 - **Cubature Kalman Filter:** Implement the Cubature Kalman Filter.
+
   **Status:** Under Development.
-- **Particle Filters:** Explore Particle filters
+
+- **Particle Filters:** Explore Particle filters.
+
   **Status:** Stashed.
 
-## 2.6. Multi-frequency Models
----
+#### 2.6. Multi-frequency Models
+
 - **Multi-Frequency Carrier Tracking:** Explore multi-frequency carrier phase tracking after addressing cycle-slip avoidance on single-frequency carrier phase tracking.
+
   **Status:** Stashed. (I think it'd be interesting to first stress out the single-frequency tracking scenario as much as possible before going into this.)
+
+---
 
 ## License
 This project is licensed under the [Your License Name Here] License.

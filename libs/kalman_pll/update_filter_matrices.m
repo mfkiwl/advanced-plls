@@ -95,6 +95,11 @@ function [updated_F, updated_Q, updated_W] = update_filter_matrices(initial_F, i
                     updated_Q = initial_Q;
                     updated_W = initial_W;
                 end
+            case 'kalman'
+                % NOTE: Under development. Kalman-based update is not yet implemented.
+                updated_F = initial_F;
+                updated_Q = initial_Q;
+                updated_W = initial_W;
             end
         case 'aryule'
             learning_method = lower(char(online_mdl_learning_cfg.learning_method));
@@ -150,29 +155,9 @@ function [updated_F, updated_Q, updated_W] = update_filter_matrices(initial_F, i
                         updated_Q = initial_Q;
                         updated_W = initial_W;
                     end
-                    
                 otherwise
                     error('update_filter_matrices:invalid_learning_method', 'Invalid learning method for AR models: %s', learning_method);
             end
-        case 'rbf'
-            % NOTE: Under development. RBF update is not yet implemented.
-            if ~isfield(online_mdl_learning_cfg, 'rbf_cfg')
-                error('update_filter_matrices:missing_field', 'For RBF model, online_mdl_learning_cfg must contain a field "rbf_cfg".');
-            end
-            updated_F = initial_F;
-            updated_Q = initial_Q;
-            updated_W = initial_W;
-            
-        case 'kalman'
-            % NOTE: Under development. Kalman-based update is not yet implemented.
-            updated_F = initial_F;
-            updated_Q = initial_Q;
-            updated_W = initial_W;
-        case 'none'
-            % Does nothing.
-            updated_F = initial_F;
-            updated_Q = initial_Q;
-            updated_W = initial_W;
         otherwise
             error('update_filter_matrices:invalid_model_id', 'Unsupported model id: %s', model_id);
     end
