@@ -76,19 +76,66 @@ Contributions are welcome! To contribute:
 
 For any issues or questions, please open an issue in the GitHub repository.
 
-## Planning on the steps for implementing Felix suggestions (Written by Rodrigo at 03/03/2025)
+## Roadmap for Features Implementations
 
-### Adding features: **Adaptive AR/RBF modules**
-1. use the aryule instead of ARfit for now, or at least look if it is possible to remove the intercept vector from the parameter estimation of the arfit function;
-2. Introduce Block AR model parameter estimation algorithm;
-3. Introduce Sliding AR model parameter estimation algorithm;
-4. Introduce the Dual Kalman filter algoritm from Frederieke. If it is necessary to use the error state instead of the actual states, avoid this for now, since it'd be necessary to refactor a big part of the code.
-5. Introduce the RBF model which could be configured for any amount of neurons.
+This section consolidates the current progress on the Adaptive AR/RBF modules with the planned future enhancements. The roadmap is organized into key areas covering smoothing, filtering, augmentation, adaptability, and Bayesian estimation.
 
-### Stashed features:
-1. Add Kalman/Classical smoothing option.
-2. Maybe we could also try to implement multi-frequency carrier 
- - (Rodrigo): I think that we need to first figure out how to properly avoid cycle-slips using AR/RBF modules on single-frequency carrier phase tracking.
+*Note: The Stashed status signifies that this features will only be possibly implemented later, and it is not a priority for now.*
+
+---
+
+### 1. Completed Work
+
+- **AR Parameter Estimation:**
+  - **Aryule vs. ARfit:** Use the aryule method (or modify ARfit to remove the intercept vector).  
+    **Status:** Done!
+  - **Block AR Model:** Introduced the Block AR model parameter estimation algorithm.  
+    **Status:** Done!
+  - **Sliding AR Model:** Introduced the Sliding AR model parameter estimation algorithm.  
+    **Status:** Done!
+
+---
+
+### 2. Planned Features
+
+#### 2.1. Smoothing and Filtering
+**Status:** Stashed.
+- **Kalman Smoother:** Implement a Kalman Smoother.
+  **Status:** Stashed.
+- **Classical Batch Smoothing:** Implement a classical batch smoothing technique.
+  **Status:** Stashed.
+
+#### 2.3. New Augmentation Models to implement
+- **Discrete Wiener Augmentation:** Implement an augmentation model using a second discrete Wiener model.
+- **ARIMA Augmentation:** Implement an ARIMA augmentation model.
+
+#### 2.2. Adaptive Augmentation Models
+- **Dual Kalman Filter:** Introduce the Dual Kalman filter algorithm from Frederieke.  
+  *Note:* Avoid using the error state (to prevent major refactoring). 
+  **Status:** Stashed. (We've observed under the development of online learning AR models that it did not helped the single-frequency KF to not track the refractive + diffractive phase fluctuations. In addition, when the models are only trained with the diffractive phase, they present unmeaningful estimates of diffractive phase under refractive + diffractive phase scenario.)
+- **RBF Network:** Introduce an RBF model that can be configured with any number of neurons.  
+  **Status:** Stashed.
+
+#### 2.4. Adaptability and Covariance Estimation
+- **Robust Covariance Estimation:** Develop robust techniques for estimating state and measurement covariances.
+  **Status:** Under Development.
+- **Reinforcement Learning for Covariances:** Implement a reinforcement learning network technique to adapt state and measurement covariances.
+  **Status:** Under Development.
+
+#### 2.5. Bayesian Estimation Techniques
+- **Extended Kalman Filter:** Implement the Extended Kalman Filter.
+  **Status:** Under Development.
+- **Unscented Kalman Filter:** Implement the Unscented Kalman Filter.
+  **Status:** Under Development.
+- **Cubature Kalman Filter:** Implement the Cubature Kalman Filter.
+  **Status:** Under Development.
+- **Particle Filters:** Explore Particle filters
+  **Status:** Stashed.
+
+## 2.6. Multi-frequency Models
+---
+- **Multi-Frequency Carrier Tracking:** Explore multi-frequency carrier phase tracking after addressing cycle-slip avoidance on single-frequency carrier phase tracking.
+  **Status:** Stashed. (I think it'd be interesting to first stress out the single-frequency tracking scenario as much as possible before going into this.)
 
 ## License
 This project is licensed under the [Your License Name Here] License.

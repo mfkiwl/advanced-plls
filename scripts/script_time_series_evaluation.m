@@ -40,7 +40,7 @@ tau0 = 0.5;
 settling_time = sampling_interval;
 is_refractive_effects_removed_received_signal = false;
 is_refractive_effects_removed_training_data = true;
-is_unwrapping_used = false;
+is_unwrapping_used = true;
 [rx_sig_csm, los_phase, psi_csm] = get_received_signal(L1_C_over_N0_dBHz, 'CSM', doppler_profile, ...
     'S4', S4, 'tau0', tau0, 'simulation_time', simulation_time, 'settling_time', settling_time);
 [rx_sig_tppsm, ~, psi_tppsm, diffractive_phase_tppsm, refractive_phase_settled] = get_received_signal(L1_C_over_N0_dBHz, 'TPPSM', doppler_profile, ...
@@ -51,9 +51,9 @@ cache_dir = fullfile(fileparts(mfilename('fullpath')), 'cache');
   
 training_simulation_time = 300;
 training_data_config_csm = struct('scintillation_model', 'CSM', 'S4', S4, 'tau0', tau0, ...
-                                  'simulation_time', training_simulation_time, 'sampling_interval', sampling_interval, 'is_unwrapping_used', false);
+                                  'simulation_time', training_simulation_time, 'sampling_interval', sampling_interval, 'is_unwrapping_used', is_unwrapping_used);
 training_data_config_tppsm = struct('scintillation_model', 'TPPSM', 'scenario', 'Severe', ...
-                                    'simulation_time', training_simulation_time, 'is_refractive_effects_removed', is_refractive_effects_removed_training_data, 'sampling_interval', sampling_interval, 'is_unwrapping_used', false);
+                                    'simulation_time', training_simulation_time, 'is_refractive_effects_removed', is_refractive_effects_removed_training_data, 'sampling_interval', sampling_interval, 'is_unwrapping_used', is_unwrapping_used);
 training_data_config_none = struct('scintillation_model', 'none', 'sampling_interval', sampling_interval);
 
 % Here, we used the same noise variance as used in [1, Section V; Subsection A]
@@ -109,7 +109,22 @@ adaptive_config_AHL_KF_std = struct('algorithm', 'simplified', 'hard_limited', t
                                     'threshold', hard_limited_threshold);
 
 %% Online model learning configuration
-online_mdl_learning_cfg = struct('is_online', false, 'learning_method', 'sliding_window', 'window_size', 2500);
+% Rodrigo's Heuristics: 
+% 1) It seems that using a settling time higher than sampling_interval makes it
+% difficult to the KF-AR to use the online modules properly.
+% 2) For a `window_size` less than 400, the AR phase estimates might be so 
+% close to zero that the aryule raises an error saying that the window 
+% data values must be finite.
+% 3) Higher values of the window size (> 1500) makes the scintillation
+% phase estimates looking more to the wrapped scintillation phase of the
+% TPPSM.
+% 4) Training the AR model with a unwrapped phase seems to not be a
+% reasonable approach. The phase estimates in this case are nearly zero.
+% 5) Using a very low value for the `process_noise_variance` makes it easier
+% for the filters to diverge (test it for 2.6e-14, for an example). However,
+% for heigher process noise variance, the scintillation phase estimates
+% becomes closer to zero.
+online_mdl_learning_cfg = struct('is_online', true, 'learning_method', 'sliding_window', 'window_size', 1500);
 
 %% Obtain state estimates for CSM
 % For CSM, the training_scint_model is 'CSM' (AR augmented).
@@ -124,20 +139,20 @@ online_mdl_learning_cfg = struct('is_online', false, 'learning_method', 'sliding
 % 4. KF-std    : No adaptive update.
 % 5. AKF-std   : Simplified adaptive update with hard_limited = false.
 % 6. AHL-KF-std: Simplified adaptive update with hard_limited = true.
-[kf_std_csm, ~]      = get_kalman_pll_estimates(rx_sig_csm, kf_cfg, init_estimates_none, 'none', adaptive_config_KF_std, online_mdl_learning_cfg);
-[akf_std_csm, ~]  = get_kalman_pll_estimates(rx_sig_csm, kf_cfg, init_estimates_none, 'none', adaptive_config_AKF_std, online_mdl_learning_cfg);
-[ahl_kf_std_csm, ~]   = get_kalman_pll_estimates(rx_sig_csm, kf_cfg, init_estimates_none, 'none', adaptive_config_AHL_KF_std, online_mdl_learning_cfg);
+[kf_std_csm, ~] = get_kalman_pll_estimates(rx_sig_csm, kf_cfg, init_estimates_none, 'none', adaptive_config_KF_std, online_mdl_learning_cfg);
+[akf_std_csm, ~] = get_kalman_pll_estimates(rx_sig_csm, kf_cfg, init_estimates_none, 'none', adaptive_config_AKF_std, online_mdl_learning_cfg);
+[ahl_kf_std_csm, ~] = get_kalman_pll_estimates(rx_sig_csm, kf_cfg, init_estimates_none, 'none', adaptive_config_AHL_KF_std, online_mdl_learning_cfg);
 
 %% Obtain state estimates for TPPSM
 % For TPPSM, the training_scint_model is 'TPPSM' (AR augmented).
-[kf_ar_tppsm, ~]       = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates_tppsm, 'TPPSM', adaptive_config_KF_AR, online_mdl_learning_cfg);
-[akf_ar_tppsm, ~]   = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates_tppsm, 'TPPSM', adaptive_config_AKF_AR, online_mdl_learning_cfg);
-[ahl_kf_ar_tppsm, ~]    = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates_tppsm, 'TPPSM', adaptive_config_AHL_KF_AR, online_mdl_learning_cfg);
+[kf_ar_tppsm, ~] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates_tppsm, 'TPPSM', adaptive_config_KF_AR, online_mdl_learning_cfg);
+[akf_ar_tppsm, ~] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates_tppsm, 'TPPSM', adaptive_config_AKF_AR, online_mdl_learning_cfg);
+[ahl_kf_ar_tppsm, ~] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates_tppsm, 'TPPSM', adaptive_config_AHL_KF_AR, online_mdl_learning_cfg);
 
 % For standard KF estimates with TPPSM received signal, training_scint_model is 'none'.
-[kf_std_tppsm, ~]      = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates_none, 'none', adaptive_config_KF_std, online_mdl_learning_cfg);
-[akf_std_tppsm, ~]  = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates_none, 'none', adaptive_config_AKF_std, online_mdl_learning_cfg);
-[ahl_kf_std_tppsm, ~]   = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates_none, 'none', adaptive_config_AHL_KF_std, online_mdl_learning_cfg);
+[kf_std_tppsm, ~] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates_none, 'none', adaptive_config_KF_std, online_mdl_learning_cfg);
+[akf_std_tppsm, ~] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates_none, 'none', adaptive_config_AKF_std, online_mdl_learning_cfg);
+[ahl_kf_std_tppsm, ~]  = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates_none, 'none', adaptive_config_AHL_KF_std, online_mdl_learning_cfg);
 
 %% Time vector generation
 time_vector = sampling_interval:sampling_interval:simulation_time;
