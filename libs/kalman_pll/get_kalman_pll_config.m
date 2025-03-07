@@ -205,8 +205,6 @@ function scint_config = validateScintillationTrainingDataConfig(scint_config)
     end
 end
 
-
-
 function validate_initial_states_boundaries(boundaries)
     % Validate that boundaries is a non-empty cell array and each cell
     % contains a 1x2 numeric vector with the first element less than the second.
@@ -225,7 +223,7 @@ end
 function validate_augmentation_model(general_config)
     % Validate that the augmentation model initializer is a nonempty string and one of the allowed values.
     validateattributes(general_config.augmentation_model_initializer, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer');
-    if ~any(strcmpi(general_config.augmentation_model_initializer.id, {'arfit', 'aryule', 'rbf', 'second_wiener_mdl', 'none'}))
+    if ~any(strcmpi(general_config.augmentation_model_initializer.id, {'arfit', 'aryule', 'rbf', 'kinematic', 'none'}))
         error('get_kalman_pll_config:InvalidAugmentationModel', ...
             'augmentation_model_initializer must be ''arfit'', ''aryule'', ''second_wiener_mdl'', ''rbf'' or ''none''. Received: `%s`.', model_initializer.id);
     end
@@ -242,12 +240,12 @@ function validate_augmentation_model(general_config)
             end
             validateattributes(general_config.augmentation_model_initializer.model_params, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params');
             validateattributes(general_config.augmentation_model_initializer.model_params.model_order, {'double'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params.model_order');
-        case 'second_wiener_mdl'
+        case 'kinematic'
             %NOTE: For now, we're only considering the single-frequency
             %scenario. This will probably need to change later.
             validateattributes(general_config.augmentation_model_initializer.model_params, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params');
-            validateattributes(general_config.augmentation_model_initializer.model_params.wiener_mdl_order, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params.wiener_mdl_order');
-            validateattributes(general_config.augmentation_model_initializer.model_params.process_noise_variance, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params.process_noise_variance');
+            validateattributes(general_config.augmentation_model_initializer.model_params.wiener_mdl_order, {'double'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params.wiener_mdl_order');
+            validateattributes(general_config.augmentation_model_initializer.model_params.process_noise_variance, {'double'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params.process_noise_variance');
         case 'rbf'
             error("MATLAB:RBFUnavailable","RBF model initializer is still under development.")
             % These validations below should be used later when RBF module

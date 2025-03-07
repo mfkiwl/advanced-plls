@@ -120,7 +120,7 @@ function kalman_pll_config = build_kalman_pll_config(general_config, ...
             [F, Q, H, R, W] = construct_kalman_matrices(F_los, Q_los, F_var, Q_var, ...
                 0, var_states_amount, var_model_order, ...
                 general_config.C_over_N0_array_dBHz, general_config.scintillation_training_data_config.sampling_interval);
-        case 'second_wiener_mdl'
+        case 'kinematic'
             L_aug = 1; % Single-frequency tracking
             M_aug = general_config.augmentation_model_initializer.model_params.wiener_mdl_order;
             sampling_interval = general_config.discrete_wiener_model_config{3};
@@ -145,6 +145,8 @@ function kalman_pll_config = build_kalman_pll_config(general_config, ...
             sampling_interval = general_config.discrete_wiener_model_config{3};
             R = diag(compute_phase_variances(general_config.C_over_N0_array_dBHz, sampling_interval));
             W = zeros(size(F_los,1), 1);
+        otherwise
+            error("Invalid Augmentation model.")
     end
 
     % Store Results in Output Struct

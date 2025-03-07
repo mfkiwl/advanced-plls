@@ -92,8 +92,8 @@ function initial_estimates = get_initial_estimates(general_config, kalman_pll_co
                 % LOS variances computed from uniform distribution variance: (b2 - b1)^2 / 12.
                 los_variances = cellfun(@(b) (b(2) - b(1))^2 / 12, general_config.initial_states_distributions_boundaries);
                 % For VAR states, variance is assumed to be (pi^2/3).
-                var_variance = (pi^2/3);
-                initial_estimates.P_hat_init = blkdiag(diag(los_variances), var_variance * eye(N));
+                kinematic_variance = (pi^2/3);
+                initial_estimates.P_hat_init = blkdiag(diag(los_variances), kinematic_variance * eye(N));
             else
                 % Use perfect estimates: LOS states are exactly the real doppler profile.
                 initial_estimates.x_hat_init = [general_config.real_doppler_profile.'; zeros(N,1)];
@@ -104,8 +104,33 @@ function initial_estimates = get_initial_estimates(general_config, kalman_pll_co
                 initial_estimates.P_hat_init = blkdiag(LOS_cov, (pi^2/3) * eye(N));
             end
 
-            case 'rbf'
+        case 'rbf'
             % NOTE: This part is under development.
+        case 'kinematic'
+            if general_config.is_generate_random_initial_estimates
+                % Generate random errors for LOS states based on uniform distributions.
+                random_errors = zeros(L,1);
+                for i = 1:L
+                    bound = general_config.initial_states_distributions_boundaries{i};
+                    random_errors(i) = unifrnd(bound(1), bound(2));
+                end
+                
+                % x_hat_init: LOS states adjusted by random error, and VAR states set to zero.
+                initial_estimates.x_hat_init = [general_config.real_doppler_profile.' - random_errors; zeros(general_config.augmentation_model_initializer.model_params.wiener_mdl_order,1)];
+                
+                % LOS variances computed from uniform distribution variance: (b2 - b1)^2 / 12.
+                los_variances = cellfun(@(b) (b(2) - b(1))^2 / 12, general_config.initial_states_distributions_boundaries);
+                % For VAR states, variance is assumed to be (pi^2/3).
+                initial_estimates.P_hat_init = blkdiag(diag(los_variances), zeros(general_config.augmentation_model_initializer.model_params.wiener_mdl_order));
+            else
+                % Use perfect estimates: LOS states are exactly the real doppler profile.
+                initial_estimates.x_hat_init = [general_config.real_doppler_profile.'; zeros(general_config.augmentation_model_initializer.model_params.wiener_mdl_order,1)];
+                
+                % Covariance: Perfect knowledge for LOS states (except first state has variance pi^2/3),
+                % VAR states get variance pi^2/3.
+                LOS_cov = diag([pi^2/3, zeros(1, L-1)]);
+                initial_estimates.P_hat_init = blkdiag(LOS_cov, zeros(general_config.augmentation_model_initializer.model_params.wiener_mdl_order));
+            end
         case 'none'
             if general_config.is_generate_random_initial_estimates
                 % Generate random errors for LOS states based on uniform distributions.
@@ -129,5 +154,6 @@ function initial_estimates = get_initial_estimates(general_config, kalman_pll_co
                 LOS_cov = diag([pi^2/3, zeros(1, L-1)]);
                 initial_estimates.P_hat_init = LOS_cov;
             end
+            
     end
 end

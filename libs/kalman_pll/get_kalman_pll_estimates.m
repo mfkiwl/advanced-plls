@@ -282,7 +282,7 @@ function validate_online_learning_cfg(online_mdl_learning_cfg, kalman_pll_config
                 end
             case 'rbf'
                 error('get_kalman_pll_estimates:NotSupported', 'RBF online learning is not yet supported.');
-            case 'second_wiener_mdl'
+            case 'kinematic'
                 error('Online model estimation for ''second_wiener_mdl'' is not yet supported.');
             case 'none'
                 % Does nothing

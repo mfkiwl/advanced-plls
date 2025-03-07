@@ -124,7 +124,7 @@ adaptive_config_AHL_KF_std = struct('algorithm', 'simplified', 'hard_limited', t
 % for the filters to diverge (test it for 2.6e-14, for an example). However,
 % for heigher process noise variance, the scintillation phase estimates
 % becomes closer to zero.
-online_mdl_learning_cfg = struct('is_online', true, 'learning_method', 'sliding_window', 'window_size', 1500);
+online_mdl_learning_cfg = struct('is_online', false, 'learning_method', 'sliding_window', 'window_size', 1500);
 
 %% Obtain state estimates for CSM
 % For CSM, the training_scint_model is 'CSM' (AR augmented).
