@@ -16,10 +16,11 @@ function thermal_noise = get_thermal_noise(simulation_time, sampling_interval, r
 %
 % Inputs:
 %   simulation_time - Total duration of the simulation (seconds).
-%   sampling_interval             - Integration time (seconds).
+%   sampling_interval - Integration time (seconds).
 %   rx_mean_power   - Signal power of the received signal (linear scale).
 %   C_over_N0_dBHz  - Carrier-to-noise density ratio (C/N₀) in dB-Hz.
-%   B               - Receiver bandwidth (Hz).
+%   B               - Receiver bandwidth (Hz) (Half of the sampling 
+%                     frequency before correlation).
 %
 % Outputs:
 %   thermal_noise   - Complex Gaussian noise time series with a variance 

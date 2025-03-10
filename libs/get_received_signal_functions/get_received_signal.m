@@ -103,7 +103,8 @@ end
 
 % Fixed parameters
 rx_mean_power = 1;
-B = 2e7; % Receiver bandwidth in Hz
+sampling_frequency_before_correlation = 2e7;
+B = sampling_frequency_before_correlation/2; % Receiver bandwidth in Hz
 
 % Generate LOS phase using the provided doppler_profile
 los_phase = get_los_phase(simulation_time, sampling_interval, doppler_profile);
