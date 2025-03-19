@@ -54,15 +54,6 @@ kalman_pll_testbench/
 - MATLAB R2024b or newer: The project is developed and tested using MATLAB R2024b.
 - Git: Used for version control and managing submodules.
 
-## Git Hooks
-
-This repository uses a custom Git hook to automatically update submodules when you switch branches. This ensures that the submodules always match the branch you’re working on.
-
-After cloning, navigate to the repository root and run:
-```bash
-./install-hooks.sha
-```
-
 Now, whenever you switch branches (using git switch 'branch_name'), the custom post-checkout hook will run automatically:
 - It deinitializes existing submodules.
 - It removes submodule directories (if any).
