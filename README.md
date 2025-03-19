@@ -55,17 +55,18 @@ kalman_pll_testbench/
 - Git: Used for version control and managing submodules.
 
 ## Git Hooks
-The repository includes a folder named hook_examples that contains sample Git hook configurations. These hooks are designed to automate tasks such as deinitializing submodules when switching branches. Since Git does not track hook scripts by default (they reside in the .git/hooks directory), these examples are provided for your convenience.
 
-To use a hook:
+This repository uses a custom Git hook to automatically update submodules when you switch branches. This ensures that the submodules always match the branch you’re working on.
 
-1. Copy the desired hook file (e.g., post-checkout) from the hook_examples folder into your local repository's .git/hooks directory.
-2. Ensure the file is named exactly as required by Git (without any extension, e.g., rename post-checkout.sample to post-checkout).
-3. Make the file executable. On Unix-like systems, you can run:
+After cloning, navigate to the repository root and run:
 ```bash
-chmod +x .git/hooks/post-checkout
+./install-hooks.sha
 ```
-This setup can help streamline your workflow by automatically managing submodules and maintaining a clean working directory across branches.
+
+Now, whenever you switch branches (using git switch 'branch_name'), the custom post-checkout hook will run automatically:
+- It deinitializes existing submodules.
+- It removes submodule directories (if any).
+- It reinitializes and updates the submodules to match the current branch.
 
 ## Contributing
 Contributions are welcome! To contribute:
@@ -177,5 +178,3 @@ For further details on the project's design, usage, and configuration, please re
 ### Rodrigo de Lima Florindo
 - Orcid: https://orcid.org/0000-0003-0412-5583
 - Email: rdlfresearch@gmail.com
-
-

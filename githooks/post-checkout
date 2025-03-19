@@ -1,0 +1,24 @@
+#!/bin/bash
+# A simple post-checkout hook to update submodules on branch switches.
+
+# Check if the checkout is due to a branch switch (third parameter equals "1")
+if [ "$3" = "1" ]; then
+  echo "Branch switch detected: Updating submodules..."
+
+  # Deinitialize all submodules
+  git submodule deinit -f .
+
+  # If .gitmodules exists, remove each submodule folder listed in it
+  if [ -f .gitmodules ]; then
+    git config -f .gitmodules --get-regexp '^submodule\..*\.path$' | awk '{print $2}' | while read submodule_path; do
+      if [ -d "$submodule_path" ]; then
+        echo "Removing $submodule_path..."
+        rm -rf "$submodule_path"
+      fi
+    done
+  fi
+
+  # Reinitialize and update submodules
+  git submodule update --init --recursive
+  echo "Submodules updated."
+fi
