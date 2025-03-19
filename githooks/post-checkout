@@ -14,8 +14,8 @@ fi
 
 echo "Branch switch detected: Updating submodules..."
 
-# Deinitialize all submodules
-git submodule deinit -f .
+# Deinitialize all submodules, suppressing errors if config files are missing.
+git submodule deinit -f . 2>/dev/null
 
 # Retrieve the list of submodule paths from .gitmodules
 submodules=$(git config -f .gitmodules --get-regexp '^submodule\..*\.path$' | awk '{print $2}')
