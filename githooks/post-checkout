@@ -1,34 +1,28 @@
 #!/bin/bash
-# A simple post-checkout hook to update submodules on branch switches.
+# Simple post-checkout hook to refresh submodules on branch switches.
 
-# If there's no .gitmodules file in this branch, skip the hook.
-if [ ! -f .gitmodules ]; then
-    echo "No .gitmodules file found; skipping submodule update."
-    exit 0
-fi
-
-# Only run when the checkout is due to a branch switch (third parameter equals "1")
+# Only run when a branch switch occurs.
 if [ "$3" != "1" ]; then
     exit 0
 fi
 
-echo "Branch switch detected: Updating submodules..."
+echo "Branch switch detected: refreshing submodules..."
 
-# Deinitialize all submodules, suppressing any errors
+# Deinitialize all submodules (suppress any errors)
 git submodule deinit -f . 2>/dev/null
 
-# Retrieve the list of submodule paths from .gitmodules
-submodules=$(git config -f .gitmodules --get-regexp '^submodule\..*\.path$' | awk '{print $2}')
-
-# Loop over each submodule path and remove it entirely
-for submodule_path in $submodules; do
-    if [ -d "$submodule_path" ]; then
-        echo "Removing $submodule_path entirely..."
-        chmod -R u+w "$submodule_path"
-        rm -rf "$submodule_path"
-    fi
-done
+# If .gitmodules exists, remove each submodule directory entirely.
+if [ -f .gitmodules ]; then
+    # Get each submodule path listed in .gitmodules.
+    for submodule in $(git config -f .gitmodules --get-regexp '^submodule\..*\.path$' | awk '{print $2}'); do
+        if [ -d "$submodule" ]; then
+            echo "Removing $submodule..."
+            rm -rf "$submodule"
+        fi
+    done
+fi
 
 # Reinitialize and update submodules
 git submodule update --init --recursive
+
 echo "Submodules updated."
