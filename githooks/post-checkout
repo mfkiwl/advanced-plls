@@ -14,23 +14,17 @@ fi
 
 echo "Branch switch detected: Updating submodules..."
 
-# Deinitialize all submodules, suppressing errors if config files are missing.
+# Deinitialize all submodules, suppressing any errors
 git submodule deinit -f . 2>/dev/null
 
 # Retrieve the list of submodule paths from .gitmodules
 submodules=$(git config -f .gitmodules --get-regexp '^submodule\..*\.path$' | awk '{print $2}')
 
-# Loop over each submodule path and clean it up
+# Loop over each submodule path and remove it entirely
 for submodule_path in $submodules; do
     if [ -d "$submodule_path" ]; then
-        echo "Cleaning up and removing $submodule_path..."
-        # Change permissions recursively to ensure all files are writable.
+        echo "Removing $submodule_path entirely..."
         chmod -R u+w "$submodule_path"
-        # Remove all files (including hidden ones)
-        rm -rf "$submodule_path"/.[!.]* "$submodule_path"/*
-        # Optionally, force a clean to remove any untracked files:
-        (cd "$submodule_path" && git clean -fdx 2>/dev/null)
-        # Finally, remove the directory itself
         rm -rf "$submodule_path"
     fi
 done
