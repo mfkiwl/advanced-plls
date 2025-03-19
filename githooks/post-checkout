@@ -24,8 +24,11 @@ submodules=$(git config -f .gitmodules --get-regexp '^submodule\..*\.path$' | aw
 for submodule_path in $submodules; do
     if [ -d "$submodule_path" ]; then
         echo "Cleaning up and removing $submodule_path..."
-        # Remove all files, including hidden ones, then remove the directory
+        # Remove all files (including hidden ones)
         rm -rf "$submodule_path"/.[!.]* "$submodule_path"/*
+        # Optionally, force a clean to remove any untracked files:
+        (cd "$submodule_path" && git clean -fdx 2>/dev/null)
+        # Remove the directory itself
         rm -rf "$submodule_path"
     fi
 done
