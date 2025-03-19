@@ -1,25 +1,24 @@
 #!/bin/bash
-# Simple post-checkout hook to refresh submodules on branch switches.
+# Simple post-checkout hook to refresh submodules (and remove leftover libs) on branch switches.
 
 # Only run when a branch switch occurs (third parameter equals "1")
 if [ "$3" != "1" ]; then
     exit 0
 fi
 
-echo "Branch switch detected: refreshing submodules..."
+echo "Branch switch detected: refreshing submodules and cleaning up libs..."
 
-# Deinitialize all submodules (suppress errors)
-git submodule deinit -f . 2>/dev/null
-
-# Remove the entire 'libs' folder if it exists,
-# ensuring that no leftover submodule content remains.
+# Remove the entire 'libs' folder if it exists.
 if [ -d "libs" ]; then
     echo "Removing entire libs directory..."
     chmod -R u+w libs
     rm -rf libs
 fi
 
-# Reinitialize and update submodules
-git submodule update --init --recursive
+# If the new branch has a .gitmodules file, reinitialize submodules.
+if [ -f .gitmodules ]; then
+    echo "Updating submodules..."
+    git submodule update --init --recursive
+fi
 
-echo "Submodules updated."
+echo "Hook completed."
