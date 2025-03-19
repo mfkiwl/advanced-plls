@@ -10,12 +10,11 @@ if [ "$3" = "1" ]; then
 
   # If .gitmodules exists, remove each submodule folder listed in it
   if [ -f .gitmodules ]; then
-    git config -f .gitmodules --get-regexp '^submodule\..*\.path$' | awk '{print $2}' | while read submodule_path; do
-      if [ -d "$submodule_path" ]; then
-        echo "Removing $submodule_path..."
-        rm -rf "$submodule_path"
-      fi
-    done
+    echo "Cleaning up and removing $submodule_path..."
+    # Remove all files (including hidden ones) inside the directory.
+    rm -rf "$submodule_path"/.[!.]* "$submodule_path"/*
+    # Attempt to remove the directory itself.
+    rm -rf "$submodule_path"
   fi
 
   # Reinitialize and update submodules
