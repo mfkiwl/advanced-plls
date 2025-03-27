@@ -95,7 +95,7 @@ classdef test_build_kalman_pll_config < matlab.unittest.TestCase
             config.augmentation_model_initializer.id = 'invalid';
             % With an invalid id, none of the switch cases match and required variables remain undefined.
             testCase.verifyError(@() build_kalman_pll_config(config, testCase.default_kalman_pll_config), ...
-                'MATLAB:UndefinedFunction', 'Expected error for invalid augmentation_model_initializer id was not thrown.');
+                'MATLAB:UndefinedAugmentationModel', 'Expected error for invalid augmentation_model_initializer id was not thrown.');
         end
         
         function testDifferentScintillationModel(testCase)

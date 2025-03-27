@@ -24,11 +24,11 @@ classdef test_preprocess_training_data < matlab.unittest.TestCase
             % add_parent_path - Add the parent directory of the test folder 
             % so that preprocess_training_data.m and dependencies can be found.
             parent_dir = fileparts(fileparts(mfilename('fullpath')));
-            get_received_signal_functions_dir = [fileparts(parent_dir),'\get_received_signal_functions'];
-            tppsm_paths = genpath([fileparts(parent_dir),'\scintillation_models\refactored_tppsm']);
-            csm_paths = genpath([fileparts(parent_dir),'\scintillation_models\cornell_scintillation_model']);
+            get_received_signal_functions_dir = fullfile(fileparts(parent_dir),'get_received_signal_functions');
+            tppsm_paths = genpath(fullfile(fileparts(parent_dir),'scintillation_models','refactored_tppsm'));
+            csm_paths = genpath(fullfile(fileparts(parent_dir),'scintillation_models','cornell_scintillation_model'));
             addpath(parent_dir);
-            addpath(get_received_signal_functions_dir);
+            addpath(genpath(get_received_signal_functions_dir));
             addpath(tppsm_paths);
             addpath(csm_paths);
 

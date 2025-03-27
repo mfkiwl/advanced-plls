@@ -146,7 +146,7 @@ function kalman_pll_config = build_kalman_pll_config(general_config, ...
             R = diag(compute_phase_variances(general_config.C_over_N0_array_dBHz, sampling_interval));
             W = zeros(size(F_los,1), 1);
         otherwise
-            error("Invalid Augmentation model.")
+            error("MATLAB:UndefinedAugmentationModel","Invalid Augmentation model.")
     end
 
     % Store Results in Output Struct

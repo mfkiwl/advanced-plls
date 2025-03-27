@@ -47,10 +47,10 @@ classdef test_update_cache < matlab.unittest.TestCase
             % Add the necessary directory paths
             parent_dir = fileparts(fileparts(mfilename('fullpath')));
             libs_dir = fileparts(parent_dir);
-            get_received_signal_functions_dir = [libs_dir,'\get_received_signal_functions'];
-            tppsm_paths = genpath([libs_dir,'\scintillation_models\refactored_tppsm']);
-            csm_paths = genpath([libs_dir,'\scintillation_models\cornell_scintillation_model']);
-            arfit_path = [libs_dir,'\arfit'];
+            get_received_signal_functions_dir = fullfile(libs_dir,'get_received_signal_functions');
+            tppsm_paths = genpath(fullfile(libs_dir,'scintillation_models','refactored_tppsm'));
+            csm_paths = genpath(fullfile(libs_dir,'scintillation_models','cornell_scintillation_model'));
+            arfit_path = fullfile(libs_dir,'arfit');
             addpath(parent_dir);
             addpath(get_received_signal_functions_dir);
             addpath(tppsm_paths);
