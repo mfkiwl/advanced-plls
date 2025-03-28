@@ -158,6 +158,11 @@ function [updated_F, updated_Q, updated_W] = update_filter_matrices(initial_F, i
                 otherwise
                     error('update_filter_matrices:invalid_learning_method', 'Invalid learning method for AR models: %s', learning_method);
             end
+        case 'none'
+            % Does nothing
+            updated_F = initial_F;
+            updated_Q = initial_Q;
+            updated_W = initial_W;
         otherwise
             error('update_filter_matrices:invalid_model_id', 'Unsupported model id: %s', model_id);
     end

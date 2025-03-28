@@ -39,7 +39,7 @@ S4 = 0.8;
 tau0 = 0.5;
 settling_time = sampling_interval;
 is_refractive_effects_removed_received_signal = false;
-is_refractive_effects_removed_training_data = true;
+is_refractive_effects_removed_training_data = false;
 is_unwrapping_used = true;
 [rx_sig_csm, los_phase, psi_csm] = get_received_signal(L1_C_over_N0_dBHz, 'CSM', doppler_profile, ...
     'S4', S4, 'tau0', tau0, 'simulation_time', simulation_time, 'settling_time', settling_time);
@@ -58,7 +58,7 @@ training_data_config_none = struct('scintillation_model', 'none', 'sampling_inte
 
 % Here, we used the same noise variance as used in [1, Section V; Subsection A]
 process_noise_variance = 2.6*1e-8; 
-ar_model_order = 5;
+ar_model_order = 3;
 general_config_csm = struct( ...
   'discrete_wiener_model_config', { {1, 3, 0.01, [0, 0, process_noise_variance], 1} }, ...
   'scintillation_training_data_config', training_data_config_csm, ...
@@ -124,7 +124,7 @@ adaptive_config_AHL_KF_std = struct('algorithm', 'simplified', 'hard_limited', t
 % for the filters to diverge (test it for 2.6e-14, for an example). However,
 % for heigher process noise variance, the scintillation phase estimates
 % becomes closer to zero.
-online_mdl_learning_cfg = struct('is_online', false, 'learning_method', 'sliding_window', 'window_size', 1500);
+online_mdl_learning_cfg = struct('is_online', true, 'learning_method', 'sliding_window', 'window_size', 1500);
 
 %% Obtain state estimates for CSM
 % For CSM, the training_scint_model is 'CSM' (AR augmented).
