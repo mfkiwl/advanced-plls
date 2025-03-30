@@ -206,7 +206,13 @@ classdef test_get_kalman_pll_config < matlab.unittest.TestCase
             testCase.verifyError(@() get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print), ...
                 'get_kalman_pll_config:incompatible_model_with_multi_frequency_tracking');
         end
-        
+        function test_valid_arima_model_cfg(testCase)
+            config = testCase.default_config;
+            config.augmentation_model_initializer.id = 'arima';
+            config.augmentation_model_initializer.model_params = struct('p', 3, 'D', 1, 'q', 2);
+            [kcfg, ~] = get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print);
+            testCase.verifyTrue(isstruct(kcfg));
+        end
         % This test should be uncommented when RBF case is being developed.
         % function testValidAugmentationModelRbf(testCase)
         %     % For a valid 'rbf' initializer.

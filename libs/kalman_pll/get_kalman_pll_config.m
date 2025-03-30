@@ -223,7 +223,7 @@ end
 function validate_augmentation_model(general_config)
     % Validate that the augmentation model initializer is a nonempty string and one of the allowed values.
     validateattributes(general_config.augmentation_model_initializer, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer');
-    if ~any(strcmpi(general_config.augmentation_model_initializer.id, {'arfit', 'aryule', 'rbf', 'kinematic', 'none'}))
+    if ~any(strcmpi(general_config.augmentation_model_initializer.id, {'arfit', 'aryule', 'arima', 'rbf', 'kinematic', 'none'}))
         error('get_kalman_pll_config:InvalidAugmentationModel', ...
             'augmentation_model_initializer must be ''arfit'', ''aryule'', ''second_wiener_mdl'', ''rbf'' or ''none''. Received: `%s`.', model_initializer.id);
     end
@@ -246,6 +246,11 @@ function validate_augmentation_model(general_config)
             validateattributes(general_config.augmentation_model_initializer.model_params, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params');
             validateattributes(general_config.augmentation_model_initializer.model_params.wiener_mdl_order, {'double'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params.wiener_mdl_order');
             validateattributes(general_config.augmentation_model_initializer.model_params.process_noise_variance, {'double'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params.process_noise_variance');
+        case 'arima'
+            validateattributes(general_config.augmentation_model_initializer.model_params, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params');
+            validateattributes(general_config.augmentation_model_initializer.model_params.p, {'double'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params.p');
+            validateattributes(general_config.augmentation_model_initializer.model_params.D, {'double'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params.D');
+            validateattributes(general_config.augmentation_model_initializer.model_params.q, {'double'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params.Q');
         case 'rbf'
             error("MATLAB:RBFUnavailable","RBF model initializer is still under development.")
             % These validations below should be used later when RBF module

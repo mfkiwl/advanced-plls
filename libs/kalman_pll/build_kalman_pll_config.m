@@ -132,6 +132,8 @@ function kalman_pll_config = build_kalman_pll_config(general_config, ...
             H = [1, zeros(1, size(F_los,1) - 1), 1, zeros(1, size(F_wiener_aug,1)-1)];
             R = diag(compute_phase_variances(general_config.C_over_N0_array_dBHz, general_config.discrete_wiener_model_config{3}));
             W = zeros(size(F_los,1) + size(F_wiener_aug,1), 1);
+        case 'arima'
+            
         case 'rbf'
             % NOTE: For now, does nothing. This part is under development.
             % This case well never happen, considering that there is an
