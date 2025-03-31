@@ -67,7 +67,7 @@ training_data_config_tppsm = struct('scintillation_model', 'TPPSM', ...
                                     'sampling_interval', sampling_interval, ...
                                     'is_unwrapping_used', is_unwrapping_used);
 % Here, we used the same noise variance as used in [1, Section V; Subsection A]
-process_noise_variance_los = 1e-12; 
+process_noise_variance_los = 0;%1e-12; 
 arima_p = 12;
 arima_D = 1;
 arima_q = 5;
@@ -79,7 +79,7 @@ general_config_csm = struct( ...
   'real_doppler_profile', doppler_profile, ...
   'augmentation_model_initializer', struct('id', 'arima', 'model_params', struct('p',arima_p,'D',arima_D,'q',arima_q)), ...
   'is_use_cached_settings', false, ...
-  'is_generate_random_initial_estimates', true, ...
+  'is_generate_random_initial_estimates', false, ...
   'is_enable_cmd_print', false ...
 );
 general_config_tppsm = general_config_csm;
@@ -100,8 +100,8 @@ adaptive_cfg = struct('algorithm', 'none', 'hard_limited', false);
 online_mdl_learning_cfg = struct('is_online', false);
 
 %% Obtain state estimates for CSM
-[kf_arima_csm, ~] = get_kalman_pll_estimates(rx_sig_csm, kf_cfg, init_estimates_csm, 'CSM', adaptive_cfg, online_mdl_learning_cfg);
-[kf_arima_tppsm, ~] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates_tppsm, 'TPPSM', adaptive_cfg, online_mdl_learning_cfg);
+[kf_arima_csm, error_covariance_csm] = get_kalman_pll_estimates(rx_sig_csm, kf_cfg, init_estimates_csm, 'CSM', adaptive_cfg, online_mdl_learning_cfg);
+[kf_arima_tppsm, error_covariance_tppsm] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates_tppsm, 'TPPSM', adaptive_cfg, online_mdl_learning_cfg);
 
 time_vector = sampling_interval:sampling_interval:simulation_time;
 
@@ -114,6 +114,13 @@ legend({'LOS Phase error ', 'ARIMA Phase', 'Joint Phase Error', 'Unwrapped True 
 subplot(2,1,2);
 plot(time_vector, [kf_arima_tppsm(:,1) - los_phase, arima_est_tppsm, kf_arima_tppsm(:,1) + arima_est_tppsm - los_phase, unwrap(angle(psi_tppsm)), refractive_phase_settled]);
 legend({'LOS Phase Error', 'ARIMA Phase', 'Joint Phase Error', 'Unwrapped Scint phase', 'Refractive Phase'});
-% 
-% figure;
-% plot(time_vector, unwrap(angle(psi_tppsm)) - refractive_phase_settled);
+
+
+trace_ts = zeros(size(error_covariance_tppsm,1),1);
+for i = 1:size(error_covariance_tppsm,1)
+    trace_ts(i) = trace(squeeze(error_covariance_tppsm(i,:,:)));
+end
+
+figure;
+
+plot(time_vector, trace_ts);
