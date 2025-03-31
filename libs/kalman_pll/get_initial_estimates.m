@@ -38,6 +38,10 @@ function initial_estimates = get_initial_estimates(general_config, kalman_pll_co
 %       * P_hat_init: Initial covariance matrix of size [L+N x L+N], where L is the length of
 %                     real_doppler_profile and N = var_states_amount * var_model_order.
 %
+% References:
+%  [1] Durbin, James & Koopman, Siem Jan. (2001). Time Series Analysis 
+%      by State Space Methods. 
+%
 % Author: Rodrigo de Lima Florindo
 % ORCID: https://orcid.org/0000-0003-0412-5583
 % Email: rdlfresearch@gmail.com
@@ -130,6 +134,59 @@ function initial_estimates = get_initial_estimates(general_config, kalman_pll_co
                 % VAR states get variance pi^2/3.
                 LOS_cov = diag([pi^2/3, zeros(1, L-1)]);
                 initial_estimates.P_hat_init = blkdiag(LOS_cov, zeros(general_config.augmentation_model_initializer.model_params.wiener_mdl_order));
+            end
+        case 'arima'
+            % ARIMA model orders that affect the dimensions of the
+            % state vector: p and D. The total amount of lines is given
+            % by p + D.
+
+            % The development of the initial estimates and covariance
+            % matrices was inspired by what is proposed in [Section 5.6.3, 1]
+            p = general_config.augmentation_model_initializer.model_params.p;
+            D = general_config.augmentation_model_initializer.model_params.D;
+            if general_config.is_generate_random_initial_estimates
+                % Generate random errors for LOS states based on uniform distributions.
+                random_errors = zeros(L,1);
+                for i = 1:L
+                    bound = general_config.initial_states_distributions_boundaries{i};
+                    random_errors(i) = unifrnd(bound(1), bound(2));
+                end
+                
+                % x_hat_init: LOS states adjusted by random error, and VAR states set to zero.
+                initial_estimates.x_hat_init = [general_config.real_doppler_profile.' - random_errors; zeros(p + D,1)];
+                
+                % LOS variances computed from uniform distribution variance: (b2 - b1)^2 / 12.
+                los_variances = cellfun(@(b) (b(2) - b(1))^2 / 12, general_config.initial_states_distributions_boundaries);
+                
+                kappa = 1e-2;
+                P_inf = zeros(p + D);
+                P_inf(1,1) = 1;
+
+                Q = kalman_pll_config.(general_config.scintillation_training_data_config.scintillation_model).Q;
+                Q_arima = Q(L+1 : end, L+1 : end);
+                P_asterisk = Q_arima;
+
+                P_arima_init = kappa*P_inf + P_asterisk;
+
+                initial_estimates.P_hat_init = blkdiag(diag(los_variances), P_arima_init);
+            else
+                % Use perfect estimates: LOS states are exactly the real doppler profile.
+                initial_estimates.x_hat_init = [general_config.real_doppler_profile.'; zeros(p + D,1)];
+                
+                kappa = 1e-2;
+                P_inf = zeros(p+D);
+                P_inf(1,1) = 1;
+
+                Q = kalman_pll_config.(general_config.scintillation_training_data_config.scintillation_model).Q;
+                Q_arima = Q(L+1:end, L+1:end);
+                P_asterisk = Q_arima;
+
+                P_arima_init = kappa*P_inf + P_asterisk;
+
+                % Covariance: Perfect knowledge for LOS states (except first state has variance pi^2/3),
+                % VAR states get variance pi^2/3.
+                LOS_cov = diag([pi^2/3, zeros(1, L-1)]);
+                initial_estimates.P_hat_init = blkdiag(LOS_cov, P_arima_init);
             end
         case 'none'
             if general_config.is_generate_random_initial_estimates

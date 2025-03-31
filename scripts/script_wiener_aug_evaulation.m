@@ -1,26 +1,3 @@
-% Script: script_KFAR_estimates_comparison.m
-%
-% Description:
-%   This script generates received signal data for both CSM and TPPSM scenarios
-%   under severe scintillation, configures the Kalman PLL (KFAR) and standard KF 
-%   algorithms with different adaptive update options, computes the 
-%   corresponding state estimates, and then plots the comparison.
-%
-%   The following variants are computed:
-%     - KF-AR      : KF with AR augmentation (no adaptive update)
-%     - AKF-AR     : KF with AR augmentation using simplified adaptation (hard_limited = false)
-%     - AHL-KF-AR  : KF with AR augmentation using simplified adaptation (hard_limited = true)
-%     - KF-std     : Standard KF (no AR augmentation; training_scint_model = 'none', no adaptive update)
-%     - AKF-std    : Standard KF using simplified adaptation (hard_limited = false)
-%     - AHL-KF-std : Standard KF using simplified adaptation (hard_limited = true)
-%
-% [1] R. A. M. Lopes, F. Antreich, F. Fohlmeister, M. Kriegel and H. K. Kuga, "Ionospheric 
-%     Scintillation Mitigation With Kalman PLLs Employing Radial Basis Function Networks," 
-%     in IEEE Transactions on Aerospace and Electronic Systems, vol. 59, no. 5, pp. 6878-6893,
-%     Oct. 2023, doi: 10.1109/TAES.2023.3281431
-%  Author: Rodrigo de Lima Florindo
-%  ORCID: https://orcid.org/0000-0003-0412-5583
-%  Email: rdlfresearch@gmail.com
 
 clearvars; clc;
 

@@ -87,6 +87,10 @@ function kalman_pll_config = build_kalman_pll_config(general_config, ...
 %   kalman_pll_config = build_kalman_pll_config(kalman_pll_config, ...
 %       scintillation_training_data_config, 1, 6, [35], F_los, Q_los);
 %
+% References:
+%  [1] Durbin, James & Koopman, Siem Jan. (2001). Time Series Analysis 
+%      by State Space Methods. 
+%
 % Author:
 %   Rodrigo de Lima Florindo
 %   ORCID: https://orcid.org/0000-0003-0412-5583
@@ -97,6 +101,7 @@ function kalman_pll_config = build_kalman_pll_config(general_config, ...
 
     % Preprocess Training Data
     training_data = preprocess_training_data(general_config.scintillation_training_data_config);
+    sampling_interval = general_config.discrete_wiener_model_config{3};
 
     switch general_config.augmentation_model_initializer.id
         case 'arfit'
@@ -109,7 +114,7 @@ function kalman_pll_config = build_kalman_pll_config(general_config, ...
             % Construct Full Kalman Filter Matrices
             [F, Q, H, R, W] = construct_kalman_matrices(F_los, Q_los, F_var, Q_var, ...
                 intercept_vector, var_states_amount, var_model_order, ...
-                general_config.C_over_N0_array_dBHz, general_config.scintillation_training_data_config.sampling_interval);
+                general_config.C_over_N0_array_dBHz, sampling_interval);
         case 'aryule'
             [ar_coefficients, ar_variance] = aryule(training_data, general_config.augmentation_model_initializer.model_params.model_order);
             % Construct State Transition and Process Noise Matrices
@@ -119,7 +124,7 @@ function kalman_pll_config = build_kalman_pll_config(general_config, ...
             % Construct Full Kalman Filter Matrices
             [F, Q, H, R, W] = construct_kalman_matrices(F_los, Q_los, F_var, Q_var, ...
                 0, var_states_amount, var_model_order, ...
-                general_config.C_over_N0_array_dBHz, general_config.scintillation_training_data_config.sampling_interval);
+                general_config.C_over_N0_array_dBHz, sampling_interval);
         case 'kinematic'
             L_aug = 1; % Single-frequency tracking
             M_aug = general_config.augmentation_model_initializer.model_params.wiener_mdl_order;
@@ -133,7 +138,47 @@ function kalman_pll_config = build_kalman_pll_config(general_config, ...
             R = diag(compute_phase_variances(general_config.C_over_N0_array_dBHz, general_config.discrete_wiener_model_config{3}));
             W = zeros(size(F_los,1) + size(F_wiener_aug,1), 1);
         case 'arima'
+            % The development of the matrices was inspired in what was
+            % proposed in [Section 3.4, 1]
+
+            p = general_config.augmentation_model_initializer.model_params.p;
+            D = general_config.augmentation_model_initializer.model_params.D;
+            q = general_config.augmentation_model_initializer.model_params.q;
+            % Model parameter estimation
+            mdl = arima(p,D,q);
+            mdl.Constant = 0;
+            est_mdl = estimate(mdl,training_data);
+            r = max(p,q + 1);
             
+            % ARMA State Space Model (SSM):
+            ar_params = cell2mat(est_mdl.AR).';
+            ma_params = cell2mat(est_mdl.MA).';
+            variance = est_mdl.Variance;
+
+            phi_vec = zeros(r,1);
+            phi_vec(1:length(ar_params)) = ar_params;
+
+            theta_vec = zeros(1,r-1);
+            theta_vec(1:length(ma_params)) = ma_params;
+            F_arma = [phi_vec,[eye(r-1);zeros(1,r-1)]];
+            G_arma = [1,theta_vec].';
+
+            % ARIMA SSM:
+            % Note: The ARIMA SSM can be seen as an extension of the ARMA
+            % SSM, including also the previous values of the states differences
+            upper_right_matrix = zeros(D,r);
+            upper_right_matrix(:,1) = 1;
+            F_arima = [triu(ones(D)), upper_right_matrix; [zeros(r,D), F_arma]];
+            G_arima = [zeros(D,1); G_arma];
+            Q_arima = variance * (G_arima * G_arima.');
+            H_arima = zeros(1,size(F_arima,1));
+            H_arima(1:D+1) = 1;
+
+            F = blkdiag(F_los,F_arima);
+            Q = blkdiag(Q_los,Q_arima);
+            H = [1, zeros(1,size(F_los,1) - 1), H_arima];
+            R = diag(compute_phase_variances(general_config.C_over_N0_array_dBHz, sampling_interval));
+            W = zeros(size(F,1),1);
         case 'rbf'
             % NOTE: For now, does nothing. This part is under development.
             % This case well never happen, considering that there is an
@@ -144,7 +189,6 @@ function kalman_pll_config = build_kalman_pll_config(general_config, ...
             F = F_los;
             Q = Q_los;
             H = [1, zeros(1, size(F_los,1)-1)];
-            sampling_interval = general_config.discrete_wiener_model_config{3};
             R = diag(compute_phase_variances(general_config.C_over_N0_array_dBHz, sampling_interval));
             W = zeros(size(F_los,1), 1);
         otherwise

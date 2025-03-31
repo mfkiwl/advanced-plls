@@ -192,10 +192,12 @@ if is_refractive_effects_removed_received_signal && is_refractive_effects_remove
 else
     tppsm_propagated_wrapped = wrapToPi(refractive_phase_tppsm + diffractive_phase_tppsm);
     tppsm_propagated_unwrapped = refractive_phase_tppsm + unwrap(diffractive_phase_tppsm);
+    tppsm_diffractive_unwrapped = unwrap(diffractive_phase_tppsm);
     plot(ax4, time_vector, diffractive_phase_tppsm, '-k', 'LineWidth', 2.0);
+    plot(ax4, time_vector, tppsm_diffractive_unwrapped, ':k', 'LineWidth', 2.0);
     plot(ax4, time_vector, tppsm_propagated_wrapped, '--k', 'LineWidth', 2.0);
     plot(ax4, time_vector, tppsm_propagated_unwrapped, '-.k', 'LineWidth', 2.0);
-    legend_entries_joint = {'Diffractive Wrapped','Propagated Wrapped','Propagated Unwrapped','KF-AR Scint','AKF-AR Scint','AHL-KF-AR Scint'};
+    legend_entries_joint = {'Diffractive Wrapped', 'Diffractive Unwrapped','Propagated Wrapped','Propagated Unwrapped','KF-AR Scint','AKF-AR Scint','AHL-KF-AR Scint'};
     title_str_joint = 'TPPSM - Scintillation Estimates (Diffractive and Refractive) - Without Zoom';
 end
 % Now overlay the Kalman filter scintillation estimates
