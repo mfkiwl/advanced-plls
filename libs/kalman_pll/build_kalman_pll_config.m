@@ -170,7 +170,8 @@ function kalman_pll_config = build_kalman_pll_config(general_config, ...
             upper_right_matrix(:,1) = 1;
             F_arima = [triu(ones(D)), upper_right_matrix; [zeros(r,D), F_arma]];
             G_arima = [zeros(D,1); G_arma];
-            Q_arima = variance * (G_arima * G_arima.');
+            scaling_param = 0.5;
+            Q_arima = scaling_param * variance * (G_arima * G_arima.');
             H_arima = zeros(1,size(F_arima,1));
             H_arima(1:D+1) = 1;
 
