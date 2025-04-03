@@ -1,4 +1,4 @@
-function [state_estimates, error_covariance_estimates] = get_kalman_pll_estimates(received_signal, kalman_pll_config, initial_estimates, training_scint_model, adaptive_config, online_mdl_learning_cfg)
+function [state_estimates, error_covariance_estimates, L1_c_over_n0_linear_estimates] = get_kalman_pll_estimates(received_signal, kalman_pll_config, initial_estimates, training_scint_model, adaptive_config, online_mdl_learning_cfg)
 % get_kalman_pll_estimates
 % Generates Kalman filter state and error covariance estimates based on the
 % received signal and the provided Kalman PLL configuration.
@@ -20,7 +20,7 @@ function [state_estimates, error_covariance_estimates] = get_kalman_pll_estimate
 %   In addition, an adaptive configuration is applied based on the provided
 %   adaptive_config struct. The allowed options for adaptive_config.algorithm are:
 %      'simplified' - Applies a simplified adaptive update (see placeholder below).
-%      'NWBP'       - Not implemented (an error is thrown if chosen).
+%      'nwpr'       - Not implemented (an error is thrown if chosen).
 %      'none'       - No adaptive update is applied (i.e. R is used directly).
 %
 %   Note: If the 'simplified' option is chosen, and adaptive_config.algorithm is
@@ -39,16 +39,18 @@ function [state_estimates, error_covariance_estimates] = get_kalman_pll_estimate
 %                          train the AR model. Options: {'CSM', 'TPPSM', 'none'}.
 %   adaptive_config      - A Struct with adaptive configuration options for the
 %                          Kalman filter algorithm. It must have the fields:
-%         .algorithm     - {'simplified','NWBP','none'}. If 'simplified', a simplified adaptive
+%         .algorithm     - {'simplified','nwpr','none'}. If 'simplified', a simplified adaptive
 %                          update is applied (using a placeholder based on [3, Equation 64]).
-%                          -> If 'NWBP' is selected, an error is thrown (not yet implemented).
+%                          -> If 'nwpr' is selected, an error is thrown (not yet implemented).
 %                          -> If 'none' is selected, no adaptation is performed.
 %                          -> When algorithm is 'simplified', adaptive_config struct must also have:
 %                             - L1_C_over_N0_dBHz
 %                             - sampling_interval
-%                             - threshold
 %         .hard_limited  - Logical; if true, a hard-limited constraint (as in [5, Eq.24])
-%                          is applied (using a placeholder large value in case of too-small noise).
+%                          is applied (using a placeholder large value in
+%                          case of too-small noise). The adaptive_config
+%                          struct should present a threshold when this
+%                          option is selected as true.
 %                          
 %
 %   online_mdl_learning_cfg - struct with settings for the online model.
@@ -117,17 +119,28 @@ function [state_estimates, error_covariance_estimates] = get_kalman_pll_estimate
     N = size(received_signal, 1);
     state_estimates = zeros(N, numel(initial_estimates.x_hat_init));
     error_covariance_estimates = zeros(N, size(initial_estimates.P_hat_init,1), size(initial_estimates.P_hat_init,2));
-    
+    L1_c_over_n0_linear_estimates = NaN(N, 1);
+
     % Initialize estimates.
     x_hat_project_ahead = initial_estimates.x_hat_init;
     P_hat_project_ahead = initial_estimates.P_hat_init;
     
+    if adaptive_config.hard_limited
+        threshold = adaptive_config.threshold;
+    end
+
     % If the simplified adaptive algorithm is chosen, compute baseline parameters.
     if strcmpi(adaptive_config.algorithm, 'simplified')
-        baseline_L1_c_over_N0_dBHz = adaptive_config.L1_C_over_N0_dBHz;
-        baseline_L1_c_over_n0_linear = 10^(baseline_L1_c_over_N0_dBHz / 10);
+        baseline_L1_C_over_N0_dBHz = adaptive_config.L1_C_over_N0_dBHz;
+        baseline_L1_c_over_n0_linear = 10^(baseline_L1_C_over_N0_dBHz / 10);
         sampling_interval = adaptive_config.sampling_interval;
-        threshold = adaptive_config.threshold;
+    end
+    if strcmpi(adaptive_config.algorithm, 'nwpr')
+        window_size_adaptive_module = adaptive_config.window_size;
+        sampling_interval = adaptive_config.sampling_interval;
+        alpha = adaptive_config.alpha;
+        z_vec = received_signal(1:window_size_adaptive_module);
+        mu_hat_previous = 10;
     end
     
     %% Main filtering loop.
@@ -138,18 +151,34 @@ function [state_estimates, error_covariance_estimates] = get_kalman_pll_estimate
                 adapt_R = R;
             elseif strcmpi(adaptive_config.algorithm, 'simplified')
                 current_intensity = abs(received_signal(step-1,1))^2;
-                estimated_L1_c_over_n0_linear = baseline_L1_c_over_n0_linear * current_intensity;
+                estimated_L1_c_over_n0_linear = current_intensity * baseline_L1_c_over_n0_linear;
                 phase_noise_variance = (1/(2 * estimated_L1_c_over_n0_linear * sampling_interval)) * ...
                                        (1 + (1/(2 * estimated_L1_c_over_n0_linear * sampling_interval)));
                 adapt_R = phase_noise_variance;
-                % Apply hard-limited constraint if enabled.
-                if adaptive_config.hard_limited
-                    if (10 * log10(estimated_L1_c_over_n0_linear) < threshold)
-                        adapt_R = 1e6;
-                    end
-                end
+                
+                % Store the estimate
+                L1_c_over_n0_linear_estimates(step,1) = estimated_L1_c_over_n0_linear;
+            elseif strcmpi(adaptive_config.algorithm, 'nwpr')
+                NBP = abs(sum(z_vec))^2;
+                WBP = sum(abs(z_vec).^2);
+                mu_hat_actual = alpha * (NBP / WBP) + (1 - alpha) * mu_hat_previous;
+                estimated_L1_c_over_n0_linear = (1/sampling_interval) * ((mu_hat_actual - 1) / (window_size_adaptive_module - mu_hat_previous));
+                phase_noise_variance = (1/(2 * estimated_L1_c_over_n0_linear * sampling_interval)) * ...
+                                       (1 + (1/(2 * estimated_L1_c_over_n0_linear * sampling_interval)));
+                adapt_R = phase_noise_variance;
+
+                % Update
+                mu_hat_previous = mu_hat_actual;
+                z_vec = [z_vec(2:end); received_signal(step-1,1)];
+                L1_c_over_n0_linear_estimates(step,1) = estimated_L1_c_over_n0_linear;
             else
                 adapt_R = R;
+            end
+            % Apply hard-limited constraint if enabled.
+            if adaptive_config.hard_limited
+                if (10 * log10(estimated_L1_c_over_n0_linear) < threshold)
+                    adapt_R = 1e6;
+                end
             end
             if online_mdl_learning_cfg.is_online
                 [F, Q, W] = update_filter_matrices(F, Q, W, step, state_estimates, online_mdl_learning_cfg, kalman_pll_config.(training_scint_model).augmentation_model_initializer);
@@ -215,21 +244,26 @@ function validate_adaptive_config(adaptive_config)
     if ~isfield(adaptive_config, 'hard_limited')
         error('get_kalman_pll_estimates:missing_field', 'adaptive_config must have field "hard_limited".');
     end
-    valid_algos = {'simplified', 'NWBP', 'none'};
+    valid_algos = {'simplified', 'nwpr', 'none'};
     if ~any(strcmpi(adaptive_config.algorithm, valid_algos))
         error('get_kalman_pll_estimates:invalid_algorithm', 'Invalid adaptive algorithm. Allowed values: %s.', strjoin(valid_algos, ', '));
-    end
-    if strcmpi(adaptive_config.algorithm, 'NWBP')
-        error('get_kalman_pll_estimates:not_implemented', 'The NWBP adaptive algorithm is not implemented in this version.');
     end
     if ~(islogical(adaptive_config.hard_limited) || isnumeric(adaptive_config.hard_limited))
         error('get_kalman_pll_estimates:invalid_hard_limited', 'adaptive_config.hard_limited must be a logical value.');
     end
     if strcmpi(adaptive_config.algorithm, 'simplified')
-        required_fields = {'L1_C_over_N0_dBHz', 'sampling_interval', 'threshold'};
+        required_fields = {'L1_C_over_N0_dBHz', 'sampling_interval'};
         for i = 1:length(required_fields)
             if ~isfield(adaptive_config, required_fields{i})
                 error('get_kalman_pll_estimates:missing_field', 'adaptive_config must have field "%s" when using the simplified algorithm.', required_fields{i});
+            end
+        end
+    end
+    if strcmpi(adaptive_config.algorithm, 'nwpr')
+        required_fields = {'alpha', 'window_size', 'sampling_interval'};
+        for i = 1:length(required_fields)
+            if ~isfield(adaptive_config, required_fields{i})
+                error('get_kalman_pll_estimates:missing_field', 'adaptive_config must have field "%s" when using the nwpr algorithm.', required_fields{i});
             end
         end
     end

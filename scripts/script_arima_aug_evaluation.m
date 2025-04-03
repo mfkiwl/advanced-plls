@@ -37,7 +37,7 @@ rng(seed);
 %% Generating the received signal for CSM and TPPSM under severe scintillation scenarios
 doppler_profile = [0, 1000, 0.94];
 sampling_interval = 0.01; % 100 Hz
-L1_C_over_N0_dBHz = 30;
+L1_C_over_N0_dBHz = 42;
 simulation_time = 300;
 S4 = 0.8;
 tau0 = 0.5;
@@ -67,10 +67,10 @@ training_data_config_tppsm = struct('scintillation_model', 'TPPSM', ...
                                     'sampling_interval', sampling_interval, ...
                                     'is_unwrapping_used', is_unwrapping_used);
 % Here, we used the same noise variance as used in [1, Section V; Subsection A]
-process_noise_variance_los = 0;%1e-12; 
-arima_p = 12;
+process_noise_variance_los = 1e-1; 
+arima_p = 3;
 arima_D = 1;
-arima_q = 5;
+arima_q = 2;
 general_config_csm = struct( ...
   'discrete_wiener_model_config', { {1, 3, 0.01, [0, 0, process_noise_variance_los], 1} }, ...
   'scintillation_training_data_config', training_data_config_csm, ...
@@ -85,7 +85,6 @@ general_config_csm = struct( ...
 general_config_tppsm = general_config_csm;
 general_config_tppsm.scintillation_training_data_config = training_data_config_tppsm;
 
-
 is_enable_cmd_print = true;
 
 [~, init_estimates_csm] = get_kalman_pll_config(general_config_csm, cache_dir, is_enable_cmd_print);
@@ -93,34 +92,40 @@ is_enable_cmd_print = true;
 
 %% Define adaptive configuration structures
 
-adaptive_cfg = struct('algorithm', 'none', 'hard_limited', false);
+adaptive_cfg = struct('algorithm', 'nwpr', 'alpha', 0.95, 'window_size', 25, 'sampling_interval', sampling_interval, 'hard_limited', false);
+%adaptive_cfg = struct('algorithm', 'simplified', 'L1_C_over_N0_dBHz', L1_C_over_N0_dBHz, 'sampling_interval', sampling_interval, 'hard_limited', false);
 
 %% Online model learning configuration
 
 online_mdl_learning_cfg = struct('is_online', false);
 
 %% Obtain state estimates for CSM
-[kf_arima_csm, error_covariance_csm] = get_kalman_pll_estimates(rx_sig_csm, kf_cfg, init_estimates_csm, 'CSM', adaptive_cfg, online_mdl_learning_cfg);
-[kf_arima_tppsm, error_covariance_tppsm] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates_tppsm, 'TPPSM', adaptive_cfg, online_mdl_learning_cfg);
+%[kf_arima_csm, error_covariance_csm] = get_kalman_pll_estimates(rx_sig_csm, kf_cfg, init_estimates_csm, 'CSM', adaptive_cfg, online_mdl_learning_cfg);
+[kf_arima_tppsm, error_covariance_tppsm, L1_c_over_n0_linear_estimates_tppsm] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates_tppsm, 'TPPSM', adaptive_cfg, online_mdl_learning_cfg);
 
 time_vector = sampling_interval:sampling_interval:simulation_time;
 
-arima_est_csm = kf_arima_csm(:,4) + kf_arima_csm(:,5);
-arima_est_tppsm = kf_arima_tppsm(:,4) + kf_arima_tppsm(:,5);
+% arima_est_csm = kf_arima_csm(:,4) + kf_arima_csm(:,5);
+% arima_est_tppsm = kf_arima_tppsm(:,4) + kf_arima_tppsm(:,5);
+% figure;
+% subplot(2,1,1);
+% plot(time_vector, [kf_arima_csm(:,1) - los_phase, arima_est_csm,kf_arima_csm(:,1) + arima_est_csm - los_phase, unwrap(angle(psi_csm))]);
+% legend({'LOS Phase error ', 'ARIMA Phase', 'Joint Phase Error', 'Unwrapped True Scint Phase'});
+% subplot(2,1,2);
+% plot(time_vector, [kf_arima_tppsm(:,1) - los_phase, arima_est_tppsm, kf_arima_tppsm(:,1) + arima_est_tppsm - los_phase, unwrap(angle(psi_tppsm)), refractive_phase_settled]);
+% legend({'LOS Phase Error', 'ARIMA Phase', 'Joint Phase Error', 'Unwrapped Scint phase', 'Refractive Phase'});
+% 
+% 
+% trace_ts = zeros(size(error_covariance_tppsm,1),1);
+% for i = 1:size(error_covariance_tppsm,1)
+%     trace_ts(i) = trace(squeeze(error_covariance_tppsm(i,:,:)));
+% end
+% 
+% figure;
+% 
+% plot(time_vector, trace_ts);
+
+L1_C_over_N0_dbhz_estimates_tppsm = 10*log10(L1_c_over_n0_linear_estimates_tppsm);
+true_carrier_to_noise_ratio_dbhz = 10*log10(abs(rx_sig_tppsm).^2) + L1_C_over_N0_dBHz;
 figure;
-subplot(2,1,1);
-plot(time_vector, [kf_arima_csm(:,1) - los_phase, arima_est_csm,kf_arima_csm(:,1) + arima_est_csm - los_phase, angle(psi_csm)]);
-legend({'LOS Phase error ', 'ARIMA Phase', 'Joint Phase Error', 'Unwrapped True Scint Phase'});
-subplot(2,1,2);
-plot(time_vector, [kf_arima_tppsm(:,1) - los_phase, arima_est_tppsm, kf_arima_tppsm(:,1) + arima_est_tppsm - los_phase, unwrap(angle(psi_tppsm)), refractive_phase_settled]);
-legend({'LOS Phase Error', 'ARIMA Phase', 'Joint Phase Error', 'Unwrapped Scint phase', 'Refractive Phase'});
-
-
-trace_ts = zeros(size(error_covariance_tppsm,1),1);
-for i = 1:size(error_covariance_tppsm,1)
-    trace_ts(i) = trace(squeeze(error_covariance_tppsm(i,:,:)));
-end
-
-figure;
-
-plot(time_vector, trace_ts);
+plot(time_vector, [true_carrier_to_noise_ratio_dbhz,L1_C_over_N0_dbhz_estimates_tppsm]);
