@@ -48,8 +48,12 @@ is_enable_cmd_print = true;
 [kf_cfg, init_estimates] = get_kalman_pll_config(general_config, cache_dir, is_enable_cmd_print);
 
 %% Define adaptive configuration structures
+adaptive_config_KF_std = struct(...
+    'measurement_cov_adapt_algorithm', 'none', ...
+    'states_cov_adapt_algorithm', 'none', ...
+    'sampling_interval', sampling_interval, ...
+    'hard_limited', struct('is_used', false));
 
-adaptive_config_KF_std = struct('algorithm', 'none', 'hard_limited', false);
 %% Online model learning configuration
 
 % Rodrigo's Heuristics: 

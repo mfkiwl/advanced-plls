@@ -1,10 +1,11 @@
 function [state_estimates, error_covariance_estimates, L1_c_over_n0_linear_estimates] = get_kalman_pll_estimates(received_signal, kalman_pll_config, initial_estimates, training_scint_model, adaptive_config, online_mdl_learning_cfg)
 % get_kalman_pll_estimates
+%
 % Generates Kalman filter state and error covariance estimates based on the
 % received signal and the provided Kalman PLL configuration.
 %
 % Syntax:
-%   [state_estimates, error_covariance_estimates] = get_kalman_pll_estimates(received_signal, kalman_pll_config, initial_estimates, training_scint_model, adaptive_config)
+%   [state_estimates, error_covariance_estimates] = get_kalman_pll_estimates(received_signal, kalman_pll_config, initial_estimates, training_scint_model, adaptive_config, online_mdl_learning_cfg)
 %
 % Description:
 %   This function applies the Kalman filter algorithm iteratively to the
@@ -13,19 +14,53 @@ function [state_estimates, error_covariance_estimates, L1_c_over_n0_linear_estim
 %   kalman_pll_config corresponding to the given training_scint_model.
 %
 %   The training_scint_model parameter can be one of:
-%     'CSM'      - Carrier Scintillation Model with AR augmentation.
-%     'TPPSM'    - TPPSM model with AR augmentation.
-%     'none'     - Standard KF (no AR model augmentation).
+%     'CSM'      - Use Augmentation Model trained with the Cornell 
+%                  Scintillation Model (CSM).
+%     'TPPSM'    - Use Augmentation Model trained with the Two Component 
+%                  Power Law Phase Screen Model (TPPSM).
+%     'none'     - No augmentation model).
 %
 %   In addition, an adaptive configuration is applied based on the provided
-%   adaptive_config struct. The allowed options for adaptive_config.algorithm are:
-%      'simplified' - Applies a simplified adaptive update (see placeholder below).
-%      'nwpr'       - Not implemented (an error is thrown if chosen).
-%      'none'       - No adaptive update is applied (i.e. R is used directly).
+%   adaptive_config struct. The adaptive configuration is organized into several
+%   parts:
 %
-%   Note: If the 'simplified' option is chosen, and adaptive_config.algorithm is
-%         not 'none', then the fields L1_C_over_N0_dBHz, sampling_interval, and threshold
-%         must be provided.
+%   1. Measurement Covariance Adaptation:
+%      - Field: measurement_cov_adapt_algorithm
+%        Allowed values: {'none', 'simplified', 'nwpr'}.
+%          * 'none': No adaptive update is applied (the measurement noise covariance R is used directly).
+%          * 'simplified': A simplified adaptive update is applied using the estimated carrier-to-noise ratio.
+%              In this case, the field measurement_cov_adapt_algorithm_params must be provided as a struct
+%              containing at least:
+%                  - L1_C_over_N0_dBHz : double value representing the estimated carrier-to-noise ratio.
+%          * 'nwpr': A NWPR-based update is used. When selected, measurement_cov_adapt_algorithm_params must include
+%              additional fields, e.g., 'N_nwpr', 'M_nwpr' (both doubles).
+%
+%   2. State Covariance Adaptation:
+%      - Field: states_cov_adapt_algorithm
+%        Allowed values: {'none', 'matching', 'self_adaptive'}.
+%          * 'none': No state covariance adaptation is applied.
+%          * 'matching': An adaptive update using the covariance matching method is applied.
+%              In this case, the field states_cov_adapt_algorithm_params must be provided with:
+%                  - method     : string, either 'IAE' or 'RAE'.
+%                  - N_nwpr: double value.
+%                  - M_nwpr: double value
+%          * 'self_adaptive': A self-adaptive update is applied.
+%              Then, states_cov_adapt_algorithm_params must include:
+%                  - init_meas_cov   : initial measurement covariance.
+%                  - init_states_cov : initial states covariance.
+%                  - sigma_threshold : a threshold parameter.
+%
+%   3. Global Sampling Interval:
+%      - Field: sampling_interval (double)
+%        This field is used consistently across both measurement and state adaptations.
+%
+%   4. Hard Limiting:
+%      - Field: hard_limited (struct)
+%        This struct must contain:
+%                  - is_used: logical scalar indicating if hard limiting is enabled.
+%                  - L1_C_over_N0_dBHz_threshold: double scalar threshold value.
+%        Note: If hard limiting (hard_limited.is_used is true) is enabled, then a measurement
+%        covariance adaptation algorithm must be specified (i.e., measurement_cov_adapt_algorithm must not be 'none').
 %
 % Inputs:
 %   received_signal      - Numeric 2D array (NxM) representing the received signal.
@@ -37,34 +72,30 @@ function [state_estimates, error_covariance_estimates, L1_c_over_n0_linear_estim
 %                              P_hat_init: Numeric square matrix (initial error covariance)
 %   training_scint_model - A string with the name of the scintillation model used to
 %                          train the AR model. Options: {'CSM', 'TPPSM', 'none'}.
-%   adaptive_config      - A Struct with adaptive configuration options for the
-%                          Kalman filter algorithm. It must have the fields:
-%         .algorithm     - {'simplified','nwpr','none'}. If 'simplified', a simplified adaptive
-%                          update is applied (using a placeholder based on [3, Equation 64]).
-%                          -> If 'nwpr' is selected, an error is thrown (not yet implemented).
-%                          -> If 'none' is selected, no adaptation is performed.
-%                          -> When algorithm is 'simplified', adaptive_config struct must also have:
-%                             - L1_C_over_N0_dBHz
-%                             - sampling_interval
-%         .hard_limited  - Logical; if true, a hard-limited constraint (as in [5, Eq.24])
-%                          is applied (using a placeholder large value in
-%                          case of too-small noise). The adaptive_config
-%                          struct should present a threshold when this
-%                          option is selected as true.
-%                          
+%   adaptive_config      - A struct with adaptive configuration options for the Kalman filter.
+%                          It must include the following fields:
+%         .measurement_cov_adapt_algorithm
+%             - Allowed values: {'none','simplified','nwpr'}.
+%             - If not 'none', then the field measurement_cov_adapt_algorithm_params must be provided,
+%               containing the required parameters (see above).
+%         .states_cov_adapt_algorithm
+%             - Allowed values: {'none','matching','self_adaptive'}.
+%             - If not 'none', then the field states_cov_adapt_algorithm_params must be provided,
+%               containing the required parameters (see above).
+%         .sampling_interval
+%             - A double specifying the global sampling interval.
+%         .hard_limited
+%             - A struct with the fields:
+%                  is_used (logical) and L1_C_over_N0_dBHz_threshold (double).
 %
-%   online_mdl_learning_cfg - struct with settings for the online model.
-%       'is_online': Boolean flag that determines if the simulations
-%           will use online augmentation model learning or not. 
-%       for AR augmentation models ('arfit', 'aryule'):
-%        'learning_method': string or char with one of the
-%              following types of learning methods: {sliding_window, block_window, kalman}
-%        'window_size' (optional): Window sizes of the
-%              `sliding_window` or `block_window` methods.
-%        'kalman_cfg' (optional): Kalman configuration for the online AR
-%              model parameter estimation
-%       for RBF augmentation model ('rbf'):
-%        'rbf_cfg': RBF network configuration for online model learning.
+%   online_mdl_learning_cfg - Struct with settings for the online model learning:
+%       'is_online': Boolean flag that determines if online augmentation model learning is used.
+%       For AR augmentation models ('arfit', 'aryule'):
+%         'learning_method': String with one of the following methods: {'sliding_window', 'block_window', 'kalman'}.
+%         'window_size' (optional): Window size for the chosen method.
+%         'kalman_cfg' (optional): Kalman configuration for the online AR model parameter estimation.
+%       For RBF augmentation model ('rbf'):
+%         'rbf_cfg': RBF network configuration for online model learning.
 %
 % Outputs:
 %   state_estimates            - Numeric matrix of state estimates. Each row corresponds
@@ -125,31 +156,39 @@ function [state_estimates, error_covariance_estimates, L1_c_over_n0_linear_estim
     x_hat_project_ahead = initial_estimates.x_hat_init;
     P_hat_project_ahead = initial_estimates.P_hat_init;
     
-    if adaptive_config.hard_limited
-        threshold = adaptive_config.threshold;
+    if adaptive_config.hard_limited.is_used
+        threshold = adaptive_config.hard_limited.L1_C_over_N0_dBHz_threshold;
     end
 
     % If the simplified adaptive algorithm is chosen, compute baseline parameters.
-    if strcmpi(adaptive_config.algorithm, 'simplified')
-        baseline_L1_C_over_N0_dBHz = adaptive_config.L1_C_over_N0_dBHz;
+    if strcmpi(adaptive_config.measurement_cov_adapt_algorithm, 'simplified')
+        baseline_L1_C_over_N0_dBHz = adaptive_config.measurement_cov_adapt_algorithm_params.L1_C_over_N0_dBHz;
         baseline_L1_c_over_n0_linear = 10^(baseline_L1_C_over_N0_dBHz / 10);
         sampling_interval = adaptive_config.sampling_interval;
     end
-    if strcmpi(adaptive_config.algorithm, 'nwpr')
-        window_size_adaptive_module = adaptive_config.window_size;
+    if strcmpi(adaptive_config.measurement_cov_adapt_algorithm, 'nwpr')
+        N_nwpr = adaptive_config.measurement_cov_adapt_algorithm_params.N_nwpr;
+        M_nwpr = adaptive_config.measurement_cov_adapt_algorithm_params.M_nwpr;
         sampling_interval = adaptive_config.sampling_interval;
-        alpha = adaptive_config.alpha;
-        z_vec = received_signal(1:window_size_adaptive_module);
-        mu_hat_previous = 10;
+        z_vec = received_signal(1:M_nwpr);
+
+        % Compute NP for the initial window:
+        NBP = (sum(real(z_vec)))^2 + (sum(imag(z_vec)))^2;
+        WBP = sum(abs(z_vec).^2);
+        current_NP = NBP / WBP;
+        vec_size = N_nwpr / M_nwpr;
+        % Initialize NP_vec by filling it with the computed current_NP value:
+        NP_vec = repmat(current_NP, vec_size, 1);
+        NP_array = zeros(N,1);
     end
     
     %% Main filtering loop.
     for step = 1:N
         if step > 1
             % Determine the measurement noise covariance adapt_R.
-            if strcmpi(adaptive_config.algorithm, 'none')
+            if strcmpi(adaptive_config.measurement_cov_adapt_algorithm, 'none')
                 adapt_R = R;
-            elseif strcmpi(adaptive_config.algorithm, 'simplified')
+            elseif strcmpi(adaptive_config.measurement_cov_adapt_algorithm, 'simplified')
                 current_intensity = abs(received_signal(step-1,1))^2;
                 estimated_L1_c_over_n0_linear = current_intensity * baseline_L1_c_over_n0_linear;
                 phase_noise_variance = (1/(2 * estimated_L1_c_over_n0_linear * sampling_interval)) * ...
@@ -158,24 +197,28 @@ function [state_estimates, error_covariance_estimates, L1_c_over_n0_linear_estim
                 
                 % Store the estimate
                 L1_c_over_n0_linear_estimates(step,1) = estimated_L1_c_over_n0_linear;
-            elseif strcmpi(adaptive_config.algorithm, 'nwpr')
-                NBP = abs(sum(z_vec))^2;
+            elseif strcmpi(adaptive_config.measurement_cov_adapt_algorithm, 'nwpr')
+                NBP = (sum(real(z_vec)))^2 + (sum(imag(z_vec)))^2;
                 WBP = sum(abs(z_vec).^2);
-                mu_hat_actual = alpha * (NBP / WBP) + (1 - alpha) * mu_hat_previous;
-                estimated_L1_c_over_n0_linear = (1/sampling_interval) * ((mu_hat_actual - 1) / (window_size_adaptive_module - mu_hat_previous));
+
+                NP = NBP / WBP;
+                NP_vec = [NP; NP_vec(1:end-1)];
+                mu_hat = (M_nwpr / N_nwpr)  * sum(NP_vec);
+                estimated_L1_c_over_n0_linear = (1/sampling_interval) * (mu_hat) / (M_nwpr - mu_hat);
+
                 phase_noise_variance = (1/(2 * estimated_L1_c_over_n0_linear * sampling_interval)) * ...
                                        (1 + (1/(2 * estimated_L1_c_over_n0_linear * sampling_interval)));
                 adapt_R = phase_noise_variance;
 
                 % Update
-                mu_hat_previous = mu_hat_actual;
-                z_vec = [z_vec(2:end); received_signal(step-1,1)];
+                z_vec = [received_signal(step-1,1) * exp(-1j * H * x_hat_project_ahead); z_vec(1:end-1)];
+                NP_array(step,1) = NP;
                 L1_c_over_n0_linear_estimates(step,1) = estimated_L1_c_over_n0_linear;
             else
                 adapt_R = R;
             end
             % Apply hard-limited constraint if enabled.
-            if adaptive_config.hard_limited
+            if adaptive_config.hard_limited.is_used
                 if (10 * log10(estimated_L1_c_over_n0_linear) < threshold)
                     adapt_R = 1e6;
                 end
@@ -238,33 +281,97 @@ end
 
 function validate_adaptive_config(adaptive_config)
     validateattributes(adaptive_config, {'struct'}, {'nonempty'}, mfilename, 'adaptive_config');
-    if ~isfield(adaptive_config, 'algorithm')
-        error('get_kalman_pll_estimates:missing_field', 'adaptive_config must have field "algorithm".');
-    end
-    if ~isfield(adaptive_config, 'hard_limited')
-        error('get_kalman_pll_estimates:missing_field', 'adaptive_config must have field "hard_limited".');
-    end
-    valid_algos = {'simplified', 'nwpr', 'none'};
-    if ~any(strcmpi(adaptive_config.algorithm, valid_algos))
-        error('get_kalman_pll_estimates:invalid_algorithm', 'Invalid adaptive algorithm. Allowed values: %s.', strjoin(valid_algos, ', '));
-    end
-    if ~(islogical(adaptive_config.hard_limited) || isnumeric(adaptive_config.hard_limited))
-        error('get_kalman_pll_estimates:invalid_hard_limited', 'adaptive_config.hard_limited must be a logical value.');
-    end
-    if strcmpi(adaptive_config.algorithm, 'simplified')
-        required_fields = {'L1_C_over_N0_dBHz', 'sampling_interval'};
-        for i = 1:length(required_fields)
-            if ~isfield(adaptive_config, required_fields{i})
-                error('get_kalman_pll_estimates:missing_field', 'adaptive_config must have field "%s" when using the simplified algorithm.', required_fields{i});
-            end
+
+    % Required main fields
+    required_main_fields = {'measurement_cov_adapt_algorithm', 'states_cov_adapt_algorithm', 'sampling_interval', 'hard_limited'};
+    for i = 1:numel(required_main_fields)
+        if ~isfield(adaptive_config, required_main_fields{i})
+            error('validate_adaptive_config:missing_field', ...
+                  'adaptive_config must contain the field "%s".', required_main_fields{i});
         end
     end
-    if strcmpi(adaptive_config.algorithm, 'nwpr')
-        required_fields = {'alpha', 'window_size', 'sampling_interval'};
-        for i = 1:length(required_fields)
-            if ~isfield(adaptive_config, required_fields{i})
-                error('get_kalman_pll_estimates:missing_field', 'adaptive_config must have field "%s" when using the nwpr algorithm.', required_fields{i});
-            end
+
+    % Validate sampling_interval
+    validateattributes(adaptive_config.sampling_interval, {'numeric'}, {'scalar', 'positive'}, ...
+                       mfilename, 'adaptive_config.sampling_interval');
+
+    % Validate hard_limited
+    hl = adaptive_config.hard_limited;
+    validateattributes(hl, {'struct'}, {'nonempty'}, mfilename, 'adaptive_config.hard_limited');
+    if ~isfield(hl,'is_used')
+        error('validate_adaptive_config:missing_hard_limited_field', ...
+                  'hard_limited must have field "%s".', 'is_used');
+    end
+    validateattributes(hl.is_used, {'logical', 'numeric'}, {'scalar'}, mfilename, 'hard_limited.is_used');
+    if hl.is_used
+        if ~isfield(hl, 'L1_C_over_N0_dBHz_threshold')
+            error('validate_adaptive_config:missing_hard_limited_field', ...
+                  'hard_limited must have field "%s".', 'L1_C_over_N0_dBHz_threshold');
+        end
+        validateattributes(hl.L1_C_over_N0_dBHz_threshold, {'numeric'}, {'scalar'}, ...
+                       mfilename, 'hard_limited.L1_C_over_N0_dBHz_threshold');
+    end
+    
+    % Validate measurement_cov_adapt_algorithm
+    valid_meas_algos = {'none', 'simplified', 'nwpr'};
+    algo = adaptive_config.measurement_cov_adapt_algorithm;
+    assert(any(strcmpi(algo, valid_meas_algos)), ...
+        'validate_adaptive_config:invalid_algorithm', ...
+        'Invalid measurement_cov_adapt_algorithm. Allowed values are: %s', strjoin(valid_meas_algos, ', '));
+
+    if hl.is_used && strcmpi(algo, 'none')
+        error('validate_adaptive_config:hard_limited_without_adaptive', ...
+              ['The Hard limited option should only be configured to be used ' ...
+              'when a measurement covariance algorithm is also used.'])
+    end
+    if ~strcmpi(algo, 'none')
+        if ~isfield(adaptive_config, 'measurement_cov_adapt_algorithm_params')
+            error('validate_adaptive_config:missing_field', ...
+                  'Field "measurement_cov_adapt_algorithm_params" is required for algorithm "%s".', algo);
+        end
+        p = adaptive_config.measurement_cov_adapt_algorithm_params;
+        validateattributes(p, {'struct'}, {'nonempty'}, mfilename, 'measurement_cov_adapt_algorithm_params');
+        % Shared required fields
+        base_fields = {'L1_C_over_N0_dBHz'};
+        if strcmpi(algo, 'simplified')
+            check_fields(p, base_fields, 'measurement_cov_adapt_algorithm_params');
+        elseif strcmpi(algo, 'nwpr')
+            extra_fields = {'N_nwpr','M_nwpr'};
+            check_fields(p, [base_fields, extra_fields], 'measurement_cov_adapt_algorithm_params');
+        end
+    end
+
+    % Validate states_cov_adapt_algorithm
+    valid_states_algos = {'none', 'matching', 'self_adaptive'};
+    s_algo = adaptive_config.states_cov_adapt_algorithm;
+    assert(any(strcmpi(s_algo, valid_states_algos)), ...
+        'validate_adaptive_config:invalid_states_algorithm', ...
+        'Invalid states_cov_adapt_algorithm. Allowed values are: %s', strjoin(valid_states_algos, ', '));
+
+    if strcmpi(s_algo, 'matching')
+        if ~isfield(adaptive_config, 'states_cov_adapt_algorithm_params')
+            error('validate_adaptive_config:missing_field', ...
+                  'Field "states_cov_adapt_algorithm_params" is required for algorithm "%s".', s_algo);
+        end
+        p = adaptive_config.states_cov_adapt_algorithm_params;
+        required_fields = {'method', 'window_size'};
+        check_fields(p, required_fields, 'states_cov_adapt_algorithm_params');
+        if ~any(strcmpi(p.method, {'IAE', 'RAE'}))
+            error('validate_adaptive_config:invalid_method', ...
+                  'Invalid method in states_cov_adapt_algorithm_params. Must be either "IAE" or "RAE".');
+        end
+    elseif strcmpi(s_algo, 'self_adaptive')
+        required_fields = {'init_meas_cov', 'init_states_cov', 'sigma_threshold'};
+        p = adaptive_config.states_cov_adapt_algorithm_params;
+        check_fields(p, required_fields, 'states_cov_adapt_algorithm_params');
+    end
+end
+
+function check_fields(structure, field_list, context)
+    for i = 1:numel(field_list)
+        if ~isfield(structure, field_list{i})
+            error('validate_adaptive_config:missing_field', ...
+                  '%s must contain the field "%s".', context, field_list{i});
         end
     end
 end
