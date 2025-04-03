@@ -46,10 +46,11 @@ kalman_pll_testbench/
 │       ├── cornell_scintillation_model/
 │       └── refactored_tppsm/
 ├── scripts/                   # Additional scripts for simulations and tests
+├── run_all_tests.m            # Script that run all tests.
 └── README.md                  # This file
 ```
-*Note*: The actual file structure includes many internal Git folders (e.g., .git/modules/) and additional files. The above tree represents the primary directories you will interact with.
-
+*Note 1*: The actual file structure includes many internal Git folders (e.g., .git/modules/) and additional files. The above tree represents the primary directories you will interact with.
+*Note 2*: After correctly cloning the repository, it is recommended to run the script `run_all_tests.m` to confirm the right behavior of all functions available in this branch.
 ## Project Requirements
 - MATLAB R2024b or newer: The project is developed and tested using MATLAB R2024b.
 - Git: Used for version control and managing submodules.
