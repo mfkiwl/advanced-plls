@@ -1,0 +1,82 @@
+% script_evaluate_adaptive_models
+%
+% Description:
+%
+%  Author: Rodrigo de Lima Florindo
+%  ORCID: https://orcid.org/0000-0003-0412-5583
+%  Email: rdlfresearch@gmail.com
+
+clearvars; clc;
+
+addpath(genpath(fullfile(pwd, '..', 'libs')));
+
+% Main seed for generating the received signal and the training data set.
+seed = 4;
+rng(seed);
+
+%% Generating the received signal for the TPPSM
+doppler_profile = [0, 1000, 0.94]; % Synthetic Doppler profile
+sampling_interval = 0.01; % 100 Hz
+L1_C_over_N0_dBHz = 40;
+simulation_time = 300;
+settling_time = sampling_interval;
+
+[rx_sig_tppsm, ~, psi_tppsm, diffractive_phase_tppsm, refractive_phase_settled] = get_received_signal(L1_C_over_N0_dBHz, 'TPPSM', doppler_profile, ...
+    'tppsm_scenario', 'Severe', 'simulation_time', simulation_time, 'settling_time', settling_time, 'is_refractive_effects_removed', is_refractive_effects_removed_received_signal);
+
+%% Generating KF-AR configurations and obtaining initial estimates
+cache_dir = fullfile(fileparts(mfilename('fullpath')), 'cache');
+
+is_refractive_effects_removed_training_data = false;
+is_unwrapping_used = true;
+training_data_config_tppsm = struct('scintillation_model', 'none');
+
+process_noise_variance_los = 2.6*1e-4; 
+general_config = struct( ...
+  'discrete_wiener_model_config', { {1, 3, 0.01, [0, 0, process_noise_variance_los], 1} }, ...
+  'scintillation_training_data_config', training_data_config_csm, ...
+  'C_over_N0_array_dBHz', L1_C_over_N0_dBHz, ...
+  'initial_states_distributions_boundaries', { {[-pi, pi], [-5, 5], [-0.01, 0.01]} }, ...
+  'real_doppler_profile', doppler_profile, ...
+  'augmentation_model_initializer', struct('id', 'none'), ...
+  'is_use_cached_settings', false, ...
+  'is_generate_random_initial_estimates', true, ...
+  'is_enable_cmd_print', false ...
+);
+
+is_enable_cmd_print = true;
+
+[kf_cfg, init_estimates] = get_kalman_pll_config(general_config, cache_dir, is_enable_cmd_print);
+
+%% Adaptive configurations to be evaluated
+% NOTE: Hard limited is not considered for now.
+
+hard_limited_flag = false;
+% Not adaptive
+adaptive_cfg_nonadaptive = struct('measurement_cov_adapt_algorithm', 'none', 'states_cov_adapt_algorithm', 'none', 'hard_limited', hard_limited_flag);
+
+% Adapt only the measurements covariance matrix using the estimated
+% carrier-to-noise ratio.
+adaptive_cfg_simplified = struct('measurement_cov_adapt_algorithm', 'simplified', 'states_cov_adapt_algorithm', 'none', 'hard_limited', hard_limited_flag);
+adaptive_cfg_nwpr = struct('measurement_cov_adapt_algorithm', 'nwpr', 'states_cov_adapt_algorithm', 'none', 'hard_limited', hard_limited_flag);
+
+% Adapt both the measurements and the states covaraince matrices.
+% NOTE: I need to change the expected struct format to:
+% struct('measurement_cov_adapt_algorithm', '<Name>',
+% 'states_cov_adapt_algorithm', '<name>', 'adapt_module_parameters', struct(...), 'hard_limited', <boolean>);
+adaptive_cfg_nwpr_matching = struct('measurement_cov_adapt_algorithm', 'nwpr', 'states_cov_adapt_algorithm', 'matching', 'hard_limited', hard_limited_flag);
+adaptive_cfg_nwpr_self_adapting = struct('measurement_cov_adapt_algorithm', 'nwpr', 'states_cov_adapt_algorithm', 'self_adapting', 'hard_limited', hard_limited_flag);
+
+%% Online model learning configuration
+% NOTE: Not applicable in this case, given that no augmentation model is
+% being used. Thus, its `ìs_online` flag is configured as false.
+
+online_mdl_learning_cfg = struct('is_online', false);
+
+[kf, error_cov] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates, 'none', adaptive_cfg_nonadaptive, online_mdl_learning_cfg);
+[kf_simplified, error_cov_simplified] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates, 'none', adaptive_cfg_simplified, online_mdl_learning_cfg);
+[kf_nwpr, error_cov_nwpr] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates, 'none', adaptive_cfg_nwpr, online_mdl_learning_cfg);
+[kf_nwpr_matching, error_cov_nwpr_matching] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates, 'none', adaptive_cfg_nwpr_matching, online_mdl_learning_cfg);
+[kf_nwpr_self_adapting, error_cov_nwpr_self_adapting] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates, 'none', adaptive_cfg_nwpr_self_adapting, online_mdl_learning_cfg);
+
+
