@@ -332,12 +332,11 @@ function validate_adaptive_config(adaptive_config)
         p = adaptive_config.measurement_cov_adapt_algorithm_params;
         validateattributes(p, {'struct'}, {'nonempty'}, mfilename, 'measurement_cov_adapt_algorithm_params');
         % Shared required fields
-        base_fields = {'L1_C_over_N0_dBHz'};
         if strcmpi(algo, 'simplified')
-            check_fields(p, base_fields, 'measurement_cov_adapt_algorithm_params');
+            check_fields(p, {'L1_C_over_N0_dBHz'}, 'measurement_cov_adapt_algorithm_params');
         elseif strcmpi(algo, 'nwpr')
-            extra_fields = {'N_nwpr','M_nwpr'};
-            check_fields(p, [base_fields, extra_fields], 'measurement_cov_adapt_algorithm_params');
+            fields = {'N_nwpr','M_nwpr'};
+            check_fields(p, fields, 'measurement_cov_adapt_algorithm_params');
         end
     end
 
