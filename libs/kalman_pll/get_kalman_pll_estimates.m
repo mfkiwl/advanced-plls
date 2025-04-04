@@ -37,18 +37,13 @@ function [state_estimates, error_covariance_estimates, L1_c_over_n0_linear_estim
 %
 %   2. State Covariance Adaptation:
 %      - Field: states_cov_adapt_algorithm
-%        Allowed values: {'none', 'matching', 'self_adaptive'}.
+%        Allowed values: {'none', 'matching'}.
 %          * 'none': No state covariance adaptation is applied.
 %          * 'matching': An adaptive update using the covariance matching method is applied.
 %              In this case, the field states_cov_adapt_algorithm_params must be provided with:
 %                  - method     : string, either 'IAE' or 'RAE'.
 %                  - N_nwpr: double value.
 %                  - M_nwpr: double value
-%          * 'self_adaptive': A self-adaptive update is applied.
-%              Then, states_cov_adapt_algorithm_params must include:
-%                  - init_meas_cov   : initial measurement covariance.
-%                  - init_states_cov : initial states covariance.
-%                  - sigma_threshold : a threshold parameter.
 %
 %   3. Global Sampling Interval:
 %      - Field: sampling_interval (double)
@@ -79,7 +74,7 @@ function [state_estimates, error_covariance_estimates, L1_c_over_n0_linear_estim
 %             - If not 'none', then the field measurement_cov_adapt_algorithm_params must be provided,
 %               containing the required parameters (see above).
 %         .states_cov_adapt_algorithm
-%             - Allowed values: {'none','matching','self_adaptive'}.
+%             - Allowed values: {'none','matching'}.
 %             - If not 'none', then the field states_cov_adapt_algorithm_params must be provided,
 %               containing the required parameters (see above).
 %         .sampling_interval
@@ -181,41 +176,42 @@ function [state_estimates, error_covariance_estimates, L1_c_over_n0_linear_estim
         NP_vec = repmat(current_NP, vec_size, 1);
         NP_array = zeros(N,1);
     end
-    
+
     %% Main filtering loop.
     for step = 1:N
         if step > 1
             % Determine the measurement noise covariance adapt_R.
-            if strcmpi(adaptive_config.measurement_cov_adapt_algorithm, 'none')
-                adapt_R = R;
-            elseif strcmpi(adaptive_config.measurement_cov_adapt_algorithm, 'simplified')
-                current_intensity = abs(received_signal(step-1,1))^2;
-                estimated_L1_c_over_n0_linear = current_intensity * baseline_L1_c_over_n0_linear;
-                phase_noise_variance = (1/(2 * estimated_L1_c_over_n0_linear * sampling_interval)) * ...
-                                       (1 + (1/(2 * estimated_L1_c_over_n0_linear * sampling_interval)));
-                adapt_R = phase_noise_variance;
-                
-                % Store the estimate
-                L1_c_over_n0_linear_estimates(step,1) = estimated_L1_c_over_n0_linear;
-            elseif strcmpi(adaptive_config.measurement_cov_adapt_algorithm, 'nwpr')
-                NBP = (sum(real(z_vec)))^2 + (sum(imag(z_vec)))^2;
-                WBP = sum(abs(z_vec).^2);
-
-                NP = NBP / WBP;
-                NP_vec = [NP; NP_vec(1:end-1)];
-                mu_hat = (M_nwpr / N_nwpr)  * sum(NP_vec);
-                estimated_L1_c_over_n0_linear = (1/sampling_interval) * (mu_hat) / (M_nwpr - mu_hat);
-
-                phase_noise_variance = (1/(2 * estimated_L1_c_over_n0_linear * sampling_interval)) * ...
-                                       (1 + (1/(2 * estimated_L1_c_over_n0_linear * sampling_interval)));
-                adapt_R = phase_noise_variance;
-
-                % Update
-                z_vec = [received_signal(step-1,1) * exp(-1j * H * x_hat_project_ahead); z_vec(1:end-1)];
-                NP_array(step,1) = NP;
-                L1_c_over_n0_linear_estimates(step,1) = estimated_L1_c_over_n0_linear;
-            else
-                adapt_R = R;
+            switch adaptive_config.measurement_cov_adapt_algorithm
+                case 'none'
+                    adapt_R = R;
+                case 'simplified'
+                    current_intensity = abs(received_signal(step-1,1))^2;
+                    estimated_L1_c_over_n0_linear = current_intensity * baseline_L1_c_over_n0_linear;
+                    phase_noise_variance = (1/(2 * estimated_L1_c_over_n0_linear * sampling_interval)) * ...
+                                           (1 + (1/(2 * estimated_L1_c_over_n0_linear * sampling_interval)));
+                    adapt_R = phase_noise_variance;
+                    
+                    % Store the estimate
+                    L1_c_over_n0_linear_estimates(step,1) = estimated_L1_c_over_n0_linear;
+                case 'nwpr'
+                    NBP = (sum(real(z_vec)))^2 + (sum(imag(z_vec)))^2;
+                    WBP = sum(abs(z_vec).^2);
+    
+                    NP = NBP / WBP;
+                    NP_vec = [NP; NP_vec(1:end-1)];
+                    mu_hat = (M_nwpr / N_nwpr)  * sum(NP_vec);
+                    estimated_L1_c_over_n0_linear = (1/sampling_interval) * (mu_hat) / (M_nwpr - mu_hat);
+    
+                    phase_noise_variance = (1/(2 * estimated_L1_c_over_n0_linear * sampling_interval)) * ...
+                                           (1 + (1/(2 * estimated_L1_c_over_n0_linear * sampling_interval)));
+                    adapt_R = phase_noise_variance;
+    
+                    % Update
+                    z_vec = [received_signal(step-1,1) * exp(-1j * H * x_hat_project_ahead); z_vec(1:end-1)];
+                    NP_array(step,1) = NP;
+                    L1_c_over_n0_linear_estimates(step,1) = estimated_L1_c_over_n0_linear;
+                otherwise
+                    adapt_R = R;
             end
             % Apply hard-limited constraint if enabled.
             if adaptive_config.hard_limited.is_used
@@ -226,15 +222,43 @@ function [state_estimates, error_covariance_estimates, L1_c_over_n0_linear_estim
             if online_mdl_learning_cfg.is_online
                 [F, Q, W] = update_filter_matrices(F, Q, W, step, state_estimates, online_mdl_learning_cfg, kalman_pll_config.(training_scint_model).augmentation_model_initializer);
             end
+
             % Compute Kalman gain.
             K = P_hat_project_ahead * H.' * ((H * P_hat_project_ahead * H.' + adapt_R) \ eye(size(R, 1)));
             
-            % Update state estimate.
+            if strcmpi(adaptive_config.states_cov_adapt_algorithm, 'matching')
+                if strcmpi(adaptive_config.states_cov_adapt_algorithm_params.method, 'IAE')
+                    phi = angle(received_signal(step-1,1) * exp(-1j * (H * x_hat_project_ahead)));
+                    states_error_mem = [phi; states_error_mem(1:end-1)];
+                    if step >= adaptive_config.states_cov_adapt_algorithm_params.window_size
+                        Q = K * (1/adaptive_config.states_cov_adapt_algorithm_params.window_size) * (states_error_mem.' * states_error_mem) * K.';
+                    else
+                        % Does nothing (i.e., uses the initial values of Q)
+                    end
+                end
+            end
+
+            % Update states estimates.
             x_hat_update = x_hat_project_ahead + K * angle(received_signal(step-1,1) * exp(-1j * (H * x_hat_project_ahead)));
             
+            if strcmpi(adaptive_config.states_cov_adapt_algorithm, 'matching')
+                if strcmpi(adaptive_config.states_cov_adapt_algorithm_params.method, 'RAE')
+                    mu = angle(received_signal(step-1,1) * exp(-1j * (H * x_hat_update)));
+                    states_error_mem = [mu; states_error_mem(1:end-1)];
+                    if step >= adaptive_config.states_cov_adapt_algorithm_params.window_size
+                        Q = K * (1/adaptive_config.states_cov_adapt_algorithm_params.window_size) * (states_error_mem.' * states_error_mem) * K.';
+                    else
+                        % Does nothing (i.e., uses the initial values of Q)
+                    end
+                end
+            end
+
             % Update error covariance.
             P_hat_update = P_hat_project_ahead - K * H * P_hat_project_ahead;
         else
+            if strcmpi(adaptive_config.states_cov_adapt_algorithm, 'matching')
+                states_error_mem = zeros(adaptive_config.states_cov_adapt_algorithm_params.window_size,1);
+            end
             x_hat_update = x_hat_project_ahead;
             P_hat_update = P_hat_project_ahead;
         end
@@ -341,7 +365,7 @@ function validate_adaptive_config(adaptive_config)
     end
 
     % Validate states_cov_adapt_algorithm
-    valid_states_algos = {'none', 'matching', 'self_adaptive'};
+    valid_states_algos = {'none', 'matching'};
     s_algo = adaptive_config.states_cov_adapt_algorithm;
     assert(any(strcmpi(s_algo, valid_states_algos)), ...
         'validate_adaptive_config:invalid_states_algorithm', ...
@@ -359,10 +383,6 @@ function validate_adaptive_config(adaptive_config)
             error('validate_adaptive_config:invalid_method', ...
                   'Invalid method in states_cov_adapt_algorithm_params. Must be either "IAE" or "RAE".');
         end
-    elseif strcmpi(s_algo, 'self_adaptive')
-        required_fields = {'init_meas_cov', 'init_states_cov', 'sigma_threshold'};
-        p = adaptive_config.states_cov_adapt_algorithm_params;
-        check_fields(p, required_fields, 'states_cov_adapt_algorithm_params');
     end
 end
 
