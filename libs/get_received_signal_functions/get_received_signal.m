@@ -116,7 +116,7 @@ thermal_noise = get_thermal_noise(simulation_time, sampling_interval, rx_mean_po
 switch scint_model
     case 'TPPSM'
         % Call get_tppsm_data with the provided tppsm_scenario.
-        [psi, refractive_phase] = get_tppsm_data(tppsm_scenario, 'is_enable_cmd_print', is_enable_cmd_print, 'simulation_time', simulation_time, 'sampling_interval', sampling_interval);
+        [psi, refractive_phase] = get_tppsm_data(tppsm_scenario, 'is_enable_cmd_print', is_enable_cmd_print, 'simulation_time', simulation_time, 'sampling_interval', sampling_interval, 'rhof_veff_ratio', 0.5);
         diffractive_phase = wrapToPi(unwrap(angle(psi)) - refractive_phase);
         % Remove refractive effects if requested.
         if is_refractive_effects_removed

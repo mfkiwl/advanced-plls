@@ -216,7 +216,7 @@ function [state_estimates, error_covariance_estimates, L1_c_over_n0_linear_estim
             % Apply hard-limited constraint if enabled.
             if adaptive_config.hard_limited.is_used
                 if (10 * log10(estimated_L1_c_over_n0_linear) < threshold)
-                    adapt_R = 1e6;
+                    adapt_R = 100;
                 end
             end
             if online_mdl_learning_cfg.is_online
