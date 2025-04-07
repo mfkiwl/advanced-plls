@@ -18,7 +18,7 @@ function [received_signal, los_phase, psi_settled, diffractive_phase_settled, re
 %   'is_refractive_effects_removed'- Logical flag (default: true)
 %   'S4'                           - Scintillation index (0<=S4<=1); required if scint_model is 'CSM'
 %   'tau0'                         - Signal intensity decorrelation time (s); required if scint_model is 'CSM'
-%   'tppsm_scenario'               - TPPSM scenario ('Weak', 'Moderate', or 'Severe'); required if scint_model is 'TPPSM'
+%   'tppsm_scenario'               - TPPSM scenario ('weak', 'moderate', or 'strong'); required if scint_model is 'TPPSM'
 %   'is_enable_cmd_print'          - logical value that configures whether command
 %                                    lines would appear on the regarding of the 
 %                                    usage of external rhof_veff_ratio.
@@ -63,7 +63,7 @@ addParameter(p, 'sampling_interval', 0.01, @(x) isnumeric(x) && isscalar(x) && (
 addParameter(p, 'is_refractive_effects_removed', true, @(x) islogical(x) && isscalar(x));
 addParameter(p, 'S4', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && (x >= 0) && (x <= 1)));
 addParameter(p, 'tau0', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && (x > 0)));
-addParameter(p, 'tppsm_scenario', [], @(x) isempty(x) || ismember(x, {'Weak', 'Moderate', 'Severe'}));
+addParameter(p, 'tppsm_scenario', [], @(x) isempty(x) || ismember(x, {'weak', 'moderate', 'strong'}));
 addParameter(p, 'is_enable_cmd_print', true, @(x) validateattributes(x, {'logical'}, {'nonempty'}));
 
 parse(p, C_over_N0_dBHz, scint_model, doppler_profile, varargin{:});

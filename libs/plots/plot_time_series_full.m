@@ -263,13 +263,13 @@ if is_refractive_effects_removed_received_signal && is_refractive_effects_remove
     plot(ax6, time_vector, tppsm_diffractive_wrapped, 'k', 'LineWidth', 2.0);
     plot(ax6, time_vector, tppsm_diffractive_unwrapped, '--k', 'LineWidth', 2.0);
     legend_entries_joint = {'Diffractive Wrapped','Diffractive Unwrapped',...
-        'KF-AR Scint','AKF-AR Scint','AHL-KF-AR Scint'};
+        'KF-AR Scint','AKF-AR Scint','AHL-KF-AR Scint', 'KF-std', 'AKF-std', 'AHL-KF-std'};
     title_str_joint = 'TPPSM - Scintillation Estimates (Diffractive Only) - Without Zoom';
 else
     % Case: Refractive phase is present on the received signal
     tppsm_propagated_unwrapped = refractive_phase_tppsm + unwrap(diffractive_phase_tppsm);
     plot(ax6, time_vector, tppsm_propagated_unwrapped, ':k', 'LineWidth', 3.0);
-    legend_entries_joint = {'Propagated Unwrapped','KF-AR Scint','AKF-AR Scint','AHL-KF-AR Scint'};
+    legend_entries_joint = {'Propagated Unwrapped','KF-AR Joint','AKF-AR Joint','AHL-KF-AR Joint', 'KF-std', 'AKF-std', 'AHL-KF-std'};
     title_str_joint = 'TPPSM - Scintillation Estimates (Diffractive and Refractive) - Without Zoom';
 end
 hold(ax6, 'on');

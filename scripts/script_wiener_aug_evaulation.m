@@ -19,7 +19,7 @@ is_refractive_effects_removed_received_signal = false;
 [rx_sig_csm, los_phase, psi_csm] = get_received_signal(L1_C_over_N0_dBHz, 'CSM', doppler_profile, ...
     'S4', S4, 'tau0', tau0, 'simulation_time', simulation_time, 'settling_time', settling_time);
 [rx_sig_tppsm, ~, psi_tppsm, diffractive_phase_tppsm, refractive_phase_settled] = get_received_signal(L1_C_over_N0_dBHz, 'TPPSM', doppler_profile, ...
-    'tppsm_scenario', 'Severe', 'simulation_time', simulation_time, 'settling_time', settling_time, 'is_refractive_effects_removed', is_refractive_effects_removed_received_signal);
+    'tppsm_scenario', 'strong', 'simulation_time', simulation_time, 'settling_time', settling_time, 'is_refractive_effects_removed', is_refractive_effects_removed_received_signal);
 
 %% Generating KF-AR configurations and obtaining initial estimates
 cache_dir = fullfile(fileparts(mfilename('fullpath')), 'cache');

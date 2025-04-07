@@ -11,7 +11,7 @@ clearvars; clc;
 addpath(genpath(fullfile(pwd, '..', 'libs')));
 
 % Main seed for generating the received signal and the training data set.
-seed = 2;
+seed = 6;
 rng(seed);
 
 %% Generating the received signal for the TPPSM
@@ -22,13 +22,13 @@ simulation_time = 300;
 settling_time = sampling_interval;
 is_refractive_effects_removed_received_signal = false;
 [rx_sig_tppsm, los_phase, psi_tppsm, diffractive_phase_tppsm, refractive_phase_settled] = get_received_signal(L1_C_over_N0_dBHz, 'TPPSM', doppler_profile, ...
-    'tppsm_scenario', 'Severe', 'simulation_time', simulation_time, 'settling_time', settling_time, 'is_refractive_effects_removed', is_refractive_effects_removed_received_signal);
+    'tppsm_scenario', 'strong', 'simulation_time', simulation_time, 'settling_time', settling_time, 'is_refractive_effects_removed', is_refractive_effects_removed_received_signal);
 
 %% Generating KF-AR configurations and obtaining initial estimates
 cache_dir = fullfile(fileparts(mfilename('fullpath')), 'cache');
 training_data_config = struct('scintillation_model', 'none', 'sampling_interval', sampling_interval);
 
-process_noise_variance_los = 2.6*1e-2; 
+process_noise_variance_los = 2.6*1e-1; 
 general_config = struct( ...
   'discrete_wiener_model_config', { {1, 3, 0.01, [0, 0, process_noise_variance_los], 1} }, ...
   'scintillation_training_data_config', training_data_config, ...
@@ -90,14 +90,29 @@ online_mdl_learning_cfg = struct('is_online', false);
 [kf_nwpr_matching, error_cov_nwpr_matching] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates, 'none', adaptive_cfg_nwpr_matching, online_mdl_learning_cfg);
 
 time_vector = sampling_interval:sampling_interval:simulation_time;
-true_phase = los_phase + unwrap(angle(psi_tppsm));
-phase_error_kf = kf(:,1) - true_phase;
-phase_error_kf_nwpr = kf_nwpr(:,1) - true_phase;
-phase_error_kf_nwpr_matching = kf_nwpr_matching(:,1) - true_phase;
+true_total_phase = los_phase + get_corrected_phase(psi_tppsm);
+phase_error_kf = kf(:,1) - true_total_phase;
+phase_error_kf_nwpr = kf_nwpr(:,1) - true_total_phase;
+phase_error_kf_nwpr_matching = kf_nwpr_matching(:,1) - true_total_phase;
 
 figure;
 hold on;
 plot(time_vector,phase_error_kf, 'LineStyle', '-', 'LineWidth', 2);
 plot(time_vector,phase_error_kf_nwpr, 'LineStyle', '-', 'LineWidth', 2);
 plot(time_vector,phase_error_kf_nwpr_matching, 'LineStyle','-', 'LineWidth', 2);
+legend({'KF', 'KF-NWPR', 'KF-NWPR-Matching'}, Location="best");
+hold off;
+
+time_vector = sampling_interval:sampling_interval:simulation_time;
+diffractive_phase_error_kf = kf(:,1) - los_phase - refractive_phase_settled;
+diffractive_phase_error_kf_nwpr = kf_nwpr(:,1) - los_phase - refractive_phase_settled;
+diffractive_phase_error_kf_nwpr_matching = kf_nwpr_matching(:,1) - los_phase - refractive_phase_settled;
+
+figure;
+hold on;
+plot(time_vector,diffractive_phase_error_kf, 'LineStyle', '-', 'LineWidth', 2);
+plot(time_vector,diffractive_phase_error_kf_nwpr, 'LineStyle', '-', 'LineWidth', 2);
+plot(time_vector,diffractive_phase_error_kf_nwpr_matching, 'LineStyle','-', 'LineWidth', 2);
+plot(time_vector,get_corrected_phase(psi_tppsm) - refractive_phase_settled, 'LineStyle','-', 'LineWidth', 2, 'Color', 'k');
+legend({'KF', 'KF-NWPR', 'KF-NWPR-Matching', 'Diffractive Phase'}, Location="best");
 hold off;

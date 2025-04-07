@@ -46,7 +46,7 @@ is_refractive_effects_removed_received_signal = false;
 [rx_sig_csm, los_phase, psi_csm] = get_received_signal(L1_C_over_N0_dBHz, 'CSM', doppler_profile, ...
     'S4', S4, 'tau0', tau0, 'simulation_time', simulation_time, 'settling_time', settling_time);
 [rx_sig_tppsm, ~, psi_tppsm, diffractive_phase_tppsm, refractive_phase_settled] = get_received_signal(L1_C_over_N0_dBHz, 'TPPSM', doppler_profile, ...
-    'tppsm_scenario', 'Severe', 'simulation_time', simulation_time, 'settling_time', settling_time, 'is_refractive_effects_removed', is_refractive_effects_removed_received_signal);
+    'tppsm_scenario', 'strong', 'simulation_time', simulation_time, 'settling_time', settling_time, 'is_refractive_effects_removed', is_refractive_effects_removed_received_signal);
 
 %% Generating KF-AR configurations and obtaining initial estimates
 cache_dir = fullfile(fileparts(mfilename('fullpath')), 'cache');
@@ -61,7 +61,7 @@ training_data_config_csm = struct('scintillation_model', 'CSM', ...
                                   'sampling_interval', sampling_interval, ...
                                   'is_unwrapping_used', is_unwrapping_used);
 training_data_config_tppsm = struct('scintillation_model', 'TPPSM', ...
-                                    'scenario', 'Severe', ...
+                                    'scenario', 'strong', ...
                                     'simulation_time', training_simulation_time, ...
                                     'is_refractive_effects_removed', is_refractive_effects_removed_training_data, ...
                                     'sampling_interval', sampling_interval, ...
@@ -112,30 +112,30 @@ adaptive_cfg = struct('measurement_cov_adapt_algorithm', 'nwpr', ...
 online_mdl_learning_cfg = struct('is_online', false);
 
 %% Obtain state estimates for CSM
-%[kf_arima_csm, error_covariance_csm] = get_kalman_pll_estimates(rx_sig_csm, kf_cfg, init_estimates_csm, 'CSM', adaptive_cfg, online_mdl_learning_cfg);
+[kf_arima_csm, error_covariance_csm] = get_kalman_pll_estimates(rx_sig_csm, kf_cfg, init_estimates_csm, 'CSM', adaptive_cfg, online_mdl_learning_cfg);
 [kf_arima_tppsm, error_covariance_tppsm, L1_c_over_n0_linear_estimates_tppsm] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates_tppsm, 'TPPSM', adaptive_cfg, online_mdl_learning_cfg);
 
 time_vector = sampling_interval:sampling_interval:simulation_time;
 
-% arima_est_csm = kf_arima_csm(:,4) + kf_arima_csm(:,5);
-% arima_est_tppsm = kf_arima_tppsm(:,4) + kf_arima_tppsm(:,5);
-% figure;
-% subplot(2,1,1);
-% plot(time_vector, [kf_arima_csm(:,1) - los_phase, arima_est_csm,kf_arima_csm(:,1) + arima_est_csm - los_phase, unwrap(angle(psi_csm))]);
-% legend({'LOS Phase error ', 'ARIMA Phase', 'Joint Phase Error', 'Unwrapped True Scint Phase'});
-% subplot(2,1,2);
-% plot(time_vector, [kf_arima_tppsm(:,1) - los_phase, arima_est_tppsm, kf_arima_tppsm(:,1) + arima_est_tppsm - los_phase, unwrap(angle(psi_tppsm)), refractive_phase_settled]);
-% legend({'LOS Phase Error', 'ARIMA Phase', 'Joint Phase Error', 'Unwrapped Scint phase', 'Refractive Phase'});
-% 
-% 
-% trace_ts = zeros(size(error_covariance_tppsm,1),1);
-% for i = 1:size(error_covariance_tppsm,1)
-%     trace_ts(i) = trace(squeeze(error_covariance_tppsm(i,:,:)));
-% end
-% 
-% figure;
-% 
-% plot(time_vector, trace_ts);
+arima_est_csm = kf_arima_csm(:,4) + kf_arima_csm(:,5);
+arima_est_tppsm = kf_arima_tppsm(:,4) + kf_arima_tppsm(:,5);
+figure;
+subplot(2,1,1);
+plot(time_vector, [kf_arima_csm(:,1) - los_phase, arima_est_csm,kf_arima_csm(:,1) + arima_est_csm - los_phase, unwrap(angle(psi_csm))]);
+legend({'LOS Phase error ', 'ARIMA Phase', 'Joint Phase Error', 'Unwrapped True Scint Phase'});
+subplot(2,1,2);
+plot(time_vector, [kf_arima_tppsm(:,1) - los_phase, arima_est_tppsm, kf_arima_tppsm(:,1) + arima_est_tppsm - los_phase, unwrap(angle(psi_tppsm)), refractive_phase_settled]);
+legend({'LOS Phase Error', 'ARIMA Phase', 'Joint Phase Error', 'Unwrapped Scint phase', 'Refractive Phase'});
+
+
+trace_ts = zeros(size(error_covariance_tppsm,1),1);
+for i = 1:size(error_covariance_tppsm,1)
+    trace_ts(i) = trace(squeeze(error_covariance_tppsm(i,:,:)));
+end
+
+figure;
+
+plot(time_vector, trace_ts);
 
 L1_C_over_N0_dbhz_estimates_tppsm = 10*log10(L1_c_over_n0_linear_estimates_tppsm);
 true_carrier_to_noise_ratio_dbhz = 10*log10(abs(rx_sig_tppsm).^2) + L1_C_over_N0_dBHz;

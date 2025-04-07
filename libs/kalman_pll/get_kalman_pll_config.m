@@ -188,7 +188,7 @@ function scint_config = validateScintillationTrainingDataConfig(scint_config)
             end
             validateattributes(scint_config.scenario, {'char','string'}, {'nonempty'}, mfilename, 'scenario');
             scenario_val = upper(strtrim(scint_config.scenario));
-            if ~ismember(scenario_val, {'WEAK', 'MODERATE', 'SEVERE'})
+            if ~ismember(scenario_val, {'WEAK', 'MODERATE', 'STRONG'})
                 error('validateScintConfig:InvalidScenario', ...
                     'Field ''scenario'' must be one of ''Weak'', ''Moderate'', or ''Severe''.');
             end

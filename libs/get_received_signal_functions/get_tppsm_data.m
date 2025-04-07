@@ -70,7 +70,7 @@ addParameter(p, 'rhof_veff_ratio', [], @(x) isempty(x) || isnumeric(x));
 addParameter(p, 'is_enable_cmd_print', true, @(x) validateattributes(x, {'logical'}, {'nonempty'}));
 parse(p, scenario, varargin{:});
 
-scenario = validatestring(p.Results.scenario, {'Weak', 'Moderate', 'Severe'}, mfilename, 'scenario');
+scenario = validatestring(p.Results.scenario, {'weak', 'moderate', 'strong'}, mfilename, 'scenario');
 simulation_time = p.Results.simulation_time;
 sampling_interval = p.Results.sampling_interval;
 general_params = p.Results.general_params;
