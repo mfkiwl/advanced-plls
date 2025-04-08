@@ -12,6 +12,7 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_
 %
 % Inputs:
 %   general_config - Struct containing configuration settings:
+%       kf_type: Char {'standard', 'extended', 'unscented', 'cubature'}
 %       discrete_wiener_model_config: Cell array {L, M, sampling_interval, sigma, delta}
 %           L        - Number of carriers (positive integer scalar)
 %           M        - Order of the Wiener process (positive integer scalar)
@@ -27,25 +28,32 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_
 %               simulation_time - Duration of simulation (positive scalar)
 %               sampling_interval - Sampling interval (positive scalar)
 %           For TPPSM:
-%               scenario        - String: 'Weak', 'Moderate', or 'Severe'
+%               scenario        - String: 'weak', 'moderate', or 'strong'
 %               simulation_time - Duration of simulation (positive scalar)
 %               sampling_interval - Sampling interval (positive scalar)
 %               is_refractive_effects_removed - Logical flag (true/false; defaults to false)
 %
-%       var_minimum_order - Minimum order for the VAR model (integer >= 1)
-%       var_maximum_order - Maximum order for the VAR model (integer >= var_minimum_order)
-%       C_over_N0_array_dBHz - Numeric vector (positive) of average C/N0 values (in dBHz)
+%       C_over_N0_array_dBHz - Numeric vector (positive) of baseline C/N0 values (in dBHz)
+%                              % NOTE: For now, the code only comprises
+%                              single frequency tracking. In this case, 
+%                              this variable should only be 
+%                              configured as a scalar instead of an array.
+%
 %       initial_states_distributions_boundaries - Non-empty cell array; each cell contains a 1x2 numeric vector
 %           specifying lower and upper bounds (first element < second element).
+%
 %       real_doppler_profile - Non-empty numeric vector of Doppler profile values.
+%
 %       augmentation_model_initializer - Struct specifying the augmentation model initialization method and its parameters:
 %           Fields:
-%               id - A string indicating the initialization method. Allowed values are: 'arfit', 'aryule', 'rbf', or 'none'.
-%               model_params - A struct containing method-specific parameters:
-%                   * For 'arfit' and 'aryule': must include the field 'model_order' (a numeric value).
-%                   * For 'kalman': must include the kalman matrices.
-%                   * For 'rbf': must include the field 'rbf_cfg' (a numeric value).
-%                   
+%               id - A string indicating the augmentation model initialization method. Allowed values are:
+%                    'arfit', 'aryule', 'kinematic', 'arima', 'rbf', or 'none'.
+%               model_params - A struct containing parameters specific to the chosen method:
+%                  - For 'arfit' and 'aryule': include the field 'model_order' (numeric) indicating the order of the VAR model.
+%                  - For 'kinematic': include 'wiener_mdl_order' (numeric) and 'process_noise_variance' (numeric) to define the LOS augmentation.
+%                  - For 'arima': include the fields 'p', 'D', and 'q' corresponding to the ARIMA model parameters.
+%                  - For 'rbf': include the necessary parameters (e.g., 'neurons_amount'); note that this method is under development.
+%                  - For 'none': no additional parameters are required.
 %
 %       is_use_cached_settings - Boolean flag to use cached configurations if available.
 %       is_generate_random_initial_estimates - Boolean flag to generate initial estimates randomly.
@@ -55,12 +63,10 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_
 %   is_enable_cmd_print - Logical flag for enabling command-line prints.
 %
 % Outputs:
-%   kalman_pll_config - Struct containing Kalman filter settings:
-%       Fields include F, Q, H, R, F_los, Q_los, F_var, Q_var, intercept_vector,
-%       var_states_amount, and var_model_order.
+%   kalman_pll_config - Struct containing the Kalman state space matrices.
 %
 %   initial_estimates - Column vector of initial state estimates. The number of rows
-%       equals the number of states in the state transition matrix.
+%                       equals the number of states in the state transition matrix.
 %
 % Notes:
 %   - The sampling interval in scintillation_training_data_config is compared against
@@ -69,17 +75,19 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_
 %     get_initial_estimates.
 %
 % Example:
+%   cache_dir = fullfile(fileparts(mfilename('fullpath')), 'cache');
+%   training_data_config = struct('scintillation_model', 'none', 'sampling_interval', sampling_interval);
 %   general_config = struct( ...
+%       'kf_type', 'standard', ...
 %       'discrete_wiener_model_config', { {1, 3, 0.01, [0,0,1e-2], 1} }, ...
-%       'scintillation_training_data_config', struct('scintillation_model', 'CSM', 'S4', 0.8, 'tau0', 0.7, 'simulation_time', 300, 'sampling_interval', 0.01, 'is_unwrapping_used', false), ...
-%       'var_minimum_order', 1, ...
-%       'var_maximum_order', 6, ...
-%       'C_over_N0_array_dBHz', [35], ...
-%       'initial_states_distributions_boundaries',{ {[-pi,pi], [-5,5], [-0.1,0.1]} }, ...
-%       'real_doppler_profile', [0,1000,0.94], ...
-%       'augmentation_model_initializer', 'aryule', ...
+%       'scintillation_training_data_config', training_data_config, ...
+%       'C_over_N0_array_dBHz', 35, ...
+%       'initial_states_distributions_boundaries',{ {[-pi,pi], [-25,25], [-0.1,0.1]} }, ...
+%       'real_doppler_profile', [0, 1000, 0.94], ...
+%       'augmentation_model_initializer', struct('id', 'aryule', 'model_params', struct('model_order', 3)), ...
 %       'is_use_cached_settings', false, ...
 %       'is_generate_random_initial_estimates', true ...
+%       'is_enable_cmd_print', false ...
 %   );
 %   [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_config, 'cache', true);
 %

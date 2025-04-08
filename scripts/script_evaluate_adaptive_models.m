@@ -12,7 +12,7 @@
 % Email: rdlfresearch@gmail.com
 
 clearvars; clc;
- b 
+
 addpath(genpath(fullfile(pwd, '..', 'libs')));
 
 % Main seed for generating the received signal and the training data set.
