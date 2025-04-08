@@ -100,6 +100,7 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_
 
     % Validate configurations using helper functions.
     [~, ~, sampling_interval_dw, ~, ~] = validate_discrete_wiener_model_config(general_config.discrete_wiener_model_config);
+
     scint_config = validateScintillationTrainingDataConfig(general_config.scintillation_training_data_config);
     validateattributes(general_config.C_over_N0_array_dBHz, {'numeric'}, {'nonempty','vector','positive'}, mfilename, 'C_over_N0_array_dBHz');
     validate_initial_states_boundaries(general_config.initial_states_distributions_boundaries);
@@ -107,6 +108,14 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_
     validate_augmentation_model(general_config);
     validateattributes(cache_dir, {'char', 'string'}, {'nonempty'}, mfilename, 'cache_dir');
     validateattributes(is_enable_cmd_print, {'logical'}, {'scalar'}, mfilename, 'is_enable_cmd_print');
+
+    % New validation for the kf_type field.
+    allowed_kf_types = {'standard', 'extended', 'unscented', 'cubature'};
+    validateattributes(general_config.kf_type, {'char','string'}, {'nonempty'}, mfilename, 'kf_type');
+    if ~ismember(lower(string(general_config.kf_type)), allowed_kf_types)
+        error('get_kalman_pll_config:InvalidKFType', ...
+            'kf_type must be one of %s, but received: %s', strjoin(allowed_kf_types, ', '), general_config.kf_type);
+    end
 
     % Check consistency between sampling intervals.
     if abs(scint_config.sampling_interval - sampling_interval_dw) > 1e-10
@@ -119,7 +128,7 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_
         mkdir(cache_dir);
     end
     cache_file = fullfile(cache_dir, 'kalman_pll_cache.mat');
-
+    
     % Retrieve/update cached Kalman PLL configuration.
     [kalman_pll_config, is_cache_used] = get_cached_kalman_pll_config(general_config, cache_file, is_enable_cmd_print);
     kalman_pll_config = update_cache(general_config, cache_file, kalman_pll_config, is_cache_used, is_enable_cmd_print);
