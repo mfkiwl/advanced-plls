@@ -37,7 +37,7 @@ classdef test_get_received_signal < matlab.unittest.TestCase
         sampling_interval = 0.01;
         S4 = 0.8;
         tau0 = 0.7;
-        tppsm_scenario = 'Moderate';
+        tppsm_scenario = 'moderate';
         doppler_profile = [0, 1000, 0.94, 0.01];
         is_refractive_effects_removed = true;
     end
