@@ -131,7 +131,7 @@ classdef test_build_standard_kf < matlab.unittest.TestCase
             % --- Test for unsupported augmentation type ---
             aug_data.augmentation_type = 'unsupported';
             testCase.verifyError(@() build_standard_kf(testCase.F_los, testCase.Q_los, aug_data, testCase.general_config, testCase.sampling_interval), ...
-                'MATLAB:UndefinedKFType');
+                'MATLAB:InvalidAugmentationModel');
         end
     end
 end

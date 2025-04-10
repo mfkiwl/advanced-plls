@@ -1,5 +1,7 @@
 function [F, Q, H, R, W] = build_standard_kf(F_los, Q_los, aug_data, general_config, sampling_interval)
-% build_standard_kf constructs the full KF matrices for the standard variant.
+% build_standard_kf 
+% 
+% constructs the full KF matrices for the standard variant.
 %
 % Inputs:
 %   F_los, Q_los  - LOS dynamics matrices.
@@ -103,6 +105,6 @@ function [F, Q, H, R, W] = build_standard_kf(F_los, Q_los, aug_data, general_con
             W = zeros(size(F,1), 1);
 
         otherwise
-            error('MATLAB:UndefinedKFType', 'KF augmentation type %s is not supported in standard KF builder.', aug_data.augmentation_type);
+            error('MATLAB:InvalidAugmentationModel', 'KF augmentation type %s is not supported in standard KF builder.', aug_data.augmentation_type);
     end
 end
