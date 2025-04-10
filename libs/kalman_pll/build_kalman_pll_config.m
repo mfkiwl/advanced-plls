@@ -80,7 +80,8 @@ function kalman_pll_config = build_kalman_pll_config(general_config, kalman_pll_
             [F, Q, Hj_handle, R, W] = build_extended_kf(F_los, Q_los, aug_data, general_config, sampling_interval);
             H = [];
         case 'unscented'
-            error('MATLAB:NotImplemented', 'Unscented KF variant is not implemented yet.');
+            [F, Q, H, R, W] = build_standard_kf(F_los, Q_los, aug_data, general_config, sampling_interval);
+            Hj_handle = [];
         case 'cubature'
             error('MATLAB:NotImplemented', 'Cubature KF variant is not implemented yet.');
         otherwise

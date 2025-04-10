@@ -52,10 +52,14 @@ general_config_standard = struct( ...
 general_config_extended = general_config_standard;
 general_config_extended.kf_type = 'extended';
 
+general_config_unscented = general_config_standard;
+general_config_unscented.kf_type = 'unscented';
+
 is_enable_cmd_print = true;
 
 [~, ~] = get_kalman_pll_config(general_config_standard, cache_dir, is_enable_cmd_print);
-[kf_cfg, init_estimates] = get_kalman_pll_config(general_config_extended, cache_dir, is_enable_cmd_print);
+[~, ~] = get_kalman_pll_config(general_config_extended, cache_dir, is_enable_cmd_print);
+[kf_cfg, init_estimates] = get_kalman_pll_config(general_config_unscented, cache_dir, is_enable_cmd_print);
 
 adaptive_cfg_nonadaptive = struct(...
     'measurement_cov_adapt_algorithm', 'none', ...
