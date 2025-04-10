@@ -1,11 +1,11 @@
-classdef test_compute_phase_variances < matlab.unittest.TestCase
-% test_compute_phase_variances
+classdef test_get_phase_variances < matlab.unittest.TestCase
+% test_get_phase_variances
 %
 % Syntax:
-%   results = runtests('test_compute_phase_variances')
+%   results = runtests('test_get_phase_variances')
 %
 % Description:
-%   Unit tests for the compute_phase_variances function. This test suite
+%   Unit tests for the get_phase_variances function. This test suite
 %   verifies that the function computes the expected phase noise variances
 %   based on provided C/N0 values (in dB-Hz) and a sampling interval (in seconds).
 %   It tests the output size, positivity, approximate numerical values, and
@@ -13,7 +13,7 @@ classdef test_compute_phase_variances < matlab.unittest.TestCase
 %
 % Example:
 %   % Run the test suite:
-%   results = runtests('test_compute_phase_variances');
+%   results = runtests('test_get_phase_variances');
 %   disp(results);
 %
 % Author:
@@ -35,7 +35,7 @@ classdef test_compute_phase_variances < matlab.unittest.TestCase
             % Test that computed phase noise variances are within tolerance.
             c_over_n0_array_dbhz = [35, 40];
             sampling_interval = 0.01;
-            sigma2_array = compute_phase_variances(c_over_n0_array_dbhz, sampling_interval);
+            sigma2_array = get_phase_variances(c_over_n0_array_dbhz, sampling_interval);
             
             % Expected approximate values:
             % For 35 dB-Hz: linear ~ 3162.28 => term ~ 1/(2*3162.28*0.01)=0.01582, sigma2 ~ 0.01582*(1+0.01582) ≈ 0.01607
@@ -51,7 +51,7 @@ classdef test_compute_phase_variances < matlab.unittest.TestCase
             % Verify that the output variances are positive.
             c_over_n0_array_dbhz = [30, 35, 40];
             sampling_interval = 0.01;
-            sigma2_array = compute_phase_variances(c_over_n0_array_dbhz, sampling_interval);
+            sigma2_array = get_phase_variances(c_over_n0_array_dbhz, sampling_interval);
             test_case.verifyGreaterThan(sigma2_array, 0, 'All computed variances should be positive.');
         end
 
@@ -59,16 +59,16 @@ classdef test_compute_phase_variances < matlab.unittest.TestCase
             % Test that a non-numeric sampling_interval triggers an error.
             c_over_n0_array_dbhz = [35, 40];
             invalid_sampling_interval = 'invalid';
-            test_case.verifyError(@() compute_phase_variances(c_over_n0_array_dbhz, invalid_sampling_interval), ...
-                'MATLAB:compute_phase_variances:invalidType');
+            test_case.verifyError(@() get_phase_variances(c_over_n0_array_dbhz, invalid_sampling_interval), ...
+                'MATLAB:get_phase_variances:invalidType');
         end
 
         function test_invalid_c_over_n0_error(test_case)
             % Test that a non-numeric C_over_N0_array_dBHz triggers an error.
             invalid_c_over_n0 = 'invalid';
             sampling_interval = 0.01;
-            test_case.verifyError(@() compute_phase_variances(invalid_c_over_n0, sampling_interval), ...
-                'MATLAB:compute_phase_variances:invalidType');
+            test_case.verifyError(@() get_phase_variances(invalid_c_over_n0, sampling_interval), ...
+                'MATLAB:get_phase_variances:invalidType');
         end
     end
 end

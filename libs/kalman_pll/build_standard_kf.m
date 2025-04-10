@@ -16,7 +16,7 @@ function [F, Q, H, R, W] = build_standard_kf(F_los, Q_los, aug_data, general_con
 % Email: rdlfresearch@gmail.com
 
     % Default measurement noise covariance:
-    R = diag(compute_phase_variances(general_config.C_over_N0_array_dBHz, sampling_interval));
+    R = diag(get_phase_variances(general_config.C_over_N0_array_dBHz, sampling_interval));
 
     switch lower(string(aug_data.augmentation_type))
         case 'none'
@@ -75,7 +75,7 @@ function [F, Q, H, R, W] = build_standard_kf(F_los, Q_los, aug_data, general_con
             Q = blkdiag(Q_los, Q_aug);
             
             % Compute measurement noise covariance matrix R from C/N0 values and sampling_interval.
-            R = diag(compute_phase_variances(general_config.C_over_N0_array_dBHz, sampling_interval));
+            R = diag(get_phase_variances(general_config.C_over_N0_array_dBHz, sampling_interval));
         
             % Construct measurement matrix H.
             % H is defined as [1, zeros(1, size(F_los,1)-1), 1, zeros(1, var_states_amount*var_model_order-1)]

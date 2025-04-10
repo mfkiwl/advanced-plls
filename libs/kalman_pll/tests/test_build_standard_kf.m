@@ -75,7 +75,7 @@ classdef test_build_standard_kf < matlab.unittest.TestCase
             stubF = diag([1,1,2,2,2]);
             stubQ = diag([1,1,3,3,3]);
             stubH = [1, 0, 1, 0, 0];
-            stubR = compute_phase_variances(testCase.general_config.C_over_N0_array_dBHz, ...
+            stubR = get_phase_variances(testCase.general_config.C_over_N0_array_dBHz, ...
                 testCase.sampling_interval);
             stubW = [0, 0, 0.5, 0, 0].';
             

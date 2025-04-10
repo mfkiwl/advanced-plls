@@ -1,8 +1,8 @@
-function sigma2_array = compute_phase_variances(C_over_N0_array_dBHz, sampling_interval)
-% compute_phase_variances
+function sigma2_array = get_phase_variances(C_over_N0_array_dBHz, sampling_interval)
+% get_phase_variances
 %
 % Syntax:
-%   sigma2_array = compute_phase_variances(C_over_N0_array_dBHz, sampling_interval)
+%   sigma2_array = get_phase_variances(C_over_N0_array_dBHz, sampling_interval)
 %
 % Description:
 %   Computes the phase noise variance (sigma^2) in radians squared based on the
@@ -27,7 +27,7 @@ function sigma2_array = compute_phase_variances(C_over_N0_array_dBHz, sampling_i
 %
 % Example:
 %   % Compute phase noise variances for C/N0 values 35 and 40 dB-Hz:
-%   sigma2 = compute_phase_variances([35, 40], 0.01);
+%   sigma2 = get_phase_variances([35, 40], 0.01);
 %
 % References
 % [1] R. A. M. Lopes, F. Antreich, F. Fohlmeister, M. Kriegel and H. K. Kuga,
