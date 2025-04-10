@@ -1,5 +1,5 @@
-function [F_var, Q_var, var_states_amount, var_model_order] = construct_var_matrices(var_coefficient_matrices, var_covariance_matrices)
-    % construct_var_matrices
+function [F_var, Q_var, var_states_amount, var_model_order] = build_var_matrices(var_coefficient_matrices, var_covariance_matrices)
+    % build_var_matrices
     % Constructs VAR model matrices from coefficient and covariance matrices.
     %
     % Syntax:
@@ -43,7 +43,7 @@ function [F_var, Q_var, var_states_amount, var_model_order] = construct_var_matr
     % Check that the number of columns is an integer multiple of the number of states.
     numCols = size(var_coefficient_matrices, 2);
     if mod(numCols, var_states_amount) ~= 0
-        error('construct_var_matrices:InvalidDimensions', ...
+        error('build_var_matrices:InvalidDimensions', ...
             'The number of columns in var_coefficient_matrices must be an integer multiple of the number of rows.');
     end
     

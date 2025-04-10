@@ -20,7 +20,7 @@ function aug_data = get_augmentation_model(training_data, general_config, sampli
             model_order = general_config.augmentation_model_initializer.model_params.model_order;
             [intercept_vector, var_coefficient_matrices, var_covariance_matrices] = ...
                 arfit(training_data, model_order, model_order);
-            [F_var, Q_var, var_states_amount, var_model_order] = construct_var_matrices(var_coefficient_matrices, var_covariance_matrices);
+            [F_var, Q_var, var_states_amount, var_model_order] = build_var_matrices(var_coefficient_matrices, var_covariance_matrices);
             aug_data.F_aug = F_var;
             aug_data.Q_aug = Q_var;
             aug_data.intercept = intercept_vector;
@@ -33,7 +33,7 @@ function aug_data = get_augmentation_model(training_data, general_config, sampli
             % Use ARYULE to estimate the VAR model parameters.
             model_order = general_config.augmentation_model_initializer.model_params.model_order;
             [ar_coefficients, ar_variance] = aryule(training_data, model_order);
-            [F_var, Q_var, var_states_amount, var_model_order] = construct_var_matrices(...
+            [F_var, Q_var, var_states_amount, var_model_order] = build_var_matrices(...
                 -ar_coefficients(2:end), ar_variance);
             aug_data.F_aug = F_var;
             aug_data.Q_aug = Q_var;

@@ -36,13 +36,53 @@ function [F, Q, H, R, W] = build_standard_kf(F_los, Q_los, aug_data, general_con
             %
             F_aug = aug_data.F_aug;
             Q_aug = aug_data.Q_aug;
+            
             % Extract extra information (for ARYULE, intercept is set to 0).
-            intercept = aug_data.intercept;
+            intercept_vector = aug_data.intercept;
             states_amount = aug_data.augInfo.states_amount;
             model_order = aug_data.augInfo.model_order;
-            [F, Q, H, R, W] = construct_kalman_matrices( ...
-                F_los, Q_los, F_aug, Q_aug, intercept, states_amount, model_order, ...
-                general_config.C_over_N0_array_dBHz, sampling_interval);
+
+            % Validate inputs
+            validateattributes(F_los, {'numeric'}, {'2d', 'nonempty'}, mfilename, 'F_los');
+            validateattributes(Q_los, {'numeric'}, {'2d', 'nonempty', 'square'}, mfilename, 'Q_los');
+            if ~isnan(model_order)
+                validateattributes(F_aug, {'numeric'}, {'2d', 'nonempty'}, mfilename, 'F_aug');
+                validateattributes(Q_aug, {'numeric'}, {'2d', 'nonempty', 'square'}, mfilename, 'Q_aug');
+                validateattributes(model_order, {'numeric'}, {'scalar', 'integer', '>=', 1}, mfilename, 'model_order');
+                validateattributes(states_amount, {'numeric'}, {'scalar', 'integer', '>=', 1}, mfilename, 'states_amount');
+                % Ensure Q_var is symmetric and positive semi-definite
+                if ~isequal(Q_aug, Q_aug') 
+                    error('construct_kalman_matrices:QaugNotSymmetric', 'Q_aug must be symmetric.');
+                end
+                if any(eig(Q_aug) < -1e-10) 
+                    error('construct_kalman_matrices:QaugNotPositiveSemiDefinite', 'Q_aug must be positive semi-definite.');
+                end
+            end
+            
+            % Ensure Q_los is symmetric and positive semi-definite
+            if ~isequal(Q_los, Q_los') 
+                error('construct_kalman_matrices:QlosNotSymmetric', 'Q_los must be symmetric.');
+            end
+            if any(eig(Q_los) < -1e-10) % Allow small numerical errors
+                error('construct_kalman_matrices:QlosNotPositiveSemiDefinite', 'Q_los must be positive semi-definite.');
+            end
+        
+        
+            % Combine LOS and VAR state transitions
+            F = blkdiag(F_los, F_aug);
+            
+            % Combine LOS and VAR covariance matrices
+            Q = blkdiag(Q_los, Q_aug);
+            
+            % Compute measurement noise covariance matrix R from C/N0 values and sampling_interval.
+            R = diag(compute_phase_variances(general_config.C_over_N0_array_dBHz, sampling_interval));
+        
+            % Construct measurement matrix H.
+            % H is defined as [1, zeros(1, size(F_los,1)-1), 1, zeros(1, var_states_amount*var_model_order-1)]
+            H = [1, zeros(1, size(F_los,1)-1), 1, zeros(1, states_amount*model_order - 1)];
+            
+            % Construct the augmented intercept vector W.
+            W = [zeros(size(F_los,1), 1); intercept_vector; zeros(states_amount*(model_order-1),1)];
 
         case 'kinematic'
             % For the kinematic augmentation, simply concatenate the LOS and Wiener augmentation matrices.

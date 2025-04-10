@@ -1,8 +1,8 @@
-classdef test_construct_var_matrices < matlab.unittest.TestCase
-% test_construct_var_matrices
+classdef test_build_var_matrices < matlab.unittest.TestCase
+% test_build_var_matrices
 %
 % This test suite verifies the behavior of the function
-% construct_var_matrices, which constructs augmented VAR model
+% build_var_matrices, which constructs augmented VAR model
 % matrices from given coefficient and covariance matrices.
 %
 % The tests include:
@@ -39,7 +39,7 @@ classdef test_construct_var_matrices < matlab.unittest.TestCase
             % Construct a 2x2 covariance matrix.
             sigma = [1, 0.2; 0.2, 0.5];
             
-            [F_var, Q_var, var_states_amount, var_model_order] = construct_var_matrices(A, sigma);
+            [F_var, Q_var, var_states_amount, var_model_order] = build_var_matrices(A, sigma);
             
             % For VAR(1), F_var should equal A, and Q_var equals sigma.
             testCase.verifyEqual(F_var, A, 'AbsTol', 1e-10);
@@ -57,7 +57,7 @@ classdef test_construct_var_matrices < matlab.unittest.TestCase
                  0.2, 0.3,  0.1, 0.4];  % 2x4 matrix.
             sigma = [1, 0.2; 0.2, 0.5];  % 2x2 covariance matrix.
             
-            [F_var, Q_var, var_states_amount, var_model_order] = construct_var_matrices(A, sigma);
+            [F_var, Q_var, var_states_amount, var_model_order] = build_var_matrices(A, sigma);
             
             % Expected augmented F_var:
             % [ A ;
@@ -79,8 +79,8 @@ classdef test_construct_var_matrices < matlab.unittest.TestCase
             A = [0.5, 0.1, -0.2; 0.3, 0.4, 0.5];  % 2x3 matrix (3 is not a multiple of 2)
             cov = [1, 0.2; 0.2, 0.5];  % 2x2 matrix.
             
-            testCase.verifyError(@() construct_var_matrices(A, cov), ...
-                'construct_var_matrices:InvalidDimensions', ...
+            testCase.verifyError(@() build_var_matrices(A, cov), ...
+                'build_var_matrices:InvalidDimensions', ...
                 'Expected an error when the number of columns in var_coefficient_matrices is not a multiple of the number of rows.');
         end
 
@@ -91,8 +91,8 @@ classdef test_construct_var_matrices < matlab.unittest.TestCase
             A = [0.5, 0.1; 0.2, 0.3];  % 2x2 (VAR(1))
             cov = [1, 0.2, 0.3; 0.2, 0.5, 0.1];  % 2x3 matrix, invalid.
             
-            testCase.verifyError(@() construct_var_matrices(A, cov), ...
-                'MATLAB:construct_var_matrices:expectedSquare');
+            testCase.verifyError(@() build_var_matrices(A, cov), ...
+                'MATLAB:build_var_matrices:expectedSquare');
         end
 
         function testNonNumericCoefficient(testCase)
@@ -101,8 +101,8 @@ classdef test_construct_var_matrices < matlab.unittest.TestCase
             sigma = [1, 0.2; 0.2, 0.5];
             
             % Expect an error from validateattributes.
-            testCase.verifyError(@() construct_var_matrices(A, sigma), ...
-                'MATLAB:construct_var_matrices:invalidType');
+            testCase.verifyError(@() build_var_matrices(A, sigma), ...
+                'MATLAB:build_var_matrices:invalidType');
         end
     end
 end
