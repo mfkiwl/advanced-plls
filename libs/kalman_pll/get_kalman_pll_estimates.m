@@ -1,4 +1,15 @@
-function [state_estimates, error_covariance_estimates, L1_c_over_n0_linear_estimates] = get_kalman_pll_estimates(received_signal, kalman_pll_config, initial_estimates, training_scint_model, adaptive_config, online_mdl_learning_cfg)
+function [state_estimates, ...
+    error_covariance_estimates, ...
+    L1_c_over_n0_linear_estimates] = ...
+    ...
+    get_kalman_pll_estimates( ...
+    received_signal, ...
+    kalman_pll_config, ...
+    initial_estimates, ...
+    kf_type, ...
+    training_scint_model, ...
+    adaptive_config, ...
+    online_mdl_learning_cfg)
 % get_kalman_pll_estimates
 %
 % Generates Kalman filter state and error covariance estimates based on the
@@ -128,7 +139,7 @@ function [state_estimates, error_covariance_estimates, L1_c_over_n0_linear_estim
     validate_online_learning_cfg(online_mdl_learning_cfg, kalman_pll_config, training_scint_model);
     
     % Retrieve Kalman filter matrices from configuration.
-    config_struct = kalman_pll_config.(training_scint_model);
+    config_struct = kalman_pll_config.(training_scint_model).(kf_type);
     required_config_fields = {'F', 'Q', 'H', 'R', 'W'};
     for i = 1:length(required_config_fields)
         if ~isfield(config_struct, required_config_fields{i})
@@ -140,6 +151,7 @@ function [state_estimates, error_covariance_estimates, L1_c_over_n0_linear_estim
     H = config_struct.H;
     R = config_struct.R;
     W = config_struct.W;
+    Hj_handle = config_struct.Hj_handle;
     
     % Preallocate output arrays.
     N = size(received_signal, 1);
@@ -216,6 +228,8 @@ function [state_estimates, error_covariance_estimates, L1_c_over_n0_linear_estim
             % Apply hard-limited constraint if enabled.
             if adaptive_config.hard_limited.is_used
                 if (10 * log10(estimated_L1_c_over_n0_linear) < threshold)
+                    % TODO: It is hard coded here. Doesn't fit the extended
+                    % KF SSM neither the multi-frequency case.
                     adapt_R = 100;
                 end
             end
@@ -223,9 +237,26 @@ function [state_estimates, error_covariance_estimates, L1_c_over_n0_linear_estim
                 [F, Q, W] = update_filter_matrices(F, Q, W, step, state_estimates, online_mdl_learning_cfg, kalman_pll_config.(training_scint_model).augmentation_model_initializer);
             end
 
+            if strcmpi(kf_type, 'extended')
+                external_amplitude = abs(received_signal(step,1));
+                H = Hj_handle(external_amplitude, x_hat_project_ahead);
+            end
+
             % Compute Kalman gain.
             K = P_hat_project_ahead * H.' * ((H * P_hat_project_ahead * H.' + adapt_R) \ eye(size(R, 1)));
             
+            % Estimated signal using the project ahead estimates
+            estimated_signal = exp(1j * x_hat_project_ahead(1));
+
+            % Update states estimates.
+            switch kf_type
+                case 'extended'
+                    estimated_signal = exp(1j * x_hat_project_ahead(1));
+                    innovation = [real(received_signal(step-1,1)); imag(received_signal(step-1,1))] - [real(estimated_signal); imag(estimated_signal)];
+                otherwise
+                    innovation = angle(received_signal(step-1,1) * conj(estimated_signal));
+            end
+
             if strcmpi(adaptive_config.states_cov_adapt_algorithm, 'matching')
                 if strcmpi(adaptive_config.states_cov_adapt_algorithm_params.method, 'IAE')
                     phi = angle(received_signal(step-1,1) * exp(-1j * (H * x_hat_project_ahead)));
@@ -235,14 +266,7 @@ function [state_estimates, error_covariance_estimates, L1_c_over_n0_linear_estim
                     else
                         % Does nothing (i.e., uses the initial values of Q)
                     end
-                end
-            end
-
-            % Update states estimates.
-            x_hat_update = x_hat_project_ahead + K * angle(received_signal(step-1,1) * exp(-1j * (H * x_hat_project_ahead)));
-            
-            if strcmpi(adaptive_config.states_cov_adapt_algorithm, 'matching')
-                if strcmpi(adaptive_config.states_cov_adapt_algorithm_params.method, 'RAE')
+                elseif strcmpi(adaptive_config.states_cov_adapt_algorithm_params.method, 'RAE')
                     mu = angle(received_signal(step-1,1) * exp(-1j * (H * x_hat_update)));
                     states_error_mem = [mu; states_error_mem(1:end-1)];
                     if step >= adaptive_config.states_cov_adapt_algorithm_params.window_size
@@ -253,6 +277,8 @@ function [state_estimates, error_covariance_estimates, L1_c_over_n0_linear_estim
                 end
             end
 
+            x_hat_update = x_hat_project_ahead + K * innovation;
+            
             % Update error covariance.
             P_hat_update = P_hat_project_ahead - K * H * P_hat_project_ahead;
         else

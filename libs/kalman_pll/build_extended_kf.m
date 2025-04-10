@@ -29,7 +29,7 @@ function [F, Q, Hj_handle, R, W] = build_extended_kf(F_los, Q_los, aug_data, gen
     % Default measurement noise covariance: Adjust using get_phase_variances.
     variances = get_phase_variances(general_config.C_over_N0_array_dBHz, sampling_interval);
     I_Q_separate_variances = repelem(variances, 2) / 2;
-    R = I_Q_separate_variances;
+    R = diag(I_Q_separate_variances);
 
     % Choose matrices and measurement Jacobian based on augmentation type.
     switch lower(string(aug_data.augmentation_type))

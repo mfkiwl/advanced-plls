@@ -66,12 +66,13 @@ classdef test_build_kalman_pll_config < matlab.unittest.TestCase
             
             % Check that the output struct has a field named after the scintillation model.
             modelName = testCase.default_general_config.scintillation_training_data_config.scintillation_model;
+            kf_type = testCase.default_general_config.kf_type;
             testCase.verifyTrue(isfield(kalman_pll_config, modelName), ...
                 sprintf('Expected the output struct to have a field "%s".', modelName));
             
             % Check that the substruct has all the required fields.
             requiredFields = {'F','Q','H','R','W', 'augmentation_model_initializer'};
-            configSubstruct = kalman_pll_config.(modelName);
+            configSubstruct = kalman_pll_config.(modelName).(kf_type);
             for i = 1:length(requiredFields)
                 testCase.verifyTrue(isfield(configSubstruct, requiredFields{i}), ...
                     sprintf('Missing required field "%s" in output struct.', requiredFields{i}));

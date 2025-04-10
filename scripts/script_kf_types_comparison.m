@@ -17,7 +17,7 @@ seed = 6;
 rng(seed);
 
 %% Generating the received signal for the TPPSM
-doppler_profile = [0, 1000, 0.94]; % Synthetic Doppler profile
+doppler_profile = [0, 0, 0]; % Synthetic Doppler profile
 sampling_interval = 0.01; % 100 Hz
 L1_C_over_N0_dBHz = 40;
 simulation_time = 300;
@@ -43,7 +43,7 @@ general_config_standard = struct( ...
   'real_doppler_profile', doppler_profile, ...
   'augmentation_model_initializer', struct('id', 'none', 'model_params', struct()), ...
   'is_use_cached_settings', false, ...
-  'is_generate_random_initial_estimates', true, ...
+  'is_generate_random_initial_estimates', false, ...
   'is_enable_cmd_print', false ...
 );
 
@@ -81,3 +81,10 @@ scatter(time_vector,phase_error_kf_std, 'Marker', '.', 'LineWidth', linewidth);
 scatter(time_vector,phase_error_kf_ext, 'Marker', '.', 'LineWidth', linewidth);
 legend({'KF'}, Location="best");
 hold off;
+
+RMSE_standard = rms(wrapToPi(phase_error_kf_std));
+RMSE_extended = rms(wrapToPi(phase_error_kf_ext));
+
+% Print the results to the MATLAB Command Window.
+fprintf('RMSE (standard): %.4f\n', RMSE_standard);
+fprintf('RMSE (extended): %.4f\n', RMSE_extended);

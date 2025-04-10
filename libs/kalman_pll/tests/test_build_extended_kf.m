@@ -38,7 +38,7 @@ classdef test_build_extended_kf < matlab.unittest.TestCase
             % Compute the expected R dynamically from get_phase_variances.
             % Note: This makes the test independent of an assumption on the value.
             variances = get_phase_variances(testCase.general_config.C_over_N0_array_dBHz, testCase.sampling_interval);
-            expectedR = repelem(variances,2) / 2;
+            expectedR = diag(repelem(variances,2) / 2);
             testCase.verifyEqual(R, expectedR, ...
                 'R must match the computed I_Q_separate_variances from get_phase_variances.');
             
