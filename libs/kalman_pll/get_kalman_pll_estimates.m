@@ -134,7 +134,7 @@ function [state_estimates, ...
 % ORCID: https://orcid.org/0000-0003-0412-5583
 % Email: rdlfresearch@gmail.com
     
-    [F, Q, H, R, W, Hj_handle, state_estimates, error_covariance_estimates, L1_c_over_n0_linear_estimates, extra_vars, N] = ...
+    [F, Q, H, R, W, Hj_handle, state_estimates, error_covariance_estimates, L1_c_over_n0_linear_estimates, extra_vars, N, ut_params] = ...
     initializer_function(received_signal, kalman_pll_config, initial_estimates, kf_type, training_scint_model, adaptive_config, online_mdl_learning_cfg);
 
     %% Main filtering loop.
@@ -160,12 +160,15 @@ function [state_estimates, ...
 
             % Variant-specific update.
             switch lower(kf_type)
-                case 'extended'
-                    [K, innovation, x_hat_update, P_hat_update] = extended_kf_update(...
-                        step, received_signal, Hj_handle, extra_vars, adapt_R, R);
                 case 'standard'
                     [K, innovation, x_hat_update, P_hat_update] = standard_kf_update(...
                         step, received_signal, extra_vars, H, adapt_R, R);
+                case 'extended'
+                    [K, innovation, x_hat_update, P_hat_update] = extended_kf_update(...
+                        step, received_signal, Hj_handle, extra_vars, adapt_R, R);
+                case 'unscented'
+                    [K, innovation, x_hat_update, P_hat_update] = unscented_kf_update(...
+                        step, received_signal, extra_vars, H, adapt_R, R, ut_params);
                 otherwise
                     error('get_kalman_pll_estimates:unsupported_kf', 'KF type %s is not yet supported.', kf_type);
             end
@@ -192,7 +195,7 @@ function [state_estimates, ...
     end
 end
 
-function [F, Q, H, R, W, Hj_handle, state_estimates, error_covariance_estimates, L1_c_over_n0_linear_estimates, extra_vars, N] = initializer_function(...
+function [F, Q, H, R, W, Hj_handle, state_estimates, error_covariance_estimates, L1_c_over_n0_linear_estimates, extra_vars, N, ut_params] = initializer_function(...
     received_signal, kalman_pll_config, initial_estimates, kf_type, training_scint_model, adaptive_config, online_mdl_learning_cfg)
 % initializer_function
 %
@@ -248,6 +251,16 @@ function [F, Q, H, R, W, Hj_handle, state_estimates, error_covariance_estimates,
 %                                 x_hat_project_ahead, P_hat_project_ahead, thresholds, baseline values, and NWPR parameters.
 %   N                           - Number of time steps, i.e., the number of rows in received_signal.
 %
+% References:
+%   [1] Brown, Robert Grover, and Patrick Y C Hwang. “Introduction to 
+%       Random Signals and Applied Kalman Filtering: With MATLAB® Exercises, 
+%       Fourth Edition”
+%   [2] E. A. Wan and R. Van Der Merwe, "The unscented Kalman filter for 
+%       nonlinear estimation," Proceedings of the IEEE 2000 Adaptive 
+%       Systems for Signal Processing, Communications, and Control 
+%       Symposium (Cat. No.00EX373), Lake Louise, AB, Canada, 2000, 
+%       pp. 153-158, doi: 10.1109/ASSPCC.2000.882463.
+%
 % Author: Rodrigo de Lima Florindo
 % ORCID: https://orcid.org/0000-0003-0412-5583
 % Email: rdlfresearch@gmail.com
@@ -278,7 +291,8 @@ function [F, Q, H, R, W, Hj_handle, state_estimates, error_covariance_estimates,
     
     % Preallocate arrays
     N = size(received_signal, 1);
-    state_estimates = zeros(N, numel(initial_estimates.x_hat_init));
+    states_amount = numel(initial_estimates.x_hat_init);
+    state_estimates = zeros(N, states_amount);
     error_covariance_estimates = zeros(N, size(initial_estimates.P_hat_init, 1), size(initial_estimates.P_hat_init,2));
     L1_c_over_n0_linear_estimates = NaN(N, 1);
     
@@ -317,6 +331,24 @@ function [F, Q, H, R, W, Hj_handle, state_estimates, error_covariance_estimates,
     % matching adaptive state covariance algorithm.
     if strcmpi(adaptive_config.states_cov_adapt_algorithm, 'matching')
         extra_vars.states_error_mem = zeros(adaptive_config.states_cov_adapt_algorithm_params.window_size,1);
+    end
+
+    ut_params = struct();
+    if strcmpi(kf_type, 'unscented')
+        % NOTE: Given that [1, Chapter 7 - The unscented Kalman filter]
+        % do not explain with details which unscented transform parameters 
+        % should be generally adopted, We refer to the parameter 
+        % specification provided in [2] instead.
+        alpha = 1e-3;
+        beta = 2; % Optimal for Gaussian distributions
+        kappa = 0;
+        lambda = alpha^2 * (states_amount + kappa) - states_amount;
+        ut_params.lambda = lambda;
+        ut_params.omega_mean_0 = lambda / (lambda + states_amount);
+        ut_params.omega_covariance_0 = ut_params.omega_mean_0 + 1 - alpha^2 + beta;
+        ut_params.omega_mean_covariance_general = 1 / (2*(lambda + N));
+        ut_params.sigma_points_amount = 2*states_amount + 1;
+        ut_params.states_amount = states_amount;
     end
 end
 
@@ -536,6 +568,26 @@ function [K, innovation, x_hat_update, P_hat_update] = extended_kf_update(...
     
     % Update error covariance.
     P_hat_update = extra_vars.P_hat_project_ahead - K * H * extra_vars.P_hat_project_ahead;
+end
+
+function [K, innovation, x_hat_update, P_hat_update] = unscented_kf_update(...
+    step, received_signal, extra_vars, H, adapt_R, R, ut_params)
+% unscented_kf_update
+
+    external_amplitude = abs(received_signal(step, 1));
+
+    X_project_ahead = zeros(ut_params.states_amount, ut_params.sigma_points_amount);
+    matrix_sqrt = sqrtm((ut_params.states_amount + ut_params.lambda) * extra_vars.P_hat_project_ahead);
+
+    for i = 1:ut_params.sigma_points_amount
+        if i == 1
+            X_project_ahead(:,i) = extra_vars.x_hat_project_ahead;
+        elseif i <= ut_params.states_amount + 1
+            X_project_ahead(:,i) = extra_vars.x_hat_project_ahead + matrix_sqrt(:, i - 1);
+        else
+            X_project_ahead(:,i) = extra_vars.x_hat_project_ahead - matrix_sqrt(:, i - ut_params.states_amount - 1);
+        end
+    end
 end
 
 function extra_vars = update_state_covariance(step, received_signal, adaptive_config, extra_vars, Q, H, innovation, K)

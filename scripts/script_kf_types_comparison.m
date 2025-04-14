@@ -32,7 +32,7 @@ training_data_config = struct('scintillation_model', 'none', 'sampling_interval'
 
 process_noise_variance_los = 2.6*1e-1; 
 % The key feature will be another part of this struct that will
-% charactherize the adopted KF type as one of the following: 
+% characterize the adopted KF type as one of the following: 
 % {'standard', 'extended', 'unscented', 'cubature'};
 general_config_standard = struct( ...
   'kf_type', 'standard', ...
@@ -52,14 +52,14 @@ general_config_standard = struct( ...
 general_config_extended = general_config_standard;
 general_config_extended.kf_type = 'extended';
 
-% general_config_unscented = general_config_standard;
-% general_config_unscented.kf_type = 'unscented';
+general_config_unscented = general_config_standard;
+general_config_unscented.kf_type = 'unscented';
 
 is_enable_cmd_print = true;
 
 [~, ~] = get_kalman_pll_config(general_config_standard, cache_dir, is_enable_cmd_print);
-[kf_cfg, init_estimates] = get_kalman_pll_config(general_config_extended, cache_dir, is_enable_cmd_print);
-%[kf_cfg, init_estimates] = get_kalman_pll_config(general_config_unscented, cache_dir, is_enable_cmd_print);
+[~, ~] = get_kalman_pll_config(general_config_extended, cache_dir, is_enable_cmd_print);
+[kf_cfg, init_estimates] = get_kalman_pll_config(general_config_unscented, cache_dir, is_enable_cmd_print);
 
 adaptive_cfg_nonadaptive = struct(...
     'measurement_cov_adapt_algorithm', 'none', ...
@@ -71,13 +71,13 @@ online_mdl_learning_cfg = struct('is_online', false);
 
 [kf_std, error_cov_std] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates, 'standard', 'none', adaptive_cfg_nonadaptive, online_mdl_learning_cfg);
 [kf_ext, error_cov_ext] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates, 'extended', 'none', adaptive_cfg_nonadaptive, online_mdl_learning_cfg);
-%[kf_uns, error_cov_uns] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates, 'unscented', 'none', adaptive_cfg_nonadaptive, online_mdl_learning_cfg);
+[kf_uns, error_cov_uns] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates, 'unscented', 'none', adaptive_cfg_nonadaptive, online_mdl_learning_cfg);
 
 time_vector = sampling_interval:sampling_interval:simulation_time;
 true_total_phase = los_phase + get_corrected_phase(psi_tppsm);
 phase_error_kf_std = kf_std(:,1) - true_total_phase;
 phase_error_kf_ext = kf_ext(:,1) - true_total_phase;
-%phase_error_kf_uns = kf_uns(:,1) - true_total_phase;
+phase_error_kf_uns = kf_uns(:,1) - true_total_phase;
 
 linewidth = 2;
 
@@ -85,15 +85,15 @@ figure;
 hold on;
 scatter(time_vector,phase_error_kf_std, 'Marker', '.', 'LineWidth', linewidth);
 scatter(time_vector,phase_error_kf_ext, 'Marker', '.', 'LineWidth', linewidth);
-%scatter(time_vector,phase_error_kf_uns, 'Marker', '.', 'LineWidth', linewidth);
+scatter(time_vector,phase_error_kf_uns, 'Marker', '.', 'LineWidth', linewidth);
 legend({'Standard', 'Extended'}, Location="best");
 hold off;
 
 RMSE_standard = rms(wrapToPi(phase_error_kf_std));
 RMSE_extended = rms(wrapToPi(phase_error_kf_ext));
-%RMSE_unscented = rms(wrapToPi(phase_error_kf_uns));
+RMSE_unscented = rms(wrapToPi(phase_error_kf_uns));
 
 % Print the results to the MATLAB Command Window.
 fprintf('RMSE (standard): %.4f\n', RMSE_standard);
 fprintf('RMSE (extended): %.4f\n', RMSE_extended);
-%fprintf('RMSE (unscented): %.4f\n', RMSE_unscented);
+fprintf('RMSE (unscented): %.4f\n', RMSE_unscented);
