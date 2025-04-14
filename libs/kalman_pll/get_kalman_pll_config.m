@@ -136,7 +136,6 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_
 end
 
 %% Helper Functions
-
 function [L, M, sampling_interval, sigma, delta] = validate_discrete_wiener_model_config(dw_config)
     % Validate that dw_config is a cell array with 5 elements.
     validateattributes(dw_config, {'cell'}, {'numel', 5}, mfilename, 'general_config.discrete_wiener_model_config');

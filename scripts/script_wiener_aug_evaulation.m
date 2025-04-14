@@ -75,8 +75,8 @@ adaptive_config_KF_std = struct(...
 online_mdl_learning_cfg = struct('is_online', false);
 
 %% Obtain state estimates for CSM
-[kf_kinematic_csm, ~] = get_kalman_pll_estimates(rx_sig_csm, kf_cfg, init_estimates, 'none', adaptive_config_KF_std, online_mdl_learning_cfg);
-[kf_kinematic_tppsm, ~] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates, 'none', adaptive_config_KF_std, online_mdl_learning_cfg);
+[kf_kinematic_csm, ~] = get_kalman_pll_estimates(rx_sig_csm, kf_cfg, init_estimates, 'standard', 'none', adaptive_config_KF_std, online_mdl_learning_cfg);
+[kf_kinematic_tppsm, ~] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates, 'standard', 'none', adaptive_config_KF_std, online_mdl_learning_cfg);
 
 time_vector = sampling_interval:sampling_interval:simulation_time;
 
@@ -85,7 +85,7 @@ subplot(2,1,1);
 plot(time_vector, [kf_kinematic_csm(:,1) - los_phase,kf_kinematic_csm(:,4),kf_kinematic_csm(:,1) + kf_kinematic_csm(:,4) - los_phase, angle(psi_csm)]);
 legend({'LOS Phase error ', 'Kinematic Phase', 'Joint Phase Error', 'Unwrapped True Scint Phase'});
 subplot(2,1,2);
-plot(time_vector, [kf_kinematic_tppsm(:,1) - los_phase, kf_kinematic_tppsm(:,4), kf_kinematic_tppsm(:,1) + kf_kinematic_tppsm(:,4) - los_phase, unwrap(angle(psi_tppsm)), refractive_phase_settled]);
+plot(time_vector, [kf_kinematic_tppsm(:,1) - los_phase, kf_kinematic_tppsm(:,4), kf_kinematic_tppsm(:,1) + kf_kinematic_tppsm(:,4) - los_phase, get_corrected_phase(psi_tppsm), refractive_phase_settled]);
 legend({'LOS phase Error', 'Kinematic Phase', 'Joint Phase', 'Unwrapped Scint phase', 'Refractive Phase'});
 % 
 % figure;
