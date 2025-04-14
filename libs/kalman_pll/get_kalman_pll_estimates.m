@@ -161,7 +161,7 @@ function [state_estimates, ...
             % Variant-specific update.
             switch lower(kf_type)
                 case 'extended'
-                    [K, innovation, H, extra_vars, x_hat_update, P_hat_update] = extended_kf_update(...
+                    [K, innovation, x_hat_update, P_hat_update] = extended_kf_update(...
                         step, received_signal, Hj_handle, extra_vars, adapt_R, R);
                 case 'standard'
                     [K, innovation, x_hat_update, P_hat_update] = standard_kf_update(...
@@ -192,8 +192,8 @@ function [state_estimates, ...
     end
 end
 
-function [F, Q, H, R, W, Hj_handle, state_estimates, error_covariance_estimates, L1_c_over_n0_linear_estimates, extra_vars, N] = ...
-    initializer_function(received_signal, kalman_pll_config, initial_estimates, kf_type, training_scint_model, adaptive_config, online_mdl_learning_cfg)
+function [F, Q, H, R, W, Hj_handle, state_estimates, error_covariance_estimates, L1_c_over_n0_linear_estimates, extra_vars, N] = initializer_function(...
+    received_signal, kalman_pll_config, initial_estimates, kf_type, training_scint_model, adaptive_config, online_mdl_learning_cfg)
 % initializer_function
 %
 % Initializes the Kalman PLL estimation by validating inputs, retrieving the
@@ -475,14 +475,15 @@ function [K, innovation, x_hat_update, P_hat_update] = standard_kf_update(...
     P_hat_update = extra_vars.P_hat_project_ahead - K * H * extra_vars.P_hat_project_ahead;
 end
 
-function [K, innovation, H, extra_vars, x_hat_update, P_hat_update] = extended_kf_update(...
+function [K, innovation, x_hat_update, P_hat_update] = extended_kf_update(...
     step, received_signal, Hj_handle, extra_vars, adapt_R, R)
 % extended_kf_update
 %
-% Computes the Kalman gain and the innovation term for the extended Kalman filter.
-% This function uses the provided Jacobian function handle (Hj_handle) to update the
-% measurement matrix based on the current estimated state, then calculates the innovation
-% by comparing the received signal with the estimated signal, and finally computes the
+% Computes the Kalman gain and the innovation term for the extended Kalman
+% filter. This function uses the provided Jacobian function handle 
+% (Hj_handle) to update the linearized measurement matrix based on the 
+% current estimated state, then calculates the innovation by comparing 
+% the received signal with the estimated signal, and finally computes the
 % Kalman gain.
 %
 % Syntax:
@@ -490,12 +491,14 @@ function [K, innovation, H, extra_vars, x_hat_update, P_hat_update] = extended_k
 %         step, received_signal, Hj_handle, extra_vars, adapt_R, R)
 %
 % Description:
-%   For the extended KF, the measurement matrix H is updated by computing the Jacobian at
-%   the current projected state (stored in extra_vars.x_hat_project_ahead) using the
-%   measurement function. The function then forms the innovation vector by subtracting the
-%   real and imaginary components of the estimated signal from those of the received signal.
-%   Finally, the Kalman gain is computed using the updated measurement matrix H, the current
-%   error covariance (stored in extra_vars.P_hat_project_ahead), and the adaptive measurement
+%   For the extended KF, the measurement matrix H is updated by computing 
+%   the Jacobian at the current projected state (stored in 
+%   extra_vars.x_hat_project_ahead) using the measurement function. The 
+%   function then forms the innovation vector by subtracting the real and 
+%   imaginary components of the estimated signal from those of the received 
+%   signal. Finally, the Kalman gain is computed using the updated 
+%   measurement matrix H, the current error covariance (stored in 
+%   extra_vars.P_hat_project_ahead), and the adaptive measurement
 %   noise covariance adapt_R.
 %
 % Inputs:
@@ -571,10 +574,24 @@ function extra_vars = update_state_covariance(step, received_signal, adaptive_co
 %   extra_vars      - Updated extra_vars structure with the field updated_Q containing the new
 %                     state covariance if the window size condition is met; otherwise, Q is preserved.
 %
+% Reference:
+%  [1] Chen Y-W, Tu K-M. Robust self-adaptive Kalman filter with 
+%      application in target tracking. Measurement and Control. 
+%      2022;55(9-10):935-944. doi:10.1177/00202940221083548
+%
 % Author: Rodrigo de Lima Florindo
 % ORCID: https://orcid.org/0000-0003-0412-5583
 % Email: rdlfresearch@gmail.com
     
+    % NOTE: The adaptive algorithm used here is known as Covariance
+    % Matching. Please, refer to [1] for more details. 
+    %
+    % In the case considered in this work, the adaptation of the 
+    % measurement covariance matrix is only dependent on the measured 
+    % carrier to noise ratio, to avoid filter instabilities that may 
+    % happen when one tries to estimate both measurement and state 
+    % covariances simulteanously using solely the covariance matching 
+    % method.
     if strcmpi(adaptive_config.states_cov_adapt_algorithm_params.method, 'IAE')
         phi = angle(received_signal(step-1,1) * exp(-1j * (H * extra_vars.x_hat_project_ahead)));
         extra_vars.states_error_mem = [phi; extra_vars.states_error_mem(1:end-1)];
