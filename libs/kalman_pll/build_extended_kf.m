@@ -1,8 +1,8 @@
-function [F, Q, Hj_handle, R, W] = build_extended_kf(F_los, Q_los, aug_data, general_config, sampling_interval)
+function [F, Q, Hj_handle, R] = build_extended_kf(F_los, Q_los, aug_data, general_config, sampling_interval)
 % build_extended_kf
 %
-% Constructs the full Kalman Filter matrices and returns a handle to the 
-% measurement Jacobian function.
+% Constructs the full extended Kalman filter matrices and returns a 
+% handle to the measurement Jacobian function.
 %
 % Inputs:
 %   F_los            - LOS dynamics state transition matrix.
@@ -14,9 +14,8 @@ function [F, Q, Hj_handle, R, W] = build_extended_kf(F_los, Q_los, aug_data, gen
 %   sampling_interval- The sampling interval.
 %
 % Outputs:
-%   F, Q, R, W       - The state transition, process noise, measurement noise,
+%   F, Q, R          - The state transition, process noise, measurement noise,
 %                      and additional KF matrices.
-%   Hj_handle        - A function handle to compute the measurement Jacobian.
 %
 % Notes:
 %   - In this version, the amplitude is not part of the KF state but is 
@@ -38,7 +37,6 @@ function [F, Q, Hj_handle, R, W] = build_extended_kf(F_los, Q_los, aug_data, gen
             F = F_los;
             Q = Q_los;
             states_amount = size(F_los, 1);  % Number of KF states (excluding amplitude)
-            W = zeros(states_amount, 1);
 
             % Create a parameter structure for the measurement Jacobian function.
             % For the 'none' augmentation, assume that the KF state vector x contains

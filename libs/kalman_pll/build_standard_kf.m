@@ -1,7 +1,7 @@
 function [F, Q, H, R, W] = build_standard_kf(F_los, Q_los, aug_data, general_config, sampling_interval)
 % build_standard_kf 
 % 
-% constructs the full KF matrices for the standard variant.
+% constructs the full standard Kalman filter matrices.
 %
 % Inputs:
 %   F_los, Q_los  - LOS dynamics matrices.
@@ -30,12 +30,7 @@ function [F, Q, H, R, W] = build_standard_kf(F_los, Q_los, aug_data, general_con
             W = zeros(size(F_los,1), 1);
 
         case {'arfit', 'aryule'}
-            % For ARFIT or ARYULE, we assume the existence of a helper function
-            % construct_kalman_matrices that fuses the LOS matrices with the VAR–based augmentation.
-            % The function is assumed to have the following signature:
-            %
-            % [F, Q, H, R, W] = construct_kalman_matrices(F_los, Q_los, F_aug, Q_aug, intercept, states_amount, model_order, C_over_N0_array_dBHz, sampling_interval)
-            %
+            
             F_aug = aug_data.F_aug;
             Q_aug = aug_data.Q_aug;
             

@@ -77,11 +77,13 @@ function kalman_pll_config = build_kalman_pll_config(general_config, kalman_pll_
             [F, Q, H, R, W] = build_standard_kf(F_los, Q_los, aug_data, general_config, sampling_interval);
             Hj_handle = [];
         case 'extended'
-            [F, Q, Hj_handle, R, W] = build_extended_kf(F_los, Q_los, aug_data, general_config, sampling_interval);
+            [F, Q, Hj_handle, R] = build_extended_kf(F_los, Q_los, aug_data, general_config, sampling_interval);
+            W = zeros(size(F_los,1), 1);
             H = [];
         case 'unscented'
-            [F, Q, ~, R, W] = build_standard_kf(F_los, Q_los, aug_data, general_config, sampling_interval);
+            [F, Q, R] = build_unscented_kf(F_los, Q_los, aug_data, general_config, sampling_interval);
             Hj_handle = [];
+            W = zeros(size(F_los,1), 1);
             H = [];
         case 'cubature'
             error('MATLAB:NotImplemented', 'Cubature KF variant is not implemented yet.');

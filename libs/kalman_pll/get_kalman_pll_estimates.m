@@ -168,7 +168,7 @@ function [state_estimates, ...
                         step, received_signal, Hj_handle, extra_vars, adapt_R, R);
                 case 'unscented'
                     [K, innovation, x_hat_update, P_hat_update] = unscented_kf_update(...
-                        step, received_signal, extra_vars, H, adapt_R, R, ut_params);
+                        step, received_signal, extra_vars, adapt_R, ut_params);
                 otherwise
                     error('get_kalman_pll_estimates:unsupported_kf', 'KF type %s is not yet supported.', kf_type);
             end
@@ -189,7 +189,7 @@ function [state_estimates, ...
         extra_vars.x_hat_project_ahead = F * x_hat_update + W;
         extra_vars.P_hat_project_ahead = F * P_hat_update * F.' + Q;
         
-         % Save estimates.
+        % Save estimates.
         state_estimates(step, :) = extra_vars.x_hat_project_ahead.';
         error_covariance_estimates(step, :, :) = extra_vars.P_hat_project_ahead;
     end
@@ -341,12 +341,12 @@ function [F, Q, H, R, W, Hj_handle, state_estimates, error_covariance_estimates,
         % specification provided in [2] instead.
         alpha = 1e-3;
         beta = 2; % Optimal for Gaussian distributions
-        kappa = 0;
+        kappa = 3 - states_amount;
         lambda = alpha^2 * (states_amount + kappa) - states_amount;
         ut_params.lambda = lambda;
         ut_params.omega_mean_0 = lambda / (lambda + states_amount);
         ut_params.omega_covariance_0 = ut_params.omega_mean_0 + 1 - alpha^2 + beta;
-        ut_params.omega_mean_covariance_general = 1 / (2*(lambda + N));
+        ut_params.omega_mean_covariance_general = 1 / (2*(lambda + states_amount));
         ut_params.sigma_points_amount = 2*states_amount + 1;
         ut_params.states_amount = states_amount;
     end
@@ -388,6 +388,7 @@ function [adapt_R, extra_vars, L1_c_over_n0_linear_estimates] = compute_adaptive
 %   R                           - Default measurement noise covariance matrix.
 %   L1_c_over_n0_linear_estimates - Numeric array storing the estimated carrier-to-noise ratio (linear scale)
 %                                 for each time step.
+%   kf_type                     - char with the chosen KF type, which needs to be one of the following: {'standard', 'extended', 'unscented', 'cubature'}
 %
 % Outputs:
 %   adapt_R                     - Adaptive measurement noise covariance computed for the current step.
@@ -444,6 +445,7 @@ function [adapt_R, extra_vars, L1_c_over_n0_linear_estimates] = compute_adaptive
             extra_vars.latest_L1_c_over_n0_linear = estimated_L1_c_over_n0_linear;
         otherwise
             adapt_R = R;
+            %TODO: Make the adaptive to the other kf variant types
     end
 end
 
@@ -571,23 +573,129 @@ function [K, innovation, x_hat_update, P_hat_update] = extended_kf_update(...
 end
 
 function [K, innovation, x_hat_update, P_hat_update] = unscented_kf_update(...
-    step, received_signal, extra_vars, H, adapt_R, R, ut_params)
+    step, received_signal, extra_vars, adapt_R, ut_params)
 % unscented_kf_update
+%
+% Performs the UKF measurement update by:
+%   - Generating sigma points from the projected state.
+%   - Mapping the sigma points through a nonlinear measurement function:
+%         h(a, x) = a * [cos(x(1)); sin(x(1))]
+%     where 'a' is the external amplitude (from the received signal) and x(1)
+%     is the phase component of the sigma point.
+%   - Computing the predicted measurement mean, measurement covariance, and
+%     state-measurement cross-covariance.
+%   - Calculating the Kalman gain and updating the state and covariance estimates.
+%
+% Equations (based on [1], Equations 7.5.10 to 7.5.17):
+%   (7.5.10) Sigma point generation:
+%         χ₀ = x_pred;
+%         χᵢ = x_pred + (√((n+λ)P))ᵢ,    i = 1,...,n;
+%         χ₍ₙ₊ᵢ₎ = x̂_pred - (√((n+λ)P))ᵢ, i = 1,...,n.
+%
+%   (7.5.11) Nonlinear measurement mapping:
+%         zᵢ = h(a, χᵢ) = a * [cos(χᵢ(1)); sin(χᵢ(1))],
+%         where 'a' is the external amplitude.
+%
+%   (7.5.12) Predicted measurement mean:
+%         z_pred = ω₀^m * z₀ + Σ_{i=1}^{2n} ωᵢ^m * zᵢ.
+%
+%   (7.5.13) Measurement covariance:
+%         P_zz = ω₀^c (z₀ - z_pred)(z₀ - z_pred)' +
+%                Σ_{i=1}^{2n} ωᵢ^c (zᵢ - z_pred)(zᵢ - z_pred)' + R.
+%
+%   (7.5.14) Cross covariance:
+%         P_xz = ω₀^c (χ₀ - x̂_pred)(z₀ - z_pred)' +
+%                Σ_{i=1}^{2n} ωᵢ^c (χᵢ - x̂_pred)(zᵢ - z_pred)'.
+%
+%   (7.5.15) Kalman gain:
+%         K = P_xz * inv(P_zz)  (implemented as K = P_xz*(P_zz\eye(size(P_zz,1)))).
+%
+%   (7.5.16) State update:
+%         x̂_update = x̂_pred + K*(z_actual - z_pred).
+%
+%   (7.5.17) Covariance update:
+%         P_update = P_pred - K * P_zz * K'.
+%
+% Inputs:
+%   step            - Current time step (scalar).
+%   received_signal - Numeric 2D array representing the received signal.
+%   extra_vars      - Struct with:
+%                     x_hat_project_ahead: projected state estimate (n x 1)
+%                     P_hat_project_ahead: projected error covariance (n x n)
+%   H               - (Not used; provided for interface compatibility.)
+%   adapt_R         - Adaptive measurement noise covariance.
+%   R               - Default measurement noise covariance.
+%   ut_params       - Struct with unscented transform parameters:
+%                       states_amount: number of states (n)
+%                       sigma_points_amount: 2*n + 1
+%                       lambda: scaling parameter
+%                       omega_mean_0: weight for the 0th sigma point (mean)
+%                       omega_covariance_0: weight for the 0th sigma point (covariance)
+%                       omega_mean_covariance_general: weight for the remaining sigma points
+%
+% Outputs:
+%   K               - Kalman gain matrix.
+%   innovation      - Measurement innovation (z_actual - z_pred).
+%   x_hat_update    - Updated state estimate.
+%   P_hat_update    - Updated error covariance.
+%
+% Reference:
+%   [1] Brown, R.G. & Hwang, P.Y.C., “Introduction to Random Signals and 
+%       Applied Kalman Filtering: With MATLAB® Exercises, Fourth Edition”
+%
+% Author: Rodrigo de Lima Florindo
+% ORCID: https://orcid.org/0000-0003-0412-5583
+% Email: rdlfresearch@gmail.com
 
-    external_amplitude = abs(received_signal(step, 1));
-
-    X_project_ahead = zeros(ut_params.states_amount, ut_params.sigma_points_amount);
-    matrix_sqrt = sqrtm((ut_params.states_amount + ut_params.lambda) * extra_vars.P_hat_project_ahead);
-
-    for i = 1:ut_params.sigma_points_amount
-        if i == 1
-            X_project_ahead(:,i) = extra_vars.x_hat_project_ahead;
-        elseif i <= ut_params.states_amount + 1
-            X_project_ahead(:,i) = extra_vars.x_hat_project_ahead + matrix_sqrt(:, i - 1);
-        else
-            X_project_ahead(:,i) = extra_vars.x_hat_project_ahead - matrix_sqrt(:, i - ut_params.states_amount - 1);
-        end
+    % Generate sigma points for the projected state, based on [1, equation 
+    % 7.5.10]
+    n = ut_params.states_amount;
+    num_sigma = ut_params.sigma_points_amount;  % 2*n + 1
+    X = zeros(n, num_sigma);
+    sqrt_mat = sqrtm((n + ut_params.lambda) * extra_vars.P_hat_project_ahead);
+    X(:,1) = extra_vars.x_hat_project_ahead;
+    for i = 2 : n+1
+        X(:,i) = extra_vars.x_hat_project_ahead + sqrt_mat(:, i-1);
     end
+    for i = n+2 : num_sigma
+        X(:,i) = extra_vars.x_hat_project_ahead - sqrt_mat(:, i - n - 1);
+    end
+
+    % Map sigma points through the nonlinear measurement function:
+    % h(a, x) = a * [cos(x(1)); sin(x(1))], based on [1, equation 7.5.11]
+    external_amp = abs(received_signal(step, 1));
+    angles = X(1, :);  % use only the first element of each sigma point
+    Z = external_amp * [cos(angles); sin(angles)];  % 2 x num_sigma
+
+    % Compute predicted measurement mean [1, equation 7.5.12]
+    z_pred = ut_params.omega_mean_0 * Z(:,1) + ut_params.omega_mean_covariance_general * sum(Z(:,2:end), 2);
+
+    % Compute measurement covariance P_zz [1, equation 7.5.13]
+    meas_diffs = Z - repmat(z_pred, 1, num_sigma);
+    P_zz = ut_params.omega_covariance_0 * (meas_diffs(:,1) * meas_diffs(:,1).') + ...
+           ut_params.omega_mean_covariance_general * (meas_diffs(:,2:end) * meas_diffs(:,2:end).');
+    P_zz = P_zz + adapt_R;
+    
+    % Compute cross-covariance P_xz [1, equation 7.5.14]
+    state_diffs = X - repmat(extra_vars.x_hat_project_ahead, 1, num_sigma);
+    P_xz = ut_params.omega_covariance_0 * (state_diffs(:,1) * meas_diffs(:,1).') + ...
+           ut_params.omega_mean_covariance_general * (state_diffs(:,2:end) * meas_diffs(:,2:end).');
+    
+    % Compute Kalman gain [1, equation 7.5.15]
+    K = P_xz * (P_zz \ eye(size(P_zz, 1)));
+    
+    % Separate the actual received signal measurement in real and
+    % imaginary components.
+    z_actual = [real(received_signal(step-1, 1)); imag(received_signal(step-1, 1))];
+    
+    % Compute innovation
+    innovation = z_actual - z_pred;
+    
+    % Update state estimates [1, equation 7.5.16]
+    x_hat_update = extra_vars.x_hat_project_ahead + K * innovation;
+    
+    %Update state covariance estimates [1, equation 7.5.17] 
+    P_hat_update = extra_vars.P_hat_project_ahead - K * P_zz * K.';
 end
 
 function extra_vars = update_state_covariance(step, received_signal, adaptive_config, extra_vars, Q, H, innovation, K)

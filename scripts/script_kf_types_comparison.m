@@ -13,7 +13,7 @@ clearvars; clc;
 addpath(genpath(fullfile(pwd, '..', 'libs')));
 
 % Main seed for generating the received signal and the training data set.
-seed = 6;
+seed = 1;
 rng(seed);
 
 %% Generating the received signal for the TPPSM
@@ -30,7 +30,7 @@ is_refractive_effects_removed_received_signal = false;
 cache_dir = fullfile(fileparts(mfilename('fullpath')), 'cache');
 training_data_config = struct('scintillation_model', 'none', 'sampling_interval', sampling_interval);
 
-process_noise_variance_los = 2.6*1e-1; 
+process_noise_variance_los = 1e1; 
 % The key feature will be another part of this struct that will
 % characterize the adopted KF type as one of the following: 
 % {'standard', 'extended', 'unscented', 'cubature'};
@@ -83,10 +83,10 @@ linewidth = 2;
 
 figure;
 hold on;
-scatter(time_vector,phase_error_kf_std, 'Marker', '.', 'LineWidth', linewidth);
-scatter(time_vector,phase_error_kf_ext, 'Marker', '.', 'LineWidth', linewidth);
-scatter(time_vector,phase_error_kf_uns, 'Marker', '.', 'LineWidth', linewidth);
-legend({'Standard', 'Extended'}, Location="best");
+plot(time_vector,phase_error_kf_std, 'LineWidth', linewidth);
+plot(time_vector,phase_error_kf_ext, 'LineWidth', linewidth);
+plot(time_vector,phase_error_kf_uns, 'LineWidth', linewidth);
+legend({'Standard', 'Extended', 'Unscented'}, Location="best");
 hold off;
 
 RMSE_standard = rms(wrapToPi(phase_error_kf_std));
