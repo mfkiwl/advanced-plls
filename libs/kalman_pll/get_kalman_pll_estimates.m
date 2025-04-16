@@ -155,7 +155,7 @@ function [state_estimates, ...
 
             % Adapt the augmentation models in an online manner if enabled.
             if online_mdl_learning_cfg.is_online
-                [F, Q, W] = update_filter_matrices(F, Q, W, step, state_estimates, online_mdl_learning_cfg, kalman_pll_config.(training_scint_model).augmentation_model_initializer);
+                [F, Q, W] = update_filter_matrices(F, Q, W, step, state_estimates, online_mdl_learning_cfg, kalman_pll_config.(training_scint_model).(kf_type).augmentation_model_initializer);
             end
 
             % Variant-specific update.
@@ -271,7 +271,7 @@ function [F, Q, H, R, W, Hj_handle, state_estimates, error_covariance_estimates,
     validate_kf_type(kf_type);
     validate_training_scint_model(training_scint_model, kalman_pll_config);
     validate_adaptive_config(adaptive_config);
-    validate_online_learning_cfg(online_mdl_learning_cfg, kalman_pll_config, training_scint_model)
+    validate_online_learning_cfg(online_mdl_learning_cfg, kalman_pll_config, training_scint_model, kf_type)
     
     % Retrieve filter matrices from configuration.
     config_struct = kalman_pll_config.(training_scint_model).(kf_type);
@@ -1042,7 +1042,7 @@ function check_fields(structure, field_list, context)
     end
 end
 
-function validate_online_learning_cfg(online_mdl_learning_cfg, kalman_pll_config, training_scint_model)
+function validate_online_learning_cfg(online_mdl_learning_cfg, kalman_pll_config, training_scint_model, kf_type)
 % validate_online_learning_cfg
 %
 % Validates the online model learning configuration used for the augmentation model
@@ -1075,6 +1075,7 @@ function validate_online_learning_cfg(online_mdl_learning_cfg, kalman_pll_config
 %   kalman_pll_config       - Struct containing the Kalman filter configuration, which must include the
 %                             'augmentation_model_initializer' field for the given training_scint_model.
 %   training_scint_model    - A string or char specifying the scintillation model used for training.
+%   kf_type                 - A KF type ({'standard', 'extended', 'unscented', 'cubature'})
 %
 % Outputs:
 %   None. An error is thrown if any validation check fails.
@@ -1093,15 +1094,15 @@ function validate_online_learning_cfg(online_mdl_learning_cfg, kalman_pll_config
     
     if online_mdl_learning_cfg.is_online
         % Get the offline augmentation model identifier.
-        if ~isfield(kalman_pll_config.(training_scint_model), 'augmentation_model_initializer')
+        if ~isfield(kalman_pll_config.(training_scint_model).(kf_type), 'augmentation_model_initializer')
             error('get_kalman_pll_estimates:missing_field', ...
                   'kalman_pll_config must have a field "augmentation_model_initializer" specifying the offline augmentation model.');
         end
-        if ~isfield(kalman_pll_config.(training_scint_model).augmentation_model_initializer, 'id')
+        if ~isfield(kalman_pll_config.(training_scint_model).(kf_type).augmentation_model_initializer, 'id')
             error('get_kalman_pll_estimates:missing_field', ...
                   'kalman_pll_config.augmentation_model_initializer must contain the field "id" that identifies the augmentation model used in offline training.');
         end
-        offline_id = kalman_pll_config.(training_scint_model).augmentation_model_initializer.id;
+        offline_id = kalman_pll_config.(training_scint_model).(kf_type).augmentation_model_initializer.id;
         if ~(ischar(offline_id) || isstring(offline_id))
             error('get_kalman_pll_estimates:invalid_type', ...
                   'The field kalman_pll_config.augmentation_model_initializer.id must be a char or string.');

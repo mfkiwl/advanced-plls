@@ -38,13 +38,13 @@ simulation_time = 300;
 S4 = 0.8;
 tau0 = 0.5;
 settling_time = sampling_interval;
-is_refractive_effects_removed_received_signal = false;
+is_refractive_effects_removed_received_signal = true;
 is_refractive_effects_removed_training_data = true;
 is_unwrapping_used = false;
 [rx_sig_csm, los_phase, psi_csm] = get_received_signal(L1_C_over_N0_dBHz, 'CSM', doppler_profile, ...
     'S4', S4, 'tau0', tau0, 'simulation_time', simulation_time, 'settling_time', settling_time);
 [rx_sig_tppsm, ~, psi_tppsm, diffractive_phase_tppsm, refractive_phase_settled] = get_received_signal(L1_C_over_N0_dBHz, 'TPPSM', doppler_profile, ...
-    'tppsm_scenario', 'strong', 'simulation_time', simulation_time, 'settling_time', settling_time, 'is_refractive_effects_removed', is_refractive_effects_removed_received_signal);
+    'tppsm_scenario', 'weak', 'simulation_time', simulation_time, 'settling_time', settling_time, 'is_refractive_effects_removed', is_refractive_effects_removed_received_signal);
 
 %% Generating KF-AR configurations and obtaining initial estimates
 cache_dir = fullfile(fileparts(mfilename('fullpath')), 'cache');
@@ -156,7 +156,7 @@ adaptive_config_AHL_KF_std = struct(...
 % for the filters to diverge (test it for 2.6e-14, for an example). However,
 % for higher process noise variance, the scintillation phase estimates
 % becomes closer to zero.
-online_mdl_learning_cfg = struct('is_online', false, 'learning_method', 'sliding_window', 'window_size', 1500);
+online_mdl_learning_cfg = struct('is_online', true, 'learning_method', 'sliding_window', 'window_size', 1000);
 
 %% Obtain state estimates for CSM
 % For CSM, the training_scint_model is 'CSM' (AR augmented).
