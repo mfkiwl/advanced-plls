@@ -7,6 +7,10 @@
 % https://www.mathworks.com/help/matlab/ref/runtests.html
 % https://www.mathworks.com/help/matlab/matlab_prog/run-tests-using-test-browser.html
 
+clearvars; clc;
+
+restoredefaultpath;
+
 % Create a test suite from the current directory and its subfolders.
 suite = testsuite(pwd, 'IncludeSubfolders', true);
 
