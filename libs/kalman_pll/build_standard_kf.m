@@ -63,8 +63,7 @@ function [F, Q, H, R, W] = build_standard_kf(F_los, Q_los, aug_data, general_con
             if any(eig(Q_los) < -1e-10) % Allow small numerical errors
                 error('construct_kalman_matrices:QlosNotPositiveSemiDefinite', 'Q_los must be positive semi-definite.');
             end
-        
-        
+            
             % Combine LOS and VAR state transitions
             F = blkdiag(F_los, F_aug);
             
