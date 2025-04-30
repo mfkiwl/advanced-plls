@@ -45,7 +45,7 @@ function [psi_tppsm, ps_realization, general_params, irr_params_set, seed] = get
 %   seed             - Seed value used.
 %
 % Example:
-%   [psi_tppsm, ps_realization] = get_tppsm_data('Moderate', 'seed', 42, 'rhof_veff_ratio', 0.35);
+%   [psi_tpwpsm, ps_realization] = get_tppsm_data('moderate', 'seed', 42, 'rhof_veff_ratio', 0.35);
 %
 % Notes:
 %   - This implementation is for single-frequency carrier phase tracking.

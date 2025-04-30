@@ -132,7 +132,7 @@ switch scint_model
     case 'none'
         psi = ones(round(simulation_time / sampling_interval), 1);
         refractive_phase = [];
-        diffractive_phase = angle(psi); % NOTE: All zeros
+        diffractive_phase = zeros(size(psi));
 end
 
 % Apply settling period: initial period without scintillation effects
