@@ -157,21 +157,26 @@ xlabel('Time Lag [s]'); ylabel('ACF Phase');
 title('Phase Residuals ACF');
 legend('Location','best'); grid on;
 
-%% Periodogram vs. VAR PSD comparison by correlation + FFT
-nfft = 2^16;
-fs   = 1/sampling_interval;  % sampling frequency [Hz]
+%% Periodogram vs. VAR PSD comparison
 
+% Number of points on the frequency domain
+nfft = 2^16;
+% Sampling frequency in Hz
+fs   = 1/sampling_interval;
+
+% Struct for pre-allocating the frequency support, the periodograms and 
+% the VAR model's.
 psd_comparison = struct( ...
   'freq',     [], ...
-  'amplitude', struct('pseudo_periodogram',[],'var_psd',[]), ...
-  'phase',     struct('pseudo_periodogram',[],'var_psd',[]) ...
+  'amplitude', struct('periodogram',[],'var_psd',[]), ...
+  'phase',     struct('periodogram',[],'var_psd',[]) ...
 );
 
 for i = 1:numel(severities)
     sev = severities{i};
     rng(i);
 
-    %---- 1) Generate & center signals -----------------------
+    %---- 1) Generate & center signals ------------------------------------
     x        = get_csm_data(csm_params.(sev));
     amp_ts   = abs(x);
     phase_ts = atan2(imag(x), real(x));
@@ -180,63 +185,80 @@ for i = 1:numel(severities)
     amp_ctr = amp_ts   - mean(amp_ts);
     phs_ctr = phase_ts - mean(phase_ts);
 
-    %---- 2) Full, biased autocovariance sequence ------------
+    %---- 2) Get the autocovariance sequence ------------------------------
     % returns c_full with lags = -(N-1):(N-1)
     [c_amp_full, lags] = xcorr(amp_ctr,   'biased');
     [c_phs_full, ~   ] = xcorr(phs_ctr,   'biased');
 
-    %---- 3) FFT of full autocovariance → two-sided PSD -----
-    % pad to nfft
-    Ncorr      = numel(c_amp_full);        % = 2*N-1
+    %---- 3) FFT of autocovariance sequence → two-sided PSD --
+    % Amount of samples of the crosse correlation function (2 * N - 1)
+    Ncorr      = numel(c_amp_full);
+    % Amount of samples remaing to complete the fft size.
     pad_amount = nfft - Ncorr;
-    C_amp_pad  = [c_amp_full;    zeros(pad_amount,1)];
-    C_phs_pad  = [c_phs_full;    zeros(pad_amount,1)];
+    C_amp_pad  = [c_amp_full; zeros(pad_amount,1)];
+    C_phs_pad  = [c_phs_full; zeros(pad_amount,1)];
 
-    S_amp_full = fft(C_amp_pad);            % length = nfft
+    % Get the 
+    S_amp_full = fft(C_amp_pad);
     S_phs_full = fft(C_phs_pad);
 
-    % one-sided output: indices 1 ... nfft/2+1
+    % one-sided indices: {1 ... nfft/2+1}
     half = 1:(nfft/2+1);
-    P_amp = real(abs(S_amp_full(half))) * sampling_interval;    % multiply by sampling_interval to get power/Hz
-    P_phs = real(abs(S_phs_full(half))) * sampling_interval;
 
-    % frequency axis in Hz
-    F = (half-1)*(fs/nfft);
+    
+    % Remove the remaining imaginary parts of the estimated periodogram.
+    % NOTE: Here we multiply the periodogram with the sampling interval to
+    % normalize it such that we have its unit in [dB/Hz]
+    periodogram_amp = real(abs(S_amp_full(half))) * sampling_interval;
+    periodogram_phs = real(abs(S_phs_full(half))) * sampling_interval;
 
     % store freq once
     if isempty(psd_comparison.freq)
-      psd_comparison.freq = F;
+        % Parse the frequency support in Hz
+        psd_comparison.freq = (half-1)*(fs/nfft);
     end
 
-    %---- 4) Fit AR(p) & compute VAR-PSD (unchanged) ---------
+    %---- 4) Fit AR(p) & compute VAR-PSD (unchanged) ----------------------
     p_amp = orders(highest_freq_idx_amp(i));
     p_phs = orders(highest_freq_idx_phase(i));
-    [~, A_amp, C_amp]   = arfit(amp_ts,   p_amp, p_amp);
-    [~, A_phs, C_phs]   = arfit(phase_ts, p_phs, p_phs);
+    [~, A_amp, C_amp] = arfit(amp_ts,   p_amp, p_amp);
+    [~, A_phs, C_phs] = arfit(phase_ts, p_phs, p_phs);
 
-    b      = 1;
-    a_amp  = [1, -reshape(A_amp,1,[])];
-    a_phs  = [1, -reshape(A_phs,1,[])];
-    [H_amp, ~] = freqz(b, a_amp,  nfft/2+1, fs);
-    [H_phs, ~] = freqz(b, a_phs,  nfft/2+1, fs);
+    b = 1;
+    a_amp = [1, -reshape(A_amp,1,[])];
+    a_phs = [1, -reshape(A_phs,1,[])];
+    
+    % evaluate H at each frequency bin
+    z = exp(-1j*2*pi*psd_comparison.freq*sampling_interval);
+    H_amp  = zeros(size(z));
+    H_phs  = zeros(size(z));
 
-    S_var_amp = (C_amp/fs)  * abs(H_amp).^2;   % now also power/Hz
+    for k = 0:p_amp
+      H_amp = H_amp + a_amp(k+1) * z.^(-k);
+    end
+    H_amp = 1 ./ H_amp;
+
+    for k = 0:p_phs
+      H_phs = H_phs + a_phs(k+1) * z.^(-k);
+    end
+    H_phs = 1 ./ H_phs;
+
+    S_var_amp = (C_amp/fs)  * abs(H_amp).^2;
     S_var_phs = (C_phs/fs)  * abs(H_phs).^2;
 
-    %---- 5) Stash results ----------------------------------
-    psd_comparison.amplitude.(sev).pseudo_periodogram = P_amp;
+    %---- 5) Stash results ------------------------------------------------
+    psd_comparison.amplitude.(sev).periodogram = periodogram_amp;
     psd_comparison.amplitude.(sev).var_psd            = S_var_amp;
-    psd_comparison.phase.(sev).pseudo_periodogram     = P_phs;
+    psd_comparison.phase.(sev).periodogram     = periodogram_phs;
     psd_comparison.phase.(sev).var_psd                = S_var_phs;
 end
 
-%---- 6) Plot --------------------------------------------
-cmap_p = winter(numel(severities));  % pseudo-periodogram lines
+%---- Plot ----------------------------------------------------------------
+cmap_p = winter(numel(severities));  % periodogram lines
 cmap_v = autumn(numel(severities));  % VAR-PSD     lines
 
 figure('Position',[100,100,1200,400]);
-half = 1:(nfft/2+1);
-F    = psd_comparison.freq;
+F = psd_comparison.freq;
 
 % Amplitude
 subplot(1,2,1); hold on;
@@ -244,7 +266,7 @@ h_amp = gobjects(2*numel(severities),1);
 for k=1:numel(severities)
   sev = severities{k};
   idx = 2*(k-1)+1;
-  h_amp(idx)   = plot(F, 10*log10(psd_comparison.amplitude.(sev).pseudo_periodogram), '--', ...
+  h_amp(idx)   = plot(F, 10*log10(psd_comparison.amplitude.(sev).periodogram), '--', ...
                       'Color',cmap_p(k,:), 'LineWidth',1, 'DisplayName',[sev ' – Corr. PSD']);
   h_amp(idx+1) = plot(F, 10*log10(psd_comparison.amplitude.(sev).var_psd),           '-', ...
                       'Color',cmap_v(k,:), 'LineWidth',2, 'DisplayName',[sev ' – VAR PSD']);
@@ -261,7 +283,7 @@ h_phs = gobjects(2*numel(severities),1);
 for k=1:numel(severities)
   sev = severities{k};
   idx = 2*(k-1)+1;
-  h_phs(idx)   = plot(F, 10*log10(psd_comparison.phase.(sev).pseudo_periodogram), '--', ...
+  h_phs(idx)   = plot(F, 10*log10(psd_comparison.phase.(sev).periodogram), '--', ...
                       'Color',cmap_p(k,:), 'LineWidth',1, 'DisplayName',[sev ' – Corr. PSD']);
   h_phs(idx+1) = plot(F, 10*log10(psd_comparison.phase.(sev).var_psd),           '-', ...
                       'Color',cmap_v(k,:), 'LineWidth',2, 'DisplayName',[sev ' – VAR PSD']);
