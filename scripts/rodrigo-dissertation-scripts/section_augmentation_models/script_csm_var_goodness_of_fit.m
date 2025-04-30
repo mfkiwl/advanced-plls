@@ -157,103 +157,116 @@ xlabel('Time Lag [s]'); ylabel('ACF Phase');
 title('Phase Residuals ACF');
 legend('Location','best'); grid on;
 
-%% Periodogram vs. VAR PSD comparison (refined colors & legend handles)
-% High-resolution periodogram and AR-model PSD via arfit/freqz
-nfft = 2^16;
-psd_comparison = struct('amplitude',[],'phase',[],'freq',[]);
+%% Periodogram vs. VAR PSD comparison (physical-Hz axis)
 
+nfft = 2^16;
+fs   = 1/sampling_interval;        % sampling frequency, Hz
+freq = [];                         % placeholder, will get set once
+
+% Pre-allocate struct
+psd_comparison = struct( ...
+  'freq',             cell(1,1), ...
+  'amplitude',        struct('periodogram',[],'var_psd',[]), ...
+  'phase',            struct('periodogram',[],'var_psd',[]) ...
+);
+
+% --- 1) compute all PSDs and stash them ---------------------------------
 for i = 1:numel(severities)
-    severity = severities{i};
+    sev = severities{i};
     rng(i);
 
-    % Generate synthetic CSM data
-    data     = get_csm_data(csm_params.(severity));
-    amp_ts   = abs(data);
-    phase_ts = atan2(imag(data), real(data));
+    % generate CSM time series
+    x         = get_csm_data(csm_params.(sev));
+    amp_ts    = abs(x);
+    phase_ts  = atan2(imag(x), real(x));
 
-    % One-sided periodograms (fs = 1 normalized)
-    [periodogram_amp, F]   = periodogram(amp_ts - mean(amp_ts),   [], nfft, 1);
-    [periodogram_phase, ~] = periodogram(phase_ts - mean(phase_ts), [], nfft, 1);
+    % 1.1 PERIODOGRAM
+    % NOTE: The mean of the amplitude time series is removed internally to
+    % avoid a constant shift on the periodogram.
+    [P_amp, F]   = periodogram(amp_ts - mean(amp_ts),   [], nfft, fs);
+    [P_phs, ~]   = periodogram(phase_ts, [], nfft, fs);
 
-    % Fit AR(p) via arfit
-    ord_amp   = orders(highest_freq_idx_amp(i));
-    ord_phase = orders(highest_freq_idx_phase(i));
-    [~, A_amp_vec,   C_amp] = arfit(amp_ts,   ord_amp,   ord_amp);
-    [~, A_phase_vec, C_phs] = arfit(phase_ts, ord_phase, ord_phase);
+    % store freq vector once
+    if isempty(freq)
+      freq = F;
+      psd_comparison.freq = freq;
+    end
 
-    % Extract AR coefficients
-    coeffs_amp = reshape(A_amp_vec,   1, []);
-    coeffs_phs = reshape(A_phase_vec, 1, []);
+    % 1.2 FIT AR model and get innovation variance
+    p_amp   = orders(highest_freq_idx_amp(i));
+    p_phs   = orders(highest_freq_idx_phase(i));
+    [~, A_amp, C_amp]   = arfit(amp_ts,   p_amp, p_amp);
+    [~, A_phs, C_phs]   = arfit(phase_ts, p_phs, p_phs);
 
-    % Compute AR-model PSD via freqz
-    [H_amp, ~] = freqz(1, [1, -coeffs_amp],   nfft/2+1, 1);
-    [H_phs, ~] = freqz(1, [1, -coeffs_phs], nfft/2+1, 1);
+    % 1.3 AR PSD via freqz (returns H at same Hz vector)
+    b      = 1;
+    a_amp  = [1, -reshape(A_amp,1,[])];
+    a_phs  = [1, -reshape(A_phs,1,[])];
+    [H_amp, ~] = freqz(b, a_amp,  nfft/2+1, fs);
+    [H_phs, ~] = freqz(b, a_phs,  nfft/2+1, fs);
 
-    psd_amp = abs(H_amp).^2 * C_amp;
-    psd_phase = abs(H_phs).^2 * C_phs;
+    S_amp   = (C_amp/fs)  * abs(H_amp).^2;    % now in power/Hz
+    S_phs   = (C_phs/fs)  * abs(H_phs).^2;
 
-    % Store
-    psd_comparison.amplitude.(severity).periodogram = periodogram_amp;
-    psd_comparison.amplitude.(severity).var_psd       = psd_amp;
-    psd_comparison.phase.(severity).periodogram     = periodogram_phase;
-    psd_comparison.phase.(severity).var_psd         = psd_phase;
-    psd_comparison.freq = F;
+    % stash
+    psd_comparison.amplitude.(sev).periodogram = P_amp;
+    psd_comparison.amplitude.(sev).var_psd     = S_amp;
+    psd_comparison.phase.(sev).periodogram     = P_phs;
+    psd_comparison.phase.(sev).var_psd         = S_phs;
 end
 
-% Prepare colormaps: cool for periodograms, hot for VAR PSDs
-cmap_periodogram = winter(numel(severities));
-cmap_var = cool(numel(severities));
+% --- 2) Plot everything with pre-allocated handles ----------------------
+cmap_periodo = winter(numel(severities));   % periodogram colors
+cmap_var     = autumn(   numel(severities));   % VAR PSD   colors
 
 figure('Position',[100,100,1200,400]);
 
-% ----------------- Amplitude PSD -----------------
+% 2.1 Amplitude
 subplot(1,2,1); hold on;
-h_amp_handles = gobjects(2*numel(severities),1);
-labels_amp = cell(2*numel(severities),1);
-idx = 1;
-for i = 1:numel(severities)
-    sev = severities{i};
-    % periodogram line
-    h_amp_handles(idx) = plot(psd_comparison.freq, 10*log10(psd_comparison.amplitude.(sev).periodogram), '--', ...
-        'Color', cmap_periodogram(i,:), 'LineWidth', 1.0);
-    labels_amp{idx} = [sev ' - Periodogram'];
-    idx = idx + 1;
-    % VAR PSD line (plotted on top)
-    h_amp_handles(idx) = plot(psd_comparison.freq, 10*log10(psd_comparison.amplitude.(sev).var_psd), '-', ...
-        'Color', cmap_var(i,:), 'LineWidth', 2.0);
-    labels_amp{idx} = [sev ' - VAR PSD'];
-    idx = idx + 1;
+h_amp = gobjects(2*numel(severities),1);
+for k = 1:numel(severities)
+    sev = severities{k};
+    idx = 2*(k-1)+1;
+    % periodogram (dashed, thin)
+    h_amp(idx)   = plot(freq, 10*log10(psd_comparison.amplitude.(sev).periodogram), '--', ...
+                        'Color', cmap_periodo(k,:), 'LineWidth', 1, ...
+                        'DisplayName', [sev ' – Periodogram']);
+    % VAR PSD (solid, thick)
+    h_amp(idx+1) = plot(freq, 10*log10(psd_comparison.amplitude.(sev).var_psd),     '-', ...
+                        'Color', cmap_var(k,:), 'LineWidth', 2, ...
+                        'DisplayName', [sev ' – VAR PSD']);
 end
 hold off;
-set(gca, 'XScale', 'log', 'XLim', [1e-4 0.4]);
-xlabel('Normalized Frequency (× f_s)');
-ylabel('Power [dB]');
+set(gca, ...
+    'XScale','log', ...
+    'XLim',  [1e-4*fs, 0.4*fs] ...
+);
+xlabel('Frequency [Hz]');
+ylabel('Power Spectral Density [dB/Hz]');
 title('Amplitude: Periodogram vs. VAR PSD');
 grid on;
-legend(h_amp_handles, labels_amp, 'Location','best');
+legend('show','Location','best');
 
-% ----------------- Phase PSD -----------------
+% 2.2 Phase
 subplot(1,2,2); hold on;
-h_ph_handles = gobjects(2*numel(severities),1);
-labels_ph = cell(2*numel(severities),1);
-idx = 1;
-for i = 1:numel(severities)
-    sev = severities{i};
-    % periodogram line
-    h_ph_handles(idx) = plot(psd_comparison.freq, 10*log10(psd_comparison.phase.(sev).periodogram), '--', ...
-        'Color', cmap_periodogram(i,:), 'LineWidth', 1.0);
-    labels_ph{idx} = [sev ' - Periodogram'];
-    idx = idx + 1;
-    % VAR PSD line (plotted on top)
-    h_ph_handles(idx) = plot(psd_comparison.freq, 10*log10(psd_comparison.phase.(sev).var_psd), '-', ...
-        'Color', cmap_var(i,:), 'LineWidth', 2.0);
-    labels_ph{idx} = [sev ' - VAR PSD'];
-    idx = idx + 1;
+h_phs = gobjects(2*numel(severities),1);
+for k = 1:numel(severities)
+    sev = severities{k};
+    idx = 2*(k-1)+1;
+    h_phs(idx)   = plot(freq, 10*log10(psd_comparison.phase.(sev).periodogram), '--', ...
+                        'Color', cmap_periodo(k,:), 'LineWidth', 1, ...
+                        'DisplayName', [sev ' – Periodogram']);
+    h_phs(idx+1) = plot(freq, 10*log10(psd_comparison.phase.(sev).var_psd),     '-', ...
+                        'Color', cmap_var(k,:), 'LineWidth', 2, ...
+                        'DisplayName', [sev ' – VAR PSD']);
 end
 hold off;
-set(gca, 'XScale', 'log', 'XLim', [1e-4 0.4]);
-xlabel('Normalized Frequency (× f_s)');
-ylabel('Power [dB]');
+set(gca, ...
+    'XScale','log', ...
+    'XLim',  [1e-4*fs, 0.4*fs] ...
+);
+xlabel('Frequency [Hz]');
+ylabel('Power Spectral Density [dB/Hz]');
 title('Phase: Periodogram vs. VAR PSD');
 grid on;
-legend(h_ph_handles, labels_ph, 'Location','best');
+legend('show','Location','best');
