@@ -215,7 +215,7 @@ psd_comparison = struct( ...
   'diff_phase',     struct('periodogram',[],'var_psd',[]) ...
 );
 
-seed = 1;
+seed = 2;
 for i = 1:numel(severities)
     sev = severities{i};
     rng(seed);
