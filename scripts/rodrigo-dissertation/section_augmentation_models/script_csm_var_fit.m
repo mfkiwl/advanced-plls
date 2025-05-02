@@ -35,12 +35,15 @@ csm_params = struct( ...
 );
 
 %% Monte Carlo optimal VAR model order assessment
-mc_runs    = 1000;
+mc_runs    = 10;
 min_order  = 1;
 max_order  = 10;
 optimal_orders_amp   = zeros(mc_runs,numel(severities));
 optimal_orders_phase = zeros(mc_runs,numel(severities));
+sbc_amp_array = zeros(mc_runs, numel(severities), max_order - min_order + 1);
+sbc_phase_array = zeros(mc_runs, numel(severities), max_order - min_order + 1);
 
+seed = 1;
 for mc_idx = 1:mc_runs
     for i = 1:numel(severities)
         severity = severities{i};
@@ -49,11 +52,16 @@ for mc_idx = 1:mc_runs
         amp_ts    = abs(data);
         phase_ts  = atan2(imag(data),real(data));
 
-        [~, A_amp]   = arfit(amp_ts,   min_order, max_order);
-        [~, A_phase] = arfit(phase_ts, min_order, max_order);
+        [~, A_amp, ~, sbc_amp]   = arfit(amp_ts,   min_order, max_order);
+        [~, A_phase, ~, sbc_phase] = arfit(phase_ts, min_order, max_order);
 
         optimal_orders_amp(mc_idx,i)   = size(A_amp,2)/size(A_amp,1);
         optimal_orders_phase(mc_idx,i) = size(A_phase,2)/size(A_phase,1);
+        
+        sbc_amp_array(mc_idx, i, :) = sbc_amp;
+        sbc_phase_array(mc_idx, i, :) = sbc_phase;
+
+        seed = seed + 1;
     end
 end
 
@@ -76,6 +84,45 @@ bar(orders,counts_phase,'grouped');
 xlabel('VAR Model Order'); ylabel('Frequency');
 title('Optimal VAR Orders (Phase)');
 legend(severities,'Location','best'); grid on;
+
+mean_sbc_amp_array = squeeze(mean(sbc_amp_array,1)).';
+mean_sbc_phase_array = squeeze(mean(sbc_phase_array,1)).';
+
+figure('Position',[100,100,900,400]);
+
+% Amplitude subplot
+subplot(1,2,1);
+colors = get(gca,'ColorOrder');
+plot(orders, mean_sbc_amp_array, 'LineWidth', 1.5);
+hold on;
+for j = 1:size(mean_sbc_amp_array,2)
+    [minVal, minIdx] = min(mean_sbc_amp_array(:,j));
+    plot(orders(minIdx), minVal, '*', ...
+         'MarkerSize',10, 'Color', colors(j,:));
+end
+xlabel('VAR Model Order');
+ylabel('Mean SBC');
+title('Mean Schwarz Bayesian Criterion (SBC — Amplitude)');
+legend(severities,'Location','best');
+grid on;
+hold off;
+
+% Phase subplot (now using plot instead of bar)
+subplot(1,2,2);
+colors = get(gca,'ColorOrder');
+plot(orders, mean_sbc_phase_array, 'LineWidth', 1.5);
+hold on;
+for j = 1:size(mean_sbc_phase_array,2)
+    [minVal, minIdx] = min(mean_sbc_phase_array(:,j));
+    plot(orders(minIdx), minVal, '*', ...
+         'MarkerSize',10, 'Color', colors(j,:));
+end
+xlabel('VAR Model Order');
+ylabel('Mean SBC');
+title('Mean Schwarz Bayesian Criterion (SBC — Phase)');
+legend(severities,'Location','best');
+grid on;
+hold off;
 
 %% Obtain residuals for most frequent orders
 [~, highest_freq_idx_amp]   = max(counts_amp,[],1);
@@ -151,12 +198,14 @@ xlabel('Time Lag [s]'); ylabel('ACF Phase');
 title('Phase Residuals ACF');
 legend('Location','best'); grid on;
 
-%% Periodogram vs. VAR PSD comparison
+%% Monte Carlo Periodogram vs. VAR PSD comparison
 
 % Number of points on the frequency domain
 nfft = 2^16;
 % Sampling frequency in Hz
 fs   = 1/sampling_interval;
+% Number of Monte Carlo realizations
+num_realizations = 100;
 
 % Struct for pre-allocating the frequency support, the periodograms and 
 % the VAR model's.
@@ -168,82 +217,87 @@ psd_comparison = struct( ...
 
 for i = 1:numel(severities)
     sev = severities{i};
-    rng(i);
 
-    %---- 1) Generate & center signals ------------------------------------
-    x        = get_csm_data(csm_params.(sev));
-    amp_ts   = abs(x);
-    phase_ts = atan2(imag(x), real(x));
+    %---- initialize accumulators ----------------------------------------
+    acc_periodogram_amp = zeros(nfft/2+1,1);
+    acc_periodogram_phs = zeros(nfft/2+1,1);
+    acc_var_amp         = zeros(nfft/2+1,1);
+    acc_var_phs         = zeros(nfft/2+1,1);
 
-    % center for correlation
-    amp_ctr = amp_ts   - mean(amp_ts);
-    phs_ctr = phase_ts - mean(phase_ts);
+    for mc = 1:num_realizations
+        rng(i + mc);  % ensure reproducibility across severities and MC
 
-    %---- 2) Get the autocovariance sequence ------------------------------
-    % returns c_full with lags = -(N-1):(N-1)
-    [c_amp_full, lags] = xcorr(amp_ctr,   'biased');
-    [c_phs_full, ~   ] = xcorr(phs_ctr,   'biased');
+        %---- 1) Generate & center signals --------------------------------
+        x        = get_csm_data(csm_params.(sev));
+        amp_ts   = abs(x);
+        phase_ts = atan2(imag(x), real(x));
 
-    %---- 3) FFT of autocovariance sequence → two-sided PSD --
-    % Amount of samples of the cross-correlation function (2 * N - 1)
-    Ncorr      = numel(c_amp_full);
-    % Amount of samples remaing to complete the fft size.
-    pad_amount = nfft - Ncorr;
-    C_amp_pad  = [c_amp_full; zeros(pad_amount,1)];
-    C_phs_pad  = [c_phs_full; zeros(pad_amount,1)];
+        %---- 2) Get the autocovariance sequence --------------------------
+        [c_amp_full, lags] = xcorr(amp_ts - mean(amp_ts),   'biased');
+        [c_phs_full, ~   ] = xcorr(phase_ts - mean(phase_ts), 'biased');
 
-    % Get the fft of the padded autocovariance sequences
-    S_amp_full = fft(C_amp_pad);
-    S_phs_full = fft(C_phs_pad);
+        %---- 3) FFT of autocovariance sequence → two-sided PSD ----------
+        Ncorr      = numel(c_amp_full);
+        pad_amount = nfft - Ncorr;
+        C_amp_pad  = [c_amp_full; zeros(pad_amount,1)];
+        C_phs_pad  = [c_phs_full; zeros(pad_amount,1)];
 
-    % one-sided indices: {1 ... nfft/2+1}
-    half = 1:(nfft/2+1);
+        S_amp_full = fft(C_amp_pad);
+        S_phs_full = fft(C_phs_pad);
 
-    
-    % Remove the remaining imaginary parts of the estimated periodogram.
-    % NOTE: Here we multiply the periodogram with the sampling interval to
-    % normalize it such that we have its unit in [dB/Hz]
-    periodogram_amp = real(abs(S_amp_full(half))) * sampling_interval;
-    periodogram_phs = real(abs(S_phs_full(half))) * sampling_interval;
+        half = 1:(nfft/2+1);
+        periodogram_amp = real(abs(S_amp_full(half))) * sampling_interval;
+        periodogram_phs = real(abs(S_phs_full(half))) * sampling_interval;
 
-    % store freq once
-    if isempty(psd_comparison.freq)
-        % Parse the frequency support in Hz
-        psd_comparison.freq = (half-1)*(fs/nfft);
+        % store freq once
+        if isempty(psd_comparison.freq)
+            psd_comparison.freq = (half-1)*(fs/nfft);
+        end
+
+        %---- 4) Fit AR(p) & compute VAR-PSD -----------------------------
+        p_amp = orders(highest_freq_idx_amp(i));
+        p_phs = orders(highest_freq_idx_phase(i));
+        [w_amp, A_amp, C_amp] = arfit(amp_ts,   p_amp, p_amp);
+        [w_phs, A_phs, C_phs] = arfit(phase_ts, p_phs, p_phs);
+
+        a_amp = [1, -reshape(A_amp,1,[])];
+        a_phs = [1, -reshape(A_phs,1,[])];
+
+        z = exp(-1j*2*pi*psd_comparison.freq*sampling_interval);
+        H_amp = zeros(size(z));
+        H_phs = zeros(size(z));
+
+        for k = 0:p_amp
+          H_amp = H_amp + a_amp(k+1) * z.^(-k);
+        end
+        H_amp = 1 ./ H_amp;
+
+        for k = 0:p_phs
+          H_phs = H_phs + a_phs(k+1) * z.^(-k);
+        end
+        H_phs = 1 ./ H_phs;
+
+        S_var_amp = (C_amp/fs) * abs(H_amp).^2;
+        S_var_phs = (C_phs/fs) * abs(H_phs).^2;
+
+        %---- accumulate results ------------------------------------------
+        acc_periodogram_amp = acc_periodogram_amp + periodogram_amp;
+        acc_periodogram_phs = acc_periodogram_phs + periodogram_phs;
+        acc_var_amp         = acc_var_amp         + S_var_amp.';
+        acc_var_phs         = acc_var_phs         + S_var_phs.';
     end
 
-    %---- 4) Fit AR(p) & compute VAR-PSD (unchanged) ----------------------
-    p_amp = orders(highest_freq_idx_amp(i));
-    p_phs = orders(highest_freq_idx_phase(i));
-    [~, A_amp, C_amp] = arfit(amp_ts,   p_amp, p_amp);
-    [~, A_phs, C_phs] = arfit(phase_ts, p_phs, p_phs);
+    %---- 5) Compute Monte Carlo mean ------------------------------------
+    mean_periodogram_amp = acc_periodogram_amp / num_realizations;
+    mean_periodogram_phs = acc_periodogram_phs / num_realizations;
+    mean_var_amp         = acc_var_amp         / num_realizations;
+    mean_var_phs         = acc_var_phs         / num_realizations;
 
-    a_amp = [1, -reshape(A_amp,1,[])];
-    a_phs = [1, -reshape(A_phs,1,[])];
-    
-    % evaluate H at each frequency bin
-    z = exp(-1j*2*pi*psd_comparison.freq*sampling_interval);
-    H_amp  = zeros(size(z));
-    H_phs  = zeros(size(z));
-
-    for k = 0:p_amp
-      H_amp = H_amp + a_amp(k+1) * z.^(-k);
-    end
-    H_amp = 1 ./ H_amp;
-
-    for k = 0:p_phs
-      H_phs = H_phs + a_phs(k+1) * z.^(-k);
-    end
-    H_phs = 1 ./ H_phs;
-
-    S_var_amp = (C_amp/fs)  * abs(H_amp).^2;
-    S_var_phs = (C_phs/fs)  * abs(H_phs).^2;
-
-    %---- 5) Stash results ------------------------------------------------
-    psd_comparison.amplitude.(sev).periodogram = periodogram_amp;
-    psd_comparison.amplitude.(sev).var_psd            = S_var_amp;
-    psd_comparison.phase.(sev).periodogram     = periodogram_phs;
-    psd_comparison.phase.(sev).var_psd                = S_var_phs;
+    %---- 6) Stash averaged results -------------------------------------
+    psd_comparison.amplitude.(sev).periodogram = mean_periodogram_amp;
+    psd_comparison.amplitude.(sev).var_psd      = mean_var_amp;
+    psd_comparison.phase.(sev).periodogram     = mean_periodogram_phs;
+    psd_comparison.phase.(sev).var_psd          = mean_var_phs;
 end
 
 %---- Plot ----------------------------------------------------------------
@@ -267,7 +321,7 @@ end
 hold off;
 set(gca,'XScale','log','XLim',[1e-4*fs,0.4*fs]);
 xlabel('Frequency [Hz]'); ylabel('Power [dB]');
-title('Amplitude: Corr-based PSD vs. VAR PSD');
+title('Amplitude: Corr-based PSD vs. VAR PSD (Monte Carlo mean)');
 grid on; legend(h_amp,'Location','best');
 
 % Phase
@@ -284,5 +338,5 @@ end
 hold off;
 set(gca,'XScale','log','XLim',[1e-4*fs,0.4*fs]);
 xlabel('Frequency [Hz]'); ylabel('Power [dB]');
-title('Phase: Corr-based PSD vs. VAR PSD');
+title('Phase: Corr-based PSD vs. VAR PSD (Monte Carlo mean)');
 grid on; legend(h_phs,'Location','best');
