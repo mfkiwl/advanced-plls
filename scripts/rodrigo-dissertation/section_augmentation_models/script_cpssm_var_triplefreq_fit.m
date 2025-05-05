@@ -19,8 +19,8 @@ clearvars; clc;
 addpath(genpath(fullfile(pwd,'..','..','..', 'libs')));
 
 % Setup output folders
-fig_dir = 'pdf_figures_cpssm_multifreq'; % where we’ll write vector PDFs
-csv_dir = 'csv_data_cpssm_multifreq';    % where we’ll write CSV tables
+fig_dir = 'pdf_figures_cpssm_triplefreq'; % where we’ll write vector PDFs
+csv_dir = 'csv_data_cpssm_triplefreq';    % where we’ll write CSV tables
 
 if ~exist(fig_dir,'dir')
     mkdir(fig_dir);
@@ -44,24 +44,18 @@ cpssm_params = struct( ...
 
 %% Monte Carlo optimal VAR model order assessment
 % Reduce the amount of `mc_runs` for faster results.
-mc_runs    = 10;
+mc_runs    = 100;
 min_order  = 1;
 max_order  = 30;
-optimal_orders_amp   = zeros(mc_runs,numel(severities));
-optimal_orders_total_phs = zeros(mc_runs,numel(severities));
-optimal_orders_refr_phs = zeros(mc_runs,numel(severities));
-optimal_orders_diff_phs = zeros(mc_runs,numel(severities));
-sbc_amp_array = zeros(mc_runs, numel(severities), max_order - min_order + 1);
-sbc_total_phs_array = zeros(mc_runs, numel(severities), max_order - min_order + 1);
-sbc_refr_phs_array = zeros(mc_runs, numel(severities), max_order - min_order + 1);
-sbc_diff_phs_array = zeros(mc_runs, numel(severities), max_order - min_order + 1);
+optimal_orders_amp_total_phs   = zeros(mc_runs,numel(severities));
+sbc_amp_total_phs_array = zeros(mc_runs, numel(severities), max_order - min_order + 1);
 
 seed = 1;
 for mc_idx = 1:mc_runs
     for i = 1:numel(severities)
         severity = severities{i};
         rng(seed);
-        [scint_ts, refr_phs_ts_training] = get_tppsm_data(cpssm_params.(severity), 'seed', seed);
+        [scint_ts, ~] = get_tppsm_data(cpssm_params.(severity), 'seed', seed);
         amp_ts    = abs(scint_ts);
 
         total_phs_ts_training  = zeros(size(amp_ts));
@@ -70,116 +64,46 @@ for mc_idx = 1:mc_runs
             % 'gnss_scintillation_simulator' git submodule.
             total_phs_ts_training(:,freq_idx) = get_corrected_phase(scint_ts(:,freq_idx));
         end
-        % Get the diffractive phase as the wrapped version of the
-        % difference between the propagated field's phase and the
-        % refractive phase time series at the ionospheric piercing point
-        % (IPP).
-        % NOTE: The `wrapToPi` function serves to wrap the diffractive phase
-        % time series within  the [-pi, pi] bounds, in order to be
-        % comparable with the CSM model in a feasible way.
-        diff_phs_ts_training = wrapToPi(total_phs_ts_training - refr_phs_ts_training);
+        amp_total_phs_ts_training = [amp_ts, total_phs_ts_training];
 
         % Fit the scintillation amplitude, total, refractive and
         % diffractive phases, respectively to a AR model, respectively.
-        [~, A_amp, ~, sbc_amp]   = arfit(amp_ts,   min_order, max_order);
-        [~, A_total_phs, ~, sbc_total_phs] = arfit(total_phs_ts_training, min_order, max_order);
-        [~, A_refr_phs, ~, sbc_refr_phs] = arfit(refr_phs_ts_training, min_order, max_order);
-        [~, A_diff_phs, ~, sbc_diff_phs] = arfit(diff_phs_ts_training, min_order, max_order);
+        [~, A_amp_total_phs, ~, sbc_amp_total_phs]   = arfit(amp_total_phs_ts_training,   min_order, max_order);
 
-        optimal_orders_amp(mc_idx,i)   = size(A_amp,2)/size(A_amp,1);
-        optimal_orders_total_phs(mc_idx,i) = size(A_total_phs,2)/size(A_total_phs,1);
-        optimal_orders_refr_phs(mc_idx,i) = size(A_refr_phs,2)/size(A_refr_phs,1);
-        optimal_orders_diff_phs(mc_idx,i) = size(A_diff_phs,2)/size(A_diff_phs,1);
+        optimal_orders_amp_total_phs(mc_idx,i)   = size(A_amp_total_phs,2)/size(A_amp_total_phs,1);
 
-        sbc_amp_array(mc_idx, i, :) = sbc_amp;
-        sbc_total_phs_array(mc_idx, i, :) = sbc_total_phs;
-        sbc_refr_phs_array(mc_idx, i, :) = sbc_refr_phs;
-        sbc_diff_phs_array(mc_idx, i, :) = sbc_diff_phs;
+        sbc_amp_total_phs_array(mc_idx, i, :) = sbc_amp_total_phs;
 
         seed = seed + 1;
     end
 end
 
 orders       = min_order:max_order;
-counts_amp   = zeros(numel(orders),numel(severities));
-counts_total_phs = zeros(numel(orders),numel(severities));
-counts_refr_phs = zeros(numel(orders),numel(severities));
-counts_diff_phs = zeros(numel(orders),numel(severities));
+counts_amp_phs   = zeros(numel(orders),numel(severities));
 for i = 1:numel(severities)
-    counts_amp(:,i)       = histcounts(optimal_orders_amp(:,i),   [orders, orders(end)+1]);
-    counts_total_phs(:,i) = histcounts(optimal_orders_total_phs(:,i), [orders, orders(end)+1]);
-    counts_refr_phs(:,i)  = histcounts(optimal_orders_refr_phs(:,i), [orders, orders(end)+1]);
-    counts_diff_phs(:,i)  = histcounts(optimal_orders_diff_phs(:,i), [orders, orders(end)+1]);
+    counts_amp_phs(:,i)       = histcounts(optimal_orders_amp_total_phs(:,i),   [orders, orders(end)+1]);
 end
 
 % Normalize counts to percentages
-pct_amp       = counts_amp       / mc_runs * 100;
-pct_total_phs = counts_total_phs / mc_runs * 100;
-pct_refr_phs  = counts_refr_phs  / mc_runs * 100;
-pct_diff_phs  = counts_diff_phs  / mc_runs * 100;
+pct_amp_total_phs = counts_amp_phs / mc_runs * 100;
 
 %% Plot model order selection frequency
 
-figure('Position',[50,50,1100,400]);
+%figure('Position',[50,50,1100,400]);
+figure;
 colors = lines(numel(severities));  % or get(gca,'ColorOrder')
 
 % Amplitude
-subplot(2,2,1);
 hold on;
 for j = 1:numel(severities)
-    plot(orders, pct_amp(:,j), '-o', ...
+    plot(orders, pct_amp_total_phs(:,j), '-o', ...
         'LineWidth',1.5, 'MarkerSize',6, 'Color',colors(j,:), ...
         'DisplayName',severities{j});
 end
 hold off;
 xlabel('VAR Model Order');
 ylabel('Percentage of runs [%]');
-title('Optimal VAR Order – Amplitude');
-legend('Location','best');
-grid on;
-
-% Total phase
-subplot(2,2,2);
-hold on;
-for j = 1:numel(severities)
-    plot(orders, pct_total_phs(:,j), '-o', ...
-        'LineWidth',1.5, 'MarkerSize',6, 'Color',colors(j,:), ...
-        'DisplayName',severities{j});
-end
-hold off;
-xlabel('VAR Model Order');
-ylabel('Percentage of runs [%]');
-title('Optimal VAR Order – Total Phase');
-legend('Location','best');
-grid on;
-
-% Refractive phase
-subplot(2,2,3);
-hold on;
-for j = 1:numel(severities)
-    plot(orders, pct_refr_phs(:,j), '-o', ...
-        'LineWidth',1.5, 'MarkerSize',6, 'Color',colors(j,:), ...
-        'DisplayName',severities{j});
-end
-hold off;
-xlabel('VAR Model Order');
-ylabel('Percentage of runs [%]');
-title('Optimal VAR Order – Refractive Phase');
-legend('Location','best');
-grid on;
-
-% Diffractive phase
-subplot(2,2,4);
-hold on;
-for j = 1:numel(severities)
-    plot(orders, pct_diff_phs(:,j), '-o', ...
-        'LineWidth',1.5, 'MarkerSize',6, 'Color',colors(j,:), ...
-        'DisplayName',severities{j});
-end
-hold off;
-xlabel('VAR Model Order');
-ylabel('Percentage of runs [%]');
-title('Optimal VAR Order – Diffractive Phase');
+title('Optimal VAR Order – Amplitudes and total phases');
 legend('Location','best');
 grid on;
 
@@ -197,72 +121,28 @@ exportgraphics(gcf, pdf_file, 'ContentType', 'vector');
 %               Diff_Weak, Diff_Moderate, Diff_Strong
 
 T = table( orders.', ...
-    pct_amp(:,1),       pct_amp(:,2),       pct_amp(:,3), ...
-    pct_total_phs(:,1), pct_total_phs(:,2), pct_total_phs(:,3), ...
-    pct_refr_phs(:,1),  pct_refr_phs(:,2),  pct_refr_phs(:,3), ...
-    pct_diff_phs(:,1),  pct_diff_phs(:,2),  pct_diff_phs(:,3), ...
+    pct_amp_total_phs(:,1), pct_amp_total_phs(:,2), pct_amp_total_phs(:,3), ...
     'VariableNames', { ...
-    'Order', ...
-    'Amp_Weak','Amp_Moderate','Amp_Strong', ...
-    'Tot_Weak','Tot_Moderate','Tot_Strong', ...
-    'Refr_Weak','Refr_Moderate','Refr_Strong', ...
-    'Diff_Weak','Diff_Moderate','Diff_Strong' } );
+    'Order','Amp_total_phs_Weak', ...
+    'Amp_total_phs_Moderate','Amp_total_phs_Strong'} );
 
 csv_file = fullfile(csv_dir, [fig_name, '.csv']);
 writetable(T, csv_file);
 
-%% Plot Mean SBC for Amplitude & Phase Components
+%% Plot Mean SBC for Amplitudes & Phase Components
 orders               = min_order:max_order;
-mean_sbc_amp         = squeeze(mean(sbc_amp_array,         1)).';   % [severity × order]
-mean_sbc_total_phs   = squeeze(mean(sbc_total_phs_array,   1)).';
-mean_sbc_refr_phs    = squeeze(mean(sbc_refr_phs_array,    1)).';
-mean_sbc_diff_phs    = squeeze(mean(sbc_diff_phs_array,    1)).';
+mean_sbc_amp_total_phs         = squeeze(mean(sbc_amp_total_phs_array, 1)).';   % [severity × order]
 
-figure('Position',[50,50,1100,400]);
-
-% Amplitude
-subplot(2,2,1);
+%figure('Position',[50,50,1100,400]);
+figure;
 colors = get(gca,'ColorOrder');
-plot(orders, mean_sbc_amp, 'LineWidth',1.5); hold on;
-for j = 1:size(mean_sbc_amp,2)
-    [minVal, minIdx] = min(mean_sbc_amp(:,j));
+plot(orders, mean_sbc_amp_total_phs, 'LineWidth',1.5); hold on;
+for j = 1:size(mean_sbc_amp_total_phs,2)
+    [minVal, minIdx] = min(mean_sbc_amp_total_phs(:,j));
     plot(orders(minIdx), minVal, '*', 'MarkerSize',10, 'Color',colors(j,:));
 end
 xlabel('VAR Model Order'); ylabel('Mean SBC');
 title('Mean SBC – Amplitude');
-legend(severities,'Location','best'); grid on; hold off;
-
-% Total phase
-subplot(2,2,2);
-plot(orders, mean_sbc_total_phs, 'LineWidth',1.5); hold on;
-for j = 1:size(mean_sbc_total_phs,2)
-    [minVal, minIdx] = min(mean_sbc_total_phs(:,j));
-    plot(orders(minIdx), minVal, '*', 'MarkerSize',10, 'Color',colors(j,:));
-end
-xlabel('VAR Model Order'); ylabel('Mean SBC');
-title('Mean SBC – Total Phase');
-legend(severities,'Location','best'); grid on; hold off;
-
-% Refractive phase
-subplot(2,2,3);
-plot(orders, mean_sbc_refr_phs, 'LineWidth',1.5); hold on;
-for j = 1:size(mean_sbc_refr_phs,2)
-    [minVal, minIdx] = min(mean_sbc_refr_phs(:,j));
-    plot(orders(minIdx), minVal, '*', 'MarkerSize',10, 'Color',colors(j,:));
-end
-xlabel('VAR Model Order'); ylabel('Mean SBC');
-title('Mean SBC – Refractive Phase');
-legend(severities,'Location','best'); grid on; hold off;
-
-% Diffractive phase
-subplot(2,2,4);
-plot(orders, mean_sbc_diff_phs, 'LineWidth',1.5); hold on;
-for j = 1:size(mean_sbc_diff_phs,2)
-    [minVal, minIdx] = min(mean_sbc_diff_phs(:,j));
-    plot(orders(minIdx), minVal, '*', 'MarkerSize',10, 'Color',colors(j,:));
-end
-xlabel('VAR Model Order'); ylabel('Mean SBC');
-title('Mean SBC – Diffractive Phase');
 legend(severities,'Location','best'); grid on; hold off;
 
 %% Export Mean SBC Plot and CSV
@@ -274,21 +154,15 @@ exportgraphics(gcf, pdf_file, 'ContentType','vector');
 
 % Build and export CSV of Mean SBC data for TikZ
 T_sbc = table(orders.', ...
-    mean_sbc_amp(:,1),    mean_sbc_amp(:,2),    mean_sbc_amp(:,3), ...
-    mean_sbc_total_phs(:,1), mean_sbc_total_phs(:,2), mean_sbc_total_phs(:,3), ...
-    mean_sbc_refr_phs(:,1),  mean_sbc_refr_phs(:,2),  mean_sbc_refr_phs(:,3), ...
-    mean_sbc_diff_phs(:,1),  mean_sbc_diff_phs(:,2),  mean_sbc_diff_phs(:,3), ...
+    mean_sbc_amp_total_phs(:,1),    mean_sbc_amp_total_phs(:,2),    mean_sbc_amp_total_phs(:,3), ...
     'VariableNames',{ ...
     'Order', ...
-    'Amp_Weak','Amp_Moderate','Amp_Strong', ...
-    'Tot_Weak','Tot_Moderate','Tot_Strong', ...
-    'Refr_Weak','Refr_Moderate','Refr_Strong', ...
-    'Diff_Weak','Diff_Moderate','Diff_Strong' } );
-csv_file = fullfile(csv_dir, ['mean_sbc','.csv']);
+    'Amp_total_phs_Weak','Amp_total_phs_Moderate','Amp_total_phs_Strong'} );
+csv_file = fullfile(csv_dir, [fig_name,'.csv']);
 writetable(T_sbc, csv_file);
 
 %% Residual Analysis
-[~, highest_freq_idx_amp]   = max(counts_amp,[],1);
+[~, highest_freq_idx_amp]   = max(counts_amp_phs,[],1);
 [~, highest_freq_idx_total_phs] = max(counts_total_phs,[],1);
 [~, highest_freq_idx_refr_phs] = max(counts_refr_phs,[],1);
 [~, highest_freq_idx_diff_phs] = max(counts_diff_phs,[],1);
@@ -318,7 +192,7 @@ for i = 1:numel(severities)
     ord_refr_phs = orders(highest_freq_idx_refr_phs(i));
     ord_diff_phase = orders(highest_freq_idx_diff_phs(i));
 
-    [w_amp, A_amp]   = arfit(amp_ts_training, ord_amp, ord_amp);
+    [w_amp, A_amp_total_phs]   = arfit(amp_ts_training, ord_amp, ord_amp);
     [w_total_phs, A_total_phs] = arfit(total_phs_ts_training, ord_total_phs, ord_total_phs);
     [w_refr_phs, A_refr_phs] = arfit(refr_phs_ts_training, ord_refr_phs, ord_refr_phs);
     [w_diff_phase, A_diff_phase] = arfit(diff_phs_ts_training, ord_diff_phase, ord_diff_phase);
@@ -337,7 +211,7 @@ for i = 1:numel(severities)
     end
     diff_phs_ts_for_residue = wrapToPi(total_phs_ts_for_residue - refr_phs_ts_training);
 
-    [~, res_amp]  = arres(w_amp, A_amp, amp_ts_for_residue, 60);
+    [~, res_amp]  = arres(w_amp, A_amp_total_phs, amp_ts_for_residue, 60);
     [~, res_total_phs] = arres(w_total_phs, A_total_phs, total_phs_ts_for_residue, 60);
     [~, res_refr_phs] = arres(w_refr_phs, A_refr_phs, refr_phs_ts_training, 60);
     [~, res_diff_phase] = arres(w_diff_phase, A_diff_phase, diff_phs_ts_for_residue, 60);
@@ -486,7 +360,7 @@ for freq_idx = 1:numel(frequency_bands)
         acfs.refr_phs.(severity) = acf_refr_phs(lags+1:end);
         acfs.diff_phs.(severity) = acf_diff_phase(lags+1:end);
     end
-
+ 
     plot_order = {'Strong','Moderate','Weak'};
     time_lag   = (0:lags) * sampling_interval;
     colors     = lines(numel(plot_order));
