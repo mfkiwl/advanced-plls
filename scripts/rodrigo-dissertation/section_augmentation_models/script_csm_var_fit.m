@@ -46,7 +46,7 @@ csm_params = struct( ...
 );
 
 %% Monte Carlo optimal AR model order assessment
-mc_runs    = 1;
+mc_runs    = 300;
 min_order  = 1;
 max_order  = 30;
 optimal_orders_amp   = zeros(mc_runs,numel(severities));
@@ -238,7 +238,7 @@ hold off;
 xlabel('Time [s]');
 ylabel('Residues');
 title('Amplitude residues by Severity');
-legend('Location','best');
+legend('Location','best', 'Direction','reverse');
 grid on;
 
 % Phase residues
@@ -253,7 +253,7 @@ hold off;
 xlabel('Time [s]');
 ylabel('Residues');
 title('Phase residues by Severity'); 
-legend('Location','best');
+legend('Location','best', 'Direction','reverse');
 grid on;
 
 % Export residues plot & CSV
@@ -339,7 +339,7 @@ nfft = 2^16;
 % Sampling frequency in Hz
 fs   = 1/sampling_interval;
 % Number of Monte Carlo realizations
-num_realizations = 1;
+num_realizations = 300;
 % Amount of samples in the time series
 N        = simulation_time * fs;
 % Windowing function --- Hamming window

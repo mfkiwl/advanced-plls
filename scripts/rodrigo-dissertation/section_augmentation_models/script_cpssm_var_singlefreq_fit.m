@@ -41,7 +41,7 @@ cpssm_params = struct( ...
     );
 
 %% Monte Carlo optimal AR model order assessment
-mc_runs    = 2;
+mc_runs    = 300;
 min_order  = 1;
 max_order  = 30;
 optimal_orders_amp   = zeros(mc_runs,numel(severities));
@@ -368,7 +368,7 @@ end
 hold off;
 xlabel('Time [s]'); ylabel('Residues');
 title('Amplitude Residues');
-legend({'Strong','Moderate','Weak'},'Location','best');
+legend({'Strong','Moderate','Weak'},'Location','best', 'Direction', 'reverse');
 grid on;
 
 % Total phase residues
@@ -382,7 +382,7 @@ end
 hold off;
 xlabel('Time [s]'); ylabel('Residues');
 title('Total Phase Residues');
-legend({'Strong','Moderate','Weak'},'Location','best');
+legend({'Strong','Moderate','Weak'},'Location','best', 'Direction', 'reverse');
 grid on;
 
 % Refractive Phase Residues
@@ -396,7 +396,7 @@ end
 hold off;
 xlabel('Time [s]'); ylabel('Residues');
 title('Refractive Phase Residues');
-legend({'Strong','Moderate','Weak'},'Location','best');
+legend({'Strong','Moderate','Weak'},'Location','best', 'Direction', 'reverse');
 grid on;
 
 % Diffractive Phase residues
@@ -410,7 +410,7 @@ end
 hold off;
 xlabel('Time [s]'); ylabel('Residues');
 title('Diffractive Phase Residues');
-legend({'Strong','Moderate','Weak'},'Location','best');
+legend({'Strong','Moderate','Weak'},'Location','best', 'Direction', 'reverse');
 grid on;
 
 %% Export Residues Plot and CSV
@@ -486,7 +486,7 @@ end
 hold off;
 xlabel('Time Lag [s]'); ylabel('Normalized ACF');
 title('Amplitude Residues ACF');
-legend('Location','best'); grid on;
+legend('Location','best', 'Direction', 'reverse'); grid on;
 
 % Total Phase ACF
 subplot(2,2,2); hold on;
@@ -499,7 +499,7 @@ end
 hold off;
 xlabel('Time Lag [s]'); ylabel('Normalized ACF');
 title('Total Phase Residues ACF');
-legend('Location','best'); grid on;
+legend('Location','best', 'Direction', 'reverse'); grid on;
 
 % Refractive Phase ACF
 subplot(2,2,3); hold on;
@@ -512,7 +512,7 @@ end
 hold off;
 xlabel('Time Lag [s]'); ylabel('Normalized ACF');
 title('Refractive Phase Residues ACF');
-legend('Location','best'); grid on;
+legend('Location','best', 'Direction', 'reverse'); grid on;
 
 % 4) Diffractive Phase ACF
 subplot(2,2,4); hold on;
@@ -525,7 +525,7 @@ end
 hold off;
 xlabel('Time Lag [s]'); ylabel('Normalized ACF');
 title('Diffractive Phase Residues ACF');
-legend('Location','best'); grid on;
+legend('Location','best', 'Direction', 'reverse'); grid on;
 
 %% Export the residues ACFs plots and CSV
 
@@ -557,7 +557,7 @@ writetable(T, fullfile(csv_dir, [fig_name,'.csv']));
 % Parameters
 nfft             = 2^16;
 fs               = 1/sampling_interval;
-num_realizations = 1;
+num_realizations = 300;
 N                = simulation_time * fs;
 win              = hamming(N);
 noverlap         = 0;
