@@ -39,6 +39,7 @@ cpssm_params = struct( ...
     'Moderate',{'moderate', 'is_enable_cmd_print', false, 'simulation_time', simulation_time, 'sampling_interval', sampling_interval, 'rhof_veff_ratio', 0.8},...
     'Strong',  {'strong',   'is_enable_cmd_print', false, 'simulation_time', simulation_time, 'sampling_interval', sampling_interval, 'rhof_veff_ratio', 0.27}...
     );
+font_size = 16;
 
 %% Monte Carlo optimal AR model order assessment
 mc_runs    = 300;
@@ -129,6 +130,7 @@ xlabel('AR Model Order');
 ylabel('Percentage of runs [%]');
 title('Optimal AR Order – Amplitude');
 legend('Location','best');
+set(gca, 'FontSize', font_size);
 grid on;
 
 % Total phase
@@ -143,7 +145,8 @@ hold off;
 xlabel('AR Model Order');
 ylabel('Percentage of runs [%]');
 title('Optimal AR Order – Total Phase');
-legend('Location','best');
+% legend('Location','best');
+set(gca, 'FontSize', font_size);
 grid on;
 
 % Refractive phase
@@ -158,7 +161,8 @@ hold off;
 xlabel('AR Model Order');
 ylabel('Percentage of runs [%]');
 title('Optimal AR Order – Refractive Phase');
-legend('Location','best');
+% legend('Location','best');
+set(gca, 'FontSize', font_size);
 grid on;
 
 % Diffractive phase
@@ -173,7 +177,8 @@ hold off;
 xlabel('AR Model Order');
 ylabel('Percentage of runs [%]');
 title('Optimal AR Order – Diffractive Phase');
-legend('Location','best');
+% legend('Location','best');
+set(gca, 'FontSize', font_size);
 grid on;
 
 %% Export Optimal AR Order Plot and CSV
@@ -224,6 +229,7 @@ end
 xlabel('AR Model Order'); ylabel('Mean SBC');
 title('Mean SBC – Amplitude');
 legend(severities,'Location','best'); grid on; hold off;
+set(gca, 'FontSize', font_size);
 
 % Total phase
 subplot(2,2,2);
@@ -234,7 +240,9 @@ for j = 1:size(mean_sbc_total_phs,2)
 end
 xlabel('AR Model Order'); ylabel('Mean SBC');
 title('Mean SBC – Total Phase');
-legend(severities,'Location','best'); grid on; hold off;
+% legend(severities,'Location','best'); 
+grid on; hold off;
+set(gca, 'FontSize', font_size);
 
 % Refractive phase
 subplot(2,2,3);
@@ -245,7 +253,9 @@ for j = 1:size(mean_sbc_refr_phs,2)
 end
 xlabel('AR Model Order'); ylabel('Mean SBC');
 title('Mean SBC – Refractive Phase');
-legend(severities,'Location','best'); grid on; hold off;
+% legend(severities,'Location','best'); 
+grid on; hold off;
+set(gca, 'FontSize', font_size);
 
 % Diffractive phase
 subplot(2,2,4);
@@ -256,7 +266,9 @@ for j = 1:size(mean_sbc_diff_phs,2)
 end
 xlabel('AR Model Order'); ylabel('Mean SBC');
 title('Mean SBC – Diffractive Phase');
-legend(severities,'Location','best'); grid on; hold off;
+% legend(severities,'Location','best'); 
+grid on; hold off;
+set(gca, 'FontSize', font_size);
 
 %% Export Mean SBC Plot and CSV
 % Export Mean SBC figure as a cropped, fully-vector PDF
@@ -280,13 +292,13 @@ csv_file = fullfile(csv_dir, ['mean_sbc','.csv']);
 writetable(T_sbc, csv_file);
 
 %% Residual Analysis
-[~, highest_freq_idx_amp]   = max(counts_amp,[],1);
-[~, highest_freq_idx_total_phs] = max(counts_total_phs,[],1);
-[~, highest_freq_idx_refr_phs] = max(counts_refr_phs,[],1);
-[~, highest_freq_idx_diff_phs] = max(counts_diff_phs,[],1);
+[~, min_sbc_idx_amp]   = min(mean_sbc_amp,[],1);
+[~, min_sbc_idx_total_phs] = min(mean_sbc_total_phs,[],1);
+[~, min_sbc_idx_refr_phs] = min(mean_sbc_refr_phs,[],1);
+[~, min_sbc_idx_diff_phs] = min(mean_sbc_diff_phs,[],1);
 
-residues = struct('amplitude',[] ,'total_phs', [], 'refr_phs', [], 'diff_phs', []);
-residues_downsamp = struct('amplitude',[] ,'total_phs', [], 'refr_phs', [], 'diff_phs', []);
+residuals = struct('amplitude',[] ,'total_phs', [], 'refr_phs', [], 'diff_phs', []);
+residuals_downsamp = struct('amplitude',[] ,'total_phs', [], 'refr_phs', [], 'diff_phs', []);
 
 seed = 10;
 for i = 1:numel(severities)
@@ -299,34 +311,34 @@ for i = 1:numel(severities)
     total_phs_ts_training  = get_corrected_phase(scint_ts(:,1));
     diff_phs_ts_training = wrapToPi(total_phs_ts_training - refr_phs_ts_training(:,1));
 
-    ord_amp = orders(highest_freq_idx_amp(i));
-    ord_total_phs = orders(highest_freq_idx_total_phs(i));
-    ord_refr_phs = orders(highest_freq_idx_refr_phs(i));
-    ord_diff_phase = orders(highest_freq_idx_diff_phs(i));
+    ord_amp = orders(min_sbc_idx_amp(i));
+    ord_total_phs = orders(min_sbc_idx_total_phs(i));
+    ord_refr_phs = orders(min_sbc_idx_refr_phs(i));
+    ord_diff_phase = orders(min_sbc_idx_diff_phs(i));
 
     [w_amp, A_amp]   = arfit(amp_ts_training, ord_amp, ord_amp);
     [w_total_phs, A_total_phs] = arfit(total_phs_ts_training, ord_total_phs, ord_total_phs);
     [w_refr_phs, A_refr_phs] = arfit(refr_phs_ts_training(:,1), ord_refr_phs, ord_refr_phs);
     [w_diff_phase, A_diff_phase] = arfit(diff_phs_ts_training, ord_diff_phase, ord_diff_phase);
 
-    % Obtaining the residues
+    % Obtaining the residuals
     % NOTE: Another generation seed is used herein to evaluate the reisuduals
     % correlation with statistical significance.
     rng(seed+1);
     [scint_ts, refr_phs_ts_training] = get_tppsm_data(cpssm_params.(severity), 'seed', seed + 1);
-    amp_ts_for_residue    = abs(scint_ts(:,1));
-    total_phs_ts_for_residue  = get_corrected_phase(scint_ts(:,1));
-    diff_phs_ts_for_residue = wrapToPi(total_phs_ts_for_residue - refr_phs_ts_training(:,1));
+    amp_ts_for_residuals    = abs(scint_ts(:,1));
+    total_phs_ts_for_residuals  = get_corrected_phase(scint_ts(:,1));
+    diff_phs_ts_for_residuals = wrapToPi(total_phs_ts_for_residuals - refr_phs_ts_training(:,1));
 
-    [~, res_amp]   = arres(w_amp,   A_amp,   amp_ts_for_residue, 60);
-    [~, res_total_phs]   = arres(w_total_phs,   A_total_phs,   total_phs_ts_for_residue, 60);
+    [~, res_amp]   = arres(w_amp,   A_amp,   amp_ts_for_residuals, 60);
+    [~, res_total_phs]   = arres(w_total_phs,   A_total_phs,   total_phs_ts_for_residuals, 60);
     [~, res_refr_phs]   = arres(w_refr_phs,   A_refr_phs,   refr_phs_ts_training(:,1), 60);
-    [~, res_diff_phase]   = arres(w_diff_phase,   A_diff_phase,   diff_phs_ts_for_residue, 60);
+    [~, res_diff_phase]   = arres(w_diff_phase,   A_diff_phase,   diff_phs_ts_for_residuals, 60);
 
-    residues.amplitude.(severity) = [NaN(ord_amp,1);   res_amp];
-    residues.total_phs.(severity) = [NaN(ord_total_phs,1);   res_total_phs];
-    residues.refr_phs.(severity) = [NaN(ord_refr_phs,1);   res_refr_phs];
-    residues.diff_phs.(severity) = [NaN(ord_diff_phase,1);   res_diff_phase];
+    residuals.amplitude.(severity) = [NaN(ord_amp,1);   res_amp];
+    residuals.total_phs.(severity) = [NaN(ord_total_phs,1);   res_total_phs];
+    residuals.refr_phs.(severity) = [NaN(ord_refr_phs,1);   res_refr_phs];
+    residuals.diff_phs.(severity) = [NaN(ord_diff_phase,1);   res_diff_phase];
 
     seed = seed + 1;
 end
@@ -339,13 +351,13 @@ time_downsamp = downsample(time, downsamp_factor);
 
 for i = 1:numel(severities)
     severity = severities{i};
-    residues_downsamp.amplitude.(severity) = downsample(residues.amplitude.(severity),downsamp_factor);
-    residues_downsamp.total_phs.(severity) = downsample(residues.total_phs.(severity),downsamp_factor);
-    residues_downsamp.refr_phs.(severity) = downsample(residues.refr_phs.(severity),downsamp_factor);
-    residues_downsamp.diff_phs.(severity) = downsample(residues.diff_phs.(severity),downsamp_factor);
+    residuals_downsamp.amplitude.(severity) = downsample(residuals.amplitude.(severity),downsamp_factor);
+    residuals_downsamp.total_phs.(severity) = downsample(residuals.total_phs.(severity),downsamp_factor);
+    residuals_downsamp.refr_phs.(severity) = downsample(residuals.refr_phs.(severity),downsamp_factor);
+    residuals_downsamp.diff_phs.(severity) = downsample(residuals.diff_phs.(severity),downsamp_factor);
 end
 
-%% Plot the downsampled residues of the fitted model
+%% Plot the downsampled residuals of the fitted model
 
 % Define plot order and time axis
 plot_order = {'Strong','Moderate','Weak'};
@@ -355,76 +367,81 @@ plot_order = {'Strong','Moderate','Weak'};
 base_colors = lines(numel(plot_order));
 colors      = base_colors([3,2,1],:);
 
-figure('Position',[50,50,1100,600]);
+figure('Position',[100,100,1000,600]);
 
-% Amplitude residues
+% Amplitude residuals
 subplot(2,2,1); hold on;
 for k = 1:numel(plot_order)
     sev = plot_order{k};
-    plot(time_downsamp, residues_downsamp.amplitude.(sev), ...
+    plot(time_downsamp, residuals_downsamp.amplitude.(sev), ...
         'LineWidth',1, 'Color',colors(k,:), ...
         'DisplayName', sev);
 end
 hold off;
-xlabel('Time [s]'); ylabel('Residues');
-title('Amplitude Residues');
+xlabel('Time [s]'); ylabel('Residuals');
+title('Amplitude Residuals');
 legend({'Strong','Moderate','Weak'},'Location','best', 'Direction', 'reverse');
+set(gca, 'FontSize', font_size);
 grid on;
 
-% Total phase residues
+
+% Total phase residuals
 subplot(2,2,2); hold on;
 for k = 1:numel(plot_order)
     sev = plot_order{k};
-    plot(time_downsamp, residues_downsamp.total_phs.(sev), ...
+    plot(time_downsamp, residuals_downsamp.total_phs.(sev), ...
         'LineWidth',1, 'Color',colors(k,:), ...
         'DisplayName', sev);
 end
 hold off;
-xlabel('Time [s]'); ylabel('Residues');
-title('Total Phase Residues');
-legend({'Strong','Moderate','Weak'},'Location','best', 'Direction', 'reverse');
+xlabel('Time [s]'); ylabel('Residuals');
+title('Total Phase Residuals');
+% legend({'Strong','Moderate','Weak'},'Location','best', 'Direction', 'reverse');
+set(gca, 'FontSize', font_size);
 grid on;
 
-% Refractive Phase Residues
+% Refractive Phase residuals
 subplot(2,2,3); hold on;
 for k = 1:numel(plot_order)
     sev = plot_order{k};
-    plot(time_downsamp, residues_downsamp.refr_phs.(sev), ...
+    plot(time_downsamp, residuals_downsamp.refr_phs.(sev), ...
         'LineWidth',1, 'Color',colors(k,:), ...
         'DisplayName', sev);
 end
 hold off;
-xlabel('Time [s]'); ylabel('Residues');
-title('Refractive Phase Residues');
-legend({'Strong','Moderate','Weak'},'Location','best', 'Direction', 'reverse');
+xlabel('Time [s]'); ylabel('Residuals');
+title('Refractive Phase Residuals');
+% legend({'Strong','Moderate','Weak'},'Location','best', 'Direction', 'reverse');
+set(gca, 'FontSize', font_size);
 grid on;
 
-% Diffractive Phase residues
+% Diffractive Phase residuals
 subplot(2,2,4); hold on;
 for k = 1:numel(plot_order)
     sev = plot_order{k};
-    plot(time_downsamp, residues_downsamp.diff_phs.(sev), ...
+    plot(time_downsamp, residuals_downsamp.diff_phs.(sev), ...
         'LineWidth',1, 'Color',colors(k,:), ...
         'DisplayName', sev);
 end
 hold off;
-xlabel('Time [s]'); ylabel('Residues');
-title('Diffractive Phase Residues');
-legend({'Strong','Moderate','Weak'},'Location','best', 'Direction', 'reverse');
+xlabel('Time [s]'); ylabel('Residuals');
+title('Diffractive Phase Residuals');
+% legend({'Strong','Moderate','Weak'},'Location','best', 'Direction', 'reverse');
+set(gca, 'FontSize', font_size);
 grid on;
 
-%% Export Residues Plot and CSV
-% Export residues figure as a cropped, fully-vector PDF
-fig_name = 'residues_singlefreq_cpssm';
+%% Export Residuals Plot and CSV
+% Export residuals figure as a cropped, fully-vector PDF
+fig_name = 'residuals_singlefreq_cpssm';
 pdf_file = fullfile(fig_dir, [fig_name, '.pdf']);
 exportgraphics(gcf, pdf_file, 'ContentType','vector');
 
-% Build and export CSV of residues data for TikZ
+% Build and export CSV of residuals data for TikZ
 T = table(time_downsamp.', ...
-    residues.amplitude.Weak,   residues.amplitude.Moderate,   residues.amplitude.Strong, ...
-    residues.total_phs.Weak,   residues.total_phs.Moderate,   residues.total_phs.Strong, ...
-    residues.refr_phs.Weak,    residues.refr_phs.Moderate,    residues.refr_phs.Strong, ...
-    residues.diff_phs.Weak,  residues.diff_phs.Moderate,  residues.diff_phs.Strong, ...
+    residuals.amplitude.Weak,   residuals.amplitude.Moderate,   residuals.amplitude.Strong, ...
+    residuals.total_phs.Weak,   residuals.total_phs.Moderate,   residuals.total_phs.Strong, ...
+    residuals.refr_phs.Weak,    residuals.refr_phs.Moderate,    residuals.refr_phs.Strong, ...
+    residuals.diff_phs.Weak,  residuals.diff_phs.Moderate,  residuals.diff_phs.Strong, ...
     'VariableNames',{ ...
     'Time_s', ...
     'Amp_Weak','Amp_Moderate','Amp_Strong', ...
@@ -434,7 +451,7 @@ T = table(time_downsamp.', ...
 csv_file = fullfile(csv_dir, [fig_name, '.csv']);
 writetable(T, csv_file);
 
-%% Compute one-sided residues ACFs
+%% Compute one-sided residuals ACFs
 
 % Amount of lags on the ACF
 lags        = 20;
@@ -443,14 +460,14 @@ acfs        = struct('amplitude',[] ,'total_phs', [], 'refr_phs', [], 'diff_phs'
 for i = 1:numel(severities)
     severity = severities{i};
 
-    % Removing the NaNs of the amplitude and phase residues
-    amp_res  = residues.amplitude.(severity);
+    % Removing the NaNs of the amplitude and phase residuals
+    amp_res  = residuals.amplitude.(severity);
     amp_res  = amp_res(~isnan(amp_res));
-    total_phs_res  = residues.total_phs.(severity);
+    total_phs_res  = residuals.total_phs.(severity);
     total_phs_res  = total_phs_res(~isnan(total_phs_res));
-    refr_phs_res  = residues.refr_phs.(severity);
+    refr_phs_res  = residuals.refr_phs.(severity);
     refr_phs_res  = refr_phs_res(~isnan(refr_phs_res));
-    diff_phase_res  = residues.diff_phs.(severity);
+    diff_phase_res  = residuals.diff_phs.(severity);
     diff_phase_res  = diff_phase_res(~isnan(diff_phase_res));
 
     acf_amp = xcorr(amp_res, amp_res, lags, 'normalized');
@@ -464,7 +481,7 @@ for i = 1:numel(severities)
     acfs.diff_phs.(severity) = acf_diff_phase(lags+1:end);
 end
 
-%% Plot the residues ACFs
+%% Plot the residuals ACFs
 plot_order = {'Strong','Moderate','Weak'};
 time_lag   = (0:lags) * sampling_interval;
 colors     = lines(numel(plot_order));
@@ -473,7 +490,7 @@ stem_width = 1.5;
 markers    = struct('Weak','o','Moderate','s','Strong','^');
 
 % Plot ACFs in 2×2 grid: Amplitude, total phase, refractive, diffractive
-figure('Position',[50,50,1100,600]);
+figure('Position',[100,100,1000,600]);
 
 % Amplitude ACF
 subplot(2,2,1); hold on;
@@ -485,8 +502,10 @@ for k = 1:numel(plot_order)
 end
 hold off;
 xlabel('Time Lag [s]'); ylabel('Normalized ACF');
-title('Amplitude Residues ACF');
-legend('Location','best', 'Direction', 'reverse'); grid on;
+title('Amplitude Residuals ACF');
+legend('Location','best', 'Direction', 'reverse'); 
+grid on;
+set(gca, 'FontSize', font_size);
 
 % Total Phase ACF
 subplot(2,2,2); hold on;
@@ -498,8 +517,10 @@ for k = 1:numel(plot_order)
 end
 hold off;
 xlabel('Time Lag [s]'); ylabel('Normalized ACF');
-title('Total Phase Residues ACF');
-legend('Location','best', 'Direction', 'reverse'); grid on;
+title('Total Phase Residuals ACF');
+% legend('Location','best', 'Direction', 'reverse'); 
+grid on;
+set(gca, 'FontSize', font_size);
 
 % Refractive Phase ACF
 subplot(2,2,3); hold on;
@@ -511,8 +532,10 @@ for k = 1:numel(plot_order)
 end
 hold off;
 xlabel('Time Lag [s]'); ylabel('Normalized ACF');
-title('Refractive Phase Residues ACF');
-legend('Location','best', 'Direction', 'reverse'); grid on;
+title('Refractive Phase Residuals ACF');
+% legend('Location','best', 'Direction', 'reverse'); 
+grid on;
+set(gca, 'FontSize', font_size);
 
 % 4) Diffractive Phase ACF
 subplot(2,2,4); hold on;
@@ -524,13 +547,15 @@ for k = 1:numel(plot_order)
 end
 hold off;
 xlabel('Time Lag [s]'); ylabel('Normalized ACF');
-title('Diffractive Phase Residues ACF');
-legend('Location','best', 'Direction', 'reverse'); grid on;
+title('Diffractive Phase Residuals ACF');
+% legend('Location','best', 'Direction', 'reverse'); 
+grid on;
+set(gca, 'FontSize', font_size);
 
-%% Export the residues ACFs plots and CSV
+%% Export the residuals ACFs plots and CSV
 
 % Export figure as cropped, fully‐vector PDF
-fig_name = 'residues_acf_singlefreq_cpssm';  % ← change this to something meaningful
+fig_name = 'residuals_acf_singlefreq_cpssm';  % ← change this to something meaningful
 pdf_file = fullfile(fig_dir, [fig_name,'.pdf']);
 
 % exportgraphics crops to the tight content box and preserves vectors
@@ -607,10 +632,10 @@ for i = 1:numel(severities)
         end
 
         % Get AR models PSDs
-        p_amp          = orders(highest_freq_idx_amp(i));
-        p_tot          = orders(highest_freq_idx_total_phs(i));
-        p_refr         = orders(highest_freq_idx_refr_phs(i));
-        p_diff         = orders(highest_freq_idx_diff_phs(i));
+        p_amp          = orders(min_sbc_idx_amp(i));
+        p_tot          = orders(min_sbc_idx_total_phs(i));
+        p_refr         = orders(min_sbc_idx_refr_phs(i));
+        p_diff         = orders(min_sbc_idx_diff_phs(i));
         [~, A_amp, C_amp]     = arfit(amp_ts,        p_amp, p_amp);
         [~, A_tot, C_tot]     = arfit(total_phs_ts,  p_tot, p_tot);
         [~, A_refr, C_refr]   = arfit(refr_phs_ts(:,1),   p_refr,p_refr);
@@ -621,7 +646,7 @@ for i = 1:numel(severities)
         a_refr  = [1, -reshape(A_refr,1,[])];
         a_diff  = [1, -reshape(A_diff,1,[])];
 
-        z            = exp(-1j*2*pi*f*sampling_interval);
+        z            = exp(1j*2*pi*f*sampling_interval);
         H_amp        = 1 ./ sum(a_amp .* z.^(-(0:p_amp)), 2);
         H_tot        = 1 ./ sum(a_tot .* z.^(-(0:p_tot)), 2);
         H_refr       = 1 ./ sum(a_refr .* z.^(-(0:p_refr)), 2);
@@ -663,7 +688,7 @@ cmap_v = autumn(numel(severities));
 metrics = {'amplitude','total_phs','refr_phs','diff_phs'};
 titles  = {'Amplitude','Total Phase','Refractive Phase','Diffractive Phase'};
 
-figure('Position',[50,50,1200,800]);
+figure('Position',[100,100,1000,600]);
 F = psd_comparison.freq;
 
 for m = 1:4
@@ -676,10 +701,13 @@ for m = 1:4
             'Color',cmap_v(k,:), 'LineWidth',1.5, 'DisplayName', [sev, ' - AR PSD']);
     end
     hold off;
-    set(gca,'XScale','log','XLim',[1e-4*fs,0.4*fs]);
+    set(gca,'XScale','log','XLim',[1e-4*fs,0.4*fs], 'FontSize', font_size);
     xlabel('Frequency [Hz]'); ylabel('Power Spectral Density [dB/Hz]');
     title(['Periodogram vs AR PSD - ', titles{m}]);
-    grid on; legend('Location','best');
+    grid on; 
+    if m == 1
+        legend('Location','best');
+    end
 end
 
 %% Export periodograms and AR model PSDs plots and CSV

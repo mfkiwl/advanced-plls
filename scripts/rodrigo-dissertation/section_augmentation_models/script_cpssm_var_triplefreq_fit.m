@@ -159,8 +159,8 @@ T_sbc_phs = table(orders_vec.', mean_sbc_phs(:,1), mean_sbc_phs(:,2), mean_sbc_p
 writetable(T_sbc_phs, fullfile(csv_dir,'mean_sbc_phs.csv'));
 
 %% Residual analysis for separate VAR fits
-[~, idx_amp] = max(counts_amp,[],1);
-[~, idx_phs] = max(counts_phs,[],1);
+[~, idx_amp] = min(mean_sbc_amp,[],1);
+[~, idx_phs] = min(mean_sbc_phs,[],1);
 
 residues = struct('amplitude',[],'total_phase',[]);
 residues_down = struct('amplitude',[],'total_phase',[]);
@@ -463,7 +463,7 @@ end
 exportgraphics(gcf, fullfile(fig_dir,'periodogram_vs_ar_psd_amp_triplefreq_cpssm.pdf'),'ContentType','vector');
 
 %% Plot triple-frequency phase PSD comparison (3×3)
-figure('Position',[50,50,1200,900]);
+figure('Position',[100,100,1000,900]);
 for p = 1:K
     for q = 1:K
         subplot(K,K,(p-1)*K+q); hold on;
