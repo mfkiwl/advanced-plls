@@ -113,7 +113,7 @@ pct_refr_phs  = counts_refr_phs  / mc_runs * 100;
 pct_diff_phs  = counts_diff_phs  / mc_runs * 100;
 
 %% Plot model order selection frequency
-figure('Position',[50,50,1100,400]);
+figure('Position',[100,100,1000,600]);
 colors = lines(numel(severities));  % or get(gca,'ColorOrder')
 markers = {'o', 's', '^'};
 
@@ -216,7 +216,7 @@ mean_sbc_total_phs   = squeeze(mean(sbc_total_phs_array,   1)).';
 mean_sbc_refr_phs    = squeeze(mean(sbc_refr_phs_array,    1)).';
 mean_sbc_diff_phs    = squeeze(mean(sbc_diff_phs_array,    1)).';
 
-figure('Position',[50,50,1100,400]);
+figure('Position',[100,100,1000,600]);
 
 % Amplitude
 subplot(2,2,1);
@@ -228,7 +228,7 @@ for j = 1:size(mean_sbc_amp,2)
 end
 xlabel('AR Model Order'); ylabel('Mean SBC');
 title('Mean SBC – Amplitude');
-legend(severities,'Location','best'); grid on; hold off;
+legend(severities,'Location','northeast'); grid on; hold off;
 set(gca, 'FontSize', font_size);
 
 % Total phase

@@ -158,7 +158,7 @@ end
 xlabel('AR Model Order');
 ylabel('Mean SBC');
 title('Mean Schwarz Bayesian Criterion — Amplitude');
-legend(severities,'Location','best');
+legend(severities,'Location','northeast');
 set(gca, 'FontSize', font_size);
 grid on;
 hold off;
@@ -229,10 +229,10 @@ time = sampling_interval : sampling_interval : simulation_time;
 base_colors = lines(numel(plot_order));
 colors      = base_colors([3,2,1],:);  
 
-figure('Position',[100,100,1000,700]);
+figure('Position',[100,100,1000,400]);
 
 % Amplitude residuals
-subplot(2,1,1); hold on;
+subplot(1,2,1); hold on;
 for k = 1:numel(plot_order)
     sev = plot_order{k};
     plot(time, residuals.amplitude.(sev), ...
@@ -248,7 +248,7 @@ set(gca, 'FontSize', font_size);
 grid on;
 
 % Phase residuals
-subplot(2,1,2); hold on;
+subplot(1,2,2); hold on;
 for k = 1:numel(plot_order)
     sev = plot_order{k};
     plot(time, residuals.phase.(sev), ...
@@ -279,7 +279,7 @@ writetable(T_res, fullfile(csv_dir,[fig_name,'.csv']));
 % Compute one-sided ACFs of residuals -------------------------------------
 
 % Amount of lags on the ACF
-lags_amount        = 20;
+lags_amount = 20;
 stem_width  = 1.5;
 markers     = struct('Weak','o','Moderate','s','Strong','^');
 acfs        = struct('amplitude',[],'phase',[]);

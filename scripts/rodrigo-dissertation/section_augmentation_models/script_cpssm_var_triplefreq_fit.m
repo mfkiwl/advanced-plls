@@ -31,6 +31,9 @@ cpssm_params = struct( ...
     'Moderate',{'moderate', 'is_enable_cmd_print', false, 'simulation_time', simulation_time, 'sampling_interval', sampling_interval, 'rhof_veff_ratio', 0.8},...
     'Strong',  {'strong',   'is_enable_cmd_print', false, 'simulation_time', simulation_time, 'sampling_interval', sampling_interval, 'rhof_veff_ratio', 0.27}...
     );
+
+font_size = 16;
+
 %% Monte Carlo optimal order assessment
 mc_runs    = 300;
 min_order  = 1;
@@ -82,8 +85,8 @@ pct_phs = counts_phs / mc_runs * 100;
 colors = lines(numel(severities));
 
 % Amplitude orders
-figure('Position',[50,50,800,600]);
-subplot(2,1,1);
+figure('Position',[100,100,1000,300]);
+subplot(1,2,1);
 hold on;
 for j = 1:numel(severities)
     plot(orders_vec, pct_amp(:,j), '-o', 'LineWidth',1.5, 'MarkerSize',6, ...
@@ -93,6 +96,7 @@ hold off;
 xlabel('VAR Order'); ylabel('Percentage [%]');
 title('Optimal VAR Order – Amplitudes');
 legend('Location','best'); grid on;
+set(gca, 'FontSize', font_size);
 exportgraphics(gcf, fullfile(fig_dir,'opt_order_amp.pdf'),'ContentType','vector');
 % CSV
 T_amp = table(orders_vec.', pct_amp(:,1), pct_amp(:,2), pct_amp(:,3), ...
@@ -100,7 +104,7 @@ T_amp = table(orders_vec.', pct_amp(:,1), pct_amp(:,2), pct_amp(:,3), ...
 writetable(T_amp, fullfile(csv_dir,'optimal_var_order_frequency_amp_triplefreq_cpssm.csv'));
 
 % Phase orders
-subplot(2,1,2);
+subplot(1,2,2);
 hold on;
 for j = 1:numel(severities)
     plot(orders_vec, pct_phs(:,j), '-s', 'LineWidth',1.5, 'MarkerSize',6, ...
@@ -109,7 +113,8 @@ end
 hold off;
 xlabel('VAR Order'); ylabel('Percentage [%]');
 title('Optimal VAR Order – Total Phases');
-legend('Location','best'); grid on;
+% legend('Location','best'); grid on;
+set(gca, 'FontSize', font_size);
 
 exportgraphics(gcf, fullfile(fig_dir,'optimal_var_order_frequency_phs_triplefreq_cpssm.pdf'),'ContentType','vector');
 % CSV
@@ -122,8 +127,8 @@ mean_sbc_amp = squeeze(mean(sbc_amp_array,1)).';
 mean_sbc_phs = squeeze(mean(sbc_phs_array,1)).';
 
 % Amplitude SBC
-figure('Position',[50,50,800,600]);
-subplot(2,1,1);
+figure('Position',[100,100,1000,300]);
+subplot(1,2,1);
 hold on;
 plot(orders_vec, mean_sbc_amp, 'LineWidth',1.5);
 for j=1:size(mean_sbc_amp,2)
@@ -133,7 +138,9 @@ end
 hold off;
 xlabel('VAR Order'); ylabel('Mean SBC');
 title('Mean SBC – Amplitudes');
-legend(severities,'Location','best'); grid on;
+legend(severities,'Location','northeast'); grid on;
+set(gca, 'FontSize', font_size);
+
 exportgraphics(gcf, fullfile(fig_dir,'mean_sbc_amp.pdf'),'ContentType','vector');
 % CSV
 T_sbc_amp = table(orders_vec.', mean_sbc_amp(:,1), mean_sbc_amp(:,2), mean_sbc_amp(:,3), ...
@@ -141,7 +148,7 @@ T_sbc_amp = table(orders_vec.', mean_sbc_amp(:,1), mean_sbc_amp(:,2), mean_sbc_a
 writetable(T_sbc_amp, fullfile(csv_dir,'mean_sbc_amp_triplefreq_cpssm.csv'));
 
 % Phase SBC
-subplot(2,1,2);
+subplot(1,2,2);
 hold on;
 plot(orders_vec, mean_sbc_phs, 'LineWidth',1.5);
 for j=1:size(mean_sbc_phs,2)
@@ -151,7 +158,9 @@ end
 hold off;
 xlabel('VAR Order'); ylabel('Mean SBC');
 title('Mean SBC – Total Phases');
-legend(severities,'Location','best'); grid on;
+% legend(severities,'Location','best'); grid on;
+set(gca, 'FontSize', font_size);
+
 exportgraphics(gcf, fullfile(fig_dir,'mean_sbc_phs_triplefreq_cpssm.pdf'),'ContentType','vector');
 % CSV
 T_sbc_phs = table(orders_vec.', mean_sbc_phs(:,1), mean_sbc_phs(:,2), mean_sbc_phs(:,3), ...
@@ -159,11 +168,11 @@ T_sbc_phs = table(orders_vec.', mean_sbc_phs(:,1), mean_sbc_phs(:,2), mean_sbc_p
 writetable(T_sbc_phs, fullfile(csv_dir,'mean_sbc_phs.csv'));
 
 %% Residual analysis for separate VAR fits
-[~, idx_amp] = min(mean_sbc_amp,[],1);
-[~, idx_phs] = min(mean_sbc_phs,[],1);
+[~, min_sbc_idx_amp] = min(mean_sbc_amp,[],1);
+[~, min_sbc_idx_phs] = min(mean_sbc_phs,[],1);
 
-residues = struct('amplitude',[],'total_phase',[]);
-residues_down = struct('amplitude',[],'total_phase',[]);
+residuals = struct('amplitude',[],'total_phase',[]);
+residuals_down = struct('amplitude',[],'total_phase',[]);
 
 seed = 100;
 for i = 1:numel(severities)
@@ -173,11 +182,11 @@ for i = 1:numel(severities)
     amp_train = abs(scint_train);
     phs_train = zeros(size(amp_train));
     for f=1:freq_amount, phs_train(:,f)=get_corrected_phase(scint_train(:,f)); end
-    ord_a = orders_vec(idx_amp(i));
-    ord_p = orders_vec(idx_phs(i));
+    ord_a = orders_vec(min_sbc_idx_amp(i));
+    ord_p = orders_vec(min_sbc_idx_phs(i));
     [w_a,A_a] = arfit(amp_train, ord_a, ord_a);
     [w_p,A_p] = arfit(phs_train, ord_p, ord_p);
-    % generate fresh data for residues
+    % generate fresh data for residuals
     rng(seed+1);
     [scint_res,~] = get_tppsm_data(cpssm_params.(sev),'seed',seed+1);
     amp_res_ts = abs(scint_res);
@@ -185,72 +194,76 @@ for i = 1:numel(severities)
     [~, res_a] = arres(w_a,A_a, amp_res_ts, 60);
     [~, res_p] = arres(w_p,A_p, phs_res_ts, 60);
     % pad NaNs
-    residues.amplitude.(sev)    = [NaN(ord_a,size(res_a,2)); res_a];
-    residues.total_phase.(sev) = [NaN(ord_p,size(res_p,2)); res_p];
+    residuals.amplitude.(sev)    = [NaN(ord_a,size(res_a,2)); res_a];
+    residuals.total_phase.(sev) = [NaN(ord_p,size(res_p,2)); res_p];
     seed = seed + 1;
 end
 
-%% Downsample, plot residues (3×2 layout), and export CSVs
+%% Downsample, plot residuals (3×2 layout), and export CSVs
 time_vec = sampling_interval : sampling_interval : simulation_time;
 down_factor = 1;
 time_ds  = downsample(time_vec, down_factor);
 
 for i = 1:numel(severities)
     sev = severities{i};
-    residues_down.amplitude.(sev)    = downsample(residues.amplitude.(sev), down_factor);
-    residues_down.total_phase.(sev) = downsample(residues.total_phase.(sev), down_factor);
+    residuals_down.amplitude.(sev)    = downsample(residuals.amplitude.(sev), down_factor);
+    residuals_down.total_phase.(sev) = downsample(residuals.total_phase.(sev), down_factor);
 end
 
 plot_order = {'Strong','Moderate','Weak'};
 bands      = {'L1','L2','L5'};
 colors     = flip(lines(numel(plot_order)));
 
-figure('Position',[100,100,1200,900]);
+figure('Position',[100,100,1000,900]);
 for r = 1:3
-    % Amplitude residues
+    % Amplitude residuals
     subplot(3,2,(r-1)*2+1); hold on;
     for k = 1:3
         sev = plot_order{k};
-        plot(time_ds, residues_down.amplitude.(sev)(:,r), ...
+        plot(time_ds, residuals_down.amplitude.(sev)(:,r), ...
              'LineWidth',1, 'Color',colors(k,:), 'DisplayName',sev);
     end
     hold off;
-    xlabel('Time [s]'); ylabel('Residual');
-    title(sprintf('Amplitude residues (%s)', bands{r}));
-    legend('Location','best', 'Direction','reverse'); grid on;
-
-    % Total phase residues
+    xlabel('Time [s]'); ylabel('Residuals');
+    title(sprintf('Amplitude residuals (%s)', bands{r}));
+    if r == 2
+        legend('Location','best', 'Direction','reverse');
+    end
+    grid on;
+    set(gca, 'FontSize', font_size);
+    % Total phase residuals
     subplot(3,2,(r-1)*2+2); hold on;
     for k = 1:3
         sev = plot_order{k};
-        plot(time_ds, residues_down.total_phase.(sev)(:,r), ...
+        plot(time_ds, residuals_down.total_phase.(sev)(:,r), ...
              'LineWidth',1, 'Color',colors(k,:), 'DisplayName',sev);
     end
     hold off;
-    xlabel('Time [s]'); ylabel('Residual');
-    title(sprintf('Total Phase residues (%s)', bands{r}));
-    legend('Location','best', 'Direction','reverse'); grid on;
+    xlabel('Time [s]'); ylabel('Residuals');
+    title(sprintf('Total Phase Residuals (%s)', bands{r}));
+    % legend('Location','best', 'Direction','reverse'); grid on;
+    set(gca, 'FontSize', font_size);
 end
 
 % Export figure
-exportgraphics(gcf, fullfile(fig_dir,'residues_triplefreq_cpssm.pdf'),'ContentType','vector');
+exportgraphics(gcf, fullfile(fig_dir,'residuals_triplefreq_cpssm.pdf'),'ContentType','vector');
 
-% Build and export CSV of residues
+% Build and export CSV of residuals
 % Columns: Time_s, Amp_L1_Weak, Amp_L1_Moderate, Amp_L1_Strong, ..., Tot_L5_Strong
 T_res = table( ...
     time_ds.', ...
-    residues_down.amplitude.Weak(:,1),    residues_down.amplitude.Moderate(:,1),    residues_down.amplitude.Strong(:,1),  ...
-    residues_down.total_phase.Weak(:,1),  residues_down.total_phase.Moderate(:,1),  residues_down.total_phase.Strong(:,1),...
-    residues_down.amplitude.Weak(:,2),    residues_down.amplitude.Moderate(:,2),    residues_down.amplitude.Strong(:,2),  ...
-    residues_down.total_phase.Weak(:,2),  residues_down.total_phase.Moderate(:,2),  residues_down.total_phase.Strong(:,2),...
-    residues_down.amplitude.Weak(:,3),    residues_down.amplitude.Moderate(:,3),    residues_down.amplitude.Strong(:,3),  ...
-    residues_down.total_phase.Weak(:,3),  residues_down.total_phase.Moderate(:,3),  residues_down.total_phase.Strong(:,3),...
+    residuals_down.amplitude.Weak(:,1),    residuals_down.amplitude.Moderate(:,1),    residuals_down.amplitude.Strong(:,1),  ...
+    residuals_down.total_phase.Weak(:,1),  residuals_down.total_phase.Moderate(:,1),  residuals_down.total_phase.Strong(:,1),...
+    residuals_down.amplitude.Weak(:,2),    residuals_down.amplitude.Moderate(:,2),    residuals_down.amplitude.Strong(:,2),  ...
+    residuals_down.total_phase.Weak(:,2),  residuals_down.total_phase.Moderate(:,2),  residuals_down.total_phase.Strong(:,2),...
+    residuals_down.amplitude.Weak(:,3),    residuals_down.amplitude.Moderate(:,3),    residuals_down.amplitude.Strong(:,3),  ...
+    residuals_down.total_phase.Weak(:,3),  residuals_down.total_phase.Moderate(:,3),  residuals_down.total_phase.Strong(:,3),...
     'VariableNames',{ ...
       'Time_s', ...
       'Amp_L1_Weak','Amp_L1_Moderate','Amp_L1_Strong', 'Tot_L1_Weak','Tot_L1_Moderate','Tot_L1_Strong', ...
       'Amp_L2_Weak','Amp_L2_Moderate','Amp_L2_Strong', 'Tot_L2_Weak','Tot_L2_Moderate','Tot_L2_Strong', ...
       'Amp_L5_Weak','Amp_L5_Moderate','Amp_L5_Strong', 'Tot_L5_Weak','Tot_L5_Moderate','Tot_L5_Strong' } );
-writetable(T_res, fullfile(csv_dir,'residues_separate.csv'));
+writetable(T_res, fullfile(csv_dir,'residuals_separate.csv'));
 
 %% Compute, plot one‐sided ACFs (3×2 layout), and export CSVs
 lags      = 20;
@@ -260,7 +273,7 @@ acf_struct = struct('amplitude',[],'total_phase',[]);
 for i = 1:numel(severities)
     sev = severities{i};
     % Amplitude ACF
-    mat_a = residues.amplitude.(sev);
+    mat_a = residuals.amplitude.(sev);
     acf_a = zeros(lags+1, freq_amount);
     for c = 1:freq_amount
         d = mat_a(~isnan(mat_a(:,c)), c);
@@ -269,7 +282,7 @@ for i = 1:numel(severities)
     end
     acf_struct.amplitude.(sev) = acf_a;
     % Total phase ACF
-    mat_p = residues.total_phase.(sev);
+    mat_p = residuals.total_phase.(sev);
     acf_p = zeros(lags+1, freq_amount);
     for c = 1:freq_amount
         d = mat_p(~isnan(mat_p(:,c)), c);
@@ -284,7 +297,7 @@ stem_w  = 1.5;
 markers = struct('Weak','o','Moderate','s','Strong','^');
 time_lag = (0:lags) * sampling_interval;
 
-figure('Position',[100,100,1200,900]);
+figure('Position',[100,100,1000,900]);
 for r = 1:3
     % Amplitude ACF
     subplot(3,2,(r-1)*2+1); hold on;
@@ -296,7 +309,10 @@ for r = 1:3
     hold off;
     xlabel('Lag [s]'); ylabel('Normalized ACF');
     title(sprintf('Amplitude ACF (%s)', bands{r}));
-    legend('Location','best', 'Direction','reverse'); grid on;
+    if r == 2
+        legend('Location','best', 'Direction','reverse'); grid on;
+    end
+    set(gca, 'FontSize', font_size);
 
     % Total phase ACF
     subplot(3,2,(r-1)*2+2); hold on;
@@ -308,11 +324,12 @@ for r = 1:3
     hold off;
     xlabel('Lag [s]'); ylabel('Normalized ACF');
     title(sprintf('Total Phase ACF (%s)', bands{r}));
-    legend('Location','best', 'Direction','reverse'); grid on;
+    % legend('Location','best', 'Direction','reverse'); grid on;
+    set(gca, 'FontSize', font_size);
 end
 
 % Export figure
-exportgraphics(gcf, fullfile(fig_dir,'residues_acf_triplefreq_cpssm.pdf'),'ContentType','vector');
+exportgraphics(gcf, fullfile(fig_dir,'residuals_acf_triplefreq_cpssm.pdf'),'ContentType','vector');
 
 % Build and export CSV of ACFs
 % Columns: Lag_s, Amp_L1_Strong, Amp_L1_Moderate, Amp_L1_Weak, Tot_L1_Strong, …
@@ -329,7 +346,7 @@ T_acf = table( ...
       'Amp_L1_Strong','Amp_L1_Moderate','Amp_L1_Weak', 'Tot_L1_Strong','Tot_L1_Moderate','Tot_L1_Weak', ...
       'Amp_L2_Strong','Amp_L2_Moderate','Amp_L2_Weak', 'Tot_L2_Strong','Tot_L2_Moderate','Tot_L2_Weak', ...
       'Amp_L5_Strong','Amp_L5_Moderate','Amp_L5_Weak', 'Tot_L5_Strong','Tot_L5_Moderate','Tot_L5_Weak' } );
-writetable(T_acf, fullfile(csv_dir,'residues_acf_separate.csv'));
+writetable(T_acf, fullfile(csv_dir,'residuals_acf_separate.csv'));
 
 %% Compute auto- & cross-spectra and VAR PSDs for triple-frequency
 % Parameters
@@ -377,8 +394,8 @@ for mc = 1:num_realizations
         end
 
         % Fit VAR for amplitude & phase to get C matrices
-        p_amp = orders_vec(idx_amp(i));
-        p_phs = orders_vec(idx_phs(i));
+        p_amp = orders_vec(min_sbc_idx_amp(i));
+        p_phs = orders_vec(min_sbc_idx_phs(i));
         [~, A_amp, C_amp] = arfit(amp_ts, p_amp, p_amp);
         [~, A_phs, C_phs] = arfit(phs_ts, p_phs, p_phs);
 
@@ -441,7 +458,7 @@ end
 %% Plot triple-frequency amplitude PSD comparison (3×3)
 cmap_emp = winter(numel(severities));
 cmap_var = autumn(numel(severities));
-figure('Position',[50,50,1200,900]);
+figure('Position',[100,100,1000,900]);
 for p = 1:K
     for q = 1:K
         subplot(K,K,(p-1)*K+q); hold on;
@@ -453,11 +470,14 @@ for p = 1:K
             plot(f,10*log10(varp),'-','Color',cmap_var(k,:),'LineWidth',1.5, 'DisplayName', [sev, ' - VAR PSD']);
         end
         hold off;
-        set(gca,'XScale','log','XLim',[1e-4*fs,0.4*fs]);
+        set(gca,'XScale','log','XLim',[1e-4*fs,0.4*fs], 'FontSize', font_size);
         title(sprintf('%s-%s',frequency_bands{p},frequency_bands{q}));
         if p==K, xlabel('Frequency [Hz]'); end
         if q==1, ylabel('Power Spectral Density [dB/Hz]'); end
-        grid on; legend('Location','best');
+        grid on; 
+        if p == 2 && q == 2
+            legend('Location','best');
+        end
     end
 end
 exportgraphics(gcf, fullfile(fig_dir,'periodogram_vs_ar_psd_amp_triplefreq_cpssm.pdf'),'ContentType','vector');
@@ -475,11 +495,14 @@ for p = 1:K
             plot(f,10*log10(varp),'-','Color',cmap_var(k,:), 'LineWidth',1.5,'DisplayName',[sev, ' - VAR PSD']);
         end
         hold off;
-        set(gca,'XScale','log','XLim',[1e-4*fs,0.4*fs]);
+        set(gca,'XScale','log','XLim',[1e-4*fs,0.4*fs], 'FontSize', font_size);
         title(sprintf('%s-%s',frequency_bands{p},frequency_bands{q}));
         if p==K, xlabel('Frequency [Hz]'); end
         if q==1, ylabel('Power Spectral Density[dB/Hz]'); end
-        grid on; legend('Location','best');
+        grid on;
+        if p == 2 && q == 2
+            legend('Location','best');
+        end
     end
 end
 exportgraphics(gcf, fullfile(fig_dir,'periodogram_vs_ar_psd_phs_triplefreq_cpssm.pdf'),'ContentType','vector');
