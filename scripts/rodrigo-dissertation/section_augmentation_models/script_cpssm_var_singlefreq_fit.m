@@ -31,6 +31,7 @@ end
 
 %% Simulation parameters
 
+
 simulation_time = 300;
 sampling_interval = 0.01;
 severities = {'Weak','Moderate','Strong'};
@@ -40,9 +41,18 @@ cpssm_params = struct( ...
     'Strong',  {'strong',   'is_enable_cmd_print', false, 'simulation_time', simulation_time, 'sampling_interval', sampling_interval, 'rhof_veff_ratio', 0.27}...
     );
 font_size = 16;
+simulation_time = 300;
+sampling_interval = 0.01;
+severities = {'Weak','Moderate','Strong'};
+cpssm_params = struct( ...
+    'Weak',    {'weak',     'is_enable_cmd_print', false, 'simulation_time', simulation_time, 'sampling_interval', sampling_interval, 'rhof_veff_ratio', 1.5},...
+    'Moderate',{'moderate', 'is_enable_cmd_print', false, 'simulation_time', simulation_time, 'sampling_interval', sampling_interval, 'rhof_veff_ratio', 0.8},...
+    'Strong',  {'strong',   'is_enable_cmd_print', false, 'simulation_time', simulation_time, 'sampling_interval', sampling_interval, 'rhof_veff_ratio', 0.27}...
+    );
+font_size = 11;
 
 %% Monte Carlo optimal AR model order assessment
-mc_runs    = 300;
+mc_runs    = 2;
 min_order  = 1;
 max_order  = 30;
 optimal_orders_amp   = zeros(mc_runs,numel(severities));
@@ -113,7 +123,7 @@ pct_refr_phs  = counts_refr_phs  / mc_runs * 100;
 pct_diff_phs  = counts_diff_phs  / mc_runs * 100;
 
 %% Plot model order selection frequency
-figure('Position',[100,100,1000,600]);
+figure('Position',[100,100,1000,500]);
 colors = lines(numel(severities));  % or get(gca,'ColorOrder')
 markers = {'o', 's', '^'};
 
@@ -216,7 +226,7 @@ mean_sbc_total_phs   = squeeze(mean(sbc_total_phs_array,   1)).';
 mean_sbc_refr_phs    = squeeze(mean(sbc_refr_phs_array,    1)).';
 mean_sbc_diff_phs    = squeeze(mean(sbc_diff_phs_array,    1)).';
 
-figure('Position',[100,100,1000,600]);
+figure('Position',[100,100,1000,500]);
 
 % Amplitude
 subplot(2,2,1);
@@ -367,7 +377,7 @@ plot_order = {'Strong','Moderate','Weak'};
 base_colors = lines(numel(plot_order));
 colors      = base_colors([3,2,1],:);
 
-figure('Position',[100,100,1000,600]);
+figure('Position',[100,100,1000,500]);
 
 % Amplitude residuals
 subplot(2,2,1); hold on;
@@ -394,7 +404,7 @@ for k = 1:numel(plot_order)
         'DisplayName', sev);
 end
 hold off;
-xlabel('Time [s]'); ylabel('Residuals');
+xlabel('Time [s]'); ylabel('Residuals [rad]');
 title('Total Phase Residuals');
 % legend({'Strong','Moderate','Weak'},'Location','best', 'Direction', 'reverse');
 set(gca, 'FontSize', font_size);
@@ -409,7 +419,7 @@ for k = 1:numel(plot_order)
         'DisplayName', sev);
 end
 hold off;
-xlabel('Time [s]'); ylabel('Residuals');
+xlabel('Time [s]'); ylabel('Residuals [rad]');
 title('Refractive Phase Residuals');
 % legend({'Strong','Moderate','Weak'},'Location','best', 'Direction', 'reverse');
 set(gca, 'FontSize', font_size);
@@ -424,7 +434,7 @@ for k = 1:numel(plot_order)
         'DisplayName', sev);
 end
 hold off;
-xlabel('Time [s]'); ylabel('Residuals');
+xlabel('Time [s]'); ylabel('Residuals [rad]');
 title('Diffractive Phase Residuals');
 % legend({'Strong','Moderate','Weak'},'Location','best', 'Direction', 'reverse');
 set(gca, 'FontSize', font_size);
@@ -490,7 +500,7 @@ stem_width = 1.5;
 markers    = struct('Weak','o','Moderate','s','Strong','^');
 
 % Plot ACFs in 2×2 grid: Amplitude, total phase, refractive, diffractive
-figure('Position',[100,100,1000,600]);
+figure('Position',[100,100,1000,500]);
 
 % Amplitude ACF
 subplot(2,2,1); hold on;
@@ -516,7 +526,7 @@ for k = 1:numel(plot_order)
         'DisplayName',sev);
 end
 hold off;
-xlabel('Time Lag [s]'); ylabel('Normalized ACF');
+xlabel('Time Lag [s]'); ylabel('Normalized ACF [rad^2]');
 title('Total Phase Residuals ACF');
 % legend('Location','best', 'Direction', 'reverse'); 
 grid on;
@@ -531,7 +541,7 @@ for k = 1:numel(plot_order)
         'DisplayName',sev);
 end
 hold off;
-xlabel('Time Lag [s]'); ylabel('Normalized ACF');
+xlabel('Time Lag [s]'); ylabel('Normalized ACF [rad^2]');
 title('Refractive Phase Residuals ACF');
 % legend('Location','best', 'Direction', 'reverse'); 
 grid on;
@@ -546,7 +556,7 @@ for k = 1:numel(plot_order)
         'DisplayName',sev);
 end
 hold off;
-xlabel('Time Lag [s]'); ylabel('Normalized ACF');
+xlabel('Time Lag [s]'); ylabel('Normalized ACF [rad^2]');
 title('Diffractive Phase Residuals ACF');
 % legend('Location','best', 'Direction', 'reverse'); 
 grid on;
@@ -582,7 +592,7 @@ writetable(T, fullfile(csv_dir, [fig_name,'.csv']));
 % Parameters
 nfft             = 2^16;
 fs               = 1/sampling_interval;
-num_realizations = 300;
+num_realizations = 2;
 N                = simulation_time * fs;
 win              = hamming(N);
 noverlap         = 0;
@@ -702,8 +712,14 @@ for m = 1:4
     end
     hold off;
     set(gca,'XScale','log','XLim',[1e-4*fs,0.4*fs], 'FontSize', font_size);
-    xlabel('Frequency [Hz]'); ylabel('Power Spectral Density [dB/Hz]');
-    title(['Periodogram vs AR PSD - ', titles{m}]);
+    xlabel('Norm. freq. (× 1/T_I) [Hz]'); 
+    if m > 1
+        ylabel('PSD [dB(rad^2/Hz)]');
+    else
+        ylabel('PSD [dB/Hz]');
+    end
+    
+    title(titles{m});
     grid on; 
     if m == 1
         legend('Location','best');

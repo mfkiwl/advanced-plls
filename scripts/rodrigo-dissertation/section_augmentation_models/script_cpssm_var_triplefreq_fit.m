@@ -32,10 +32,10 @@ cpssm_params = struct( ...
     'Strong',  {'strong',   'is_enable_cmd_print', false, 'simulation_time', simulation_time, 'sampling_interval', sampling_interval, 'rhof_veff_ratio', 0.27}...
     );
 
-font_size = 16;
+font_size = 11;
 
 %% Monte Carlo optimal order assessment
-mc_runs    = 300;
+mc_runs    = 2;
 min_order  = 1;
 max_order  = 30;
 orders_vec = min_order:max_order;
@@ -85,7 +85,7 @@ pct_phs = counts_phs / mc_runs * 100;
 colors = lines(numel(severities));
 
 % Amplitude orders
-figure('Position',[100,100,1000,300]);
+figure('Position',[100,100,1000,250]);
 subplot(1,2,1);
 hold on;
 for j = 1:numel(severities)
@@ -97,7 +97,6 @@ xlabel('VAR Order'); ylabel('Percentage [%]');
 title('Optimal VAR Order – Amplitudes');
 legend('Location','best'); grid on;
 set(gca, 'FontSize', font_size);
-exportgraphics(gcf, fullfile(fig_dir,'opt_order_amp.pdf'),'ContentType','vector');
 % CSV
 T_amp = table(orders_vec.', pct_amp(:,1), pct_amp(:,2), pct_amp(:,3), ...
     'VariableNames',{'Order','Weak','Moderate','Strong'});
@@ -113,21 +112,22 @@ end
 hold off;
 xlabel('VAR Order'); ylabel('Percentage [%]');
 title('Optimal VAR Order – Total Phases');
-% legend('Location','best'); grid on;
+% legend('Location','best');
+grid on;
 set(gca, 'FontSize', font_size);
 
-exportgraphics(gcf, fullfile(fig_dir,'optimal_var_order_frequency_phs_triplefreq_cpssm.pdf'),'ContentType','vector');
+exportgraphics(gcf, fullfile(fig_dir,'optimal_var_order_frequency_triplefreq_cpssm.pdf'),'ContentType','vector');
 % CSV
 T_phs = table(orders_vec.', pct_phs(:,1), pct_phs(:,2), pct_phs(:,3), ...
     'VariableNames',{'Order','Weak','Moderate','Strong'});
-writetable(T_phs, fullfile(csv_dir,'opt_order_phs.csv'));
+writetable(T_phs, fullfile(csv_dir,'opt_order.csv'));
 
 %% Compute mean SBC and plot
 mean_sbc_amp = squeeze(mean(sbc_amp_array,1)).';
 mean_sbc_phs = squeeze(mean(sbc_phs_array,1)).';
 
 % Amplitude SBC
-figure('Position',[100,100,1000,300]);
+figure('Position',[100,100,1000,250]);
 subplot(1,2,1);
 hold on;
 plot(orders_vec, mean_sbc_amp, 'LineWidth',1.5);
@@ -141,7 +141,7 @@ title('Mean SBC – Amplitudes');
 legend(severities,'Location','northeast'); grid on;
 set(gca, 'FontSize', font_size);
 
-exportgraphics(gcf, fullfile(fig_dir,'mean_sbc_amp.pdf'),'ContentType','vector');
+%exportgraphics(gcf, fullfile(fig_dir,'mean_sbc_amp.pdf'),'ContentType','vector');
 % CSV
 T_sbc_amp = table(orders_vec.', mean_sbc_amp(:,1), mean_sbc_amp(:,2), mean_sbc_amp(:,3), ...
     'VariableNames',{'Order','Weak','Moderate','Strong'});
@@ -158,10 +158,11 @@ end
 hold off;
 xlabel('VAR Order'); ylabel('Mean SBC');
 title('Mean SBC – Total Phases');
-% legend(severities,'Location','best'); grid on;
+% legend(severities,'Location','best');
+grid on;
 set(gca, 'FontSize', font_size);
 
-exportgraphics(gcf, fullfile(fig_dir,'mean_sbc_phs_triplefreq_cpssm.pdf'),'ContentType','vector');
+exportgraphics(gcf, fullfile(fig_dir,'mean_sbc_triplefreq_cpssm.pdf'),'ContentType','vector');
 % CSV
 T_sbc_phs = table(orders_vec.', mean_sbc_phs(:,1), mean_sbc_phs(:,2), mean_sbc_phs(:,3), ...
     'VariableNames',{'Order','Weak','Moderate','Strong'});
@@ -214,7 +215,7 @@ plot_order = {'Strong','Moderate','Weak'};
 bands      = {'L1','L2','L5'};
 colors     = flip(lines(numel(plot_order)));
 
-figure('Position',[100,100,1000,900]);
+figure('Position',[100,100,1000,750]);
 for r = 1:3
     % Amplitude residuals
     subplot(3,2,(r-1)*2+1); hold on;
@@ -224,8 +225,9 @@ for r = 1:3
              'LineWidth',1, 'Color',colors(k,:), 'DisplayName',sev);
     end
     hold off;
-    xlabel('Time [s]'); ylabel('Residuals');
-    title(sprintf('Amplitude residuals (%s)', bands{r}));
+    xlabel('Time [s]');
+    ylabel('Residuals');
+    title(sprintf('Amplitude Residuals (%s)', bands{r}));
     if r == 2
         legend('Location','best', 'Direction','reverse');
     end
@@ -239,7 +241,8 @@ for r = 1:3
              'LineWidth',1, 'Color',colors(k,:), 'DisplayName',sev);
     end
     hold off;
-    xlabel('Time [s]'); ylabel('Residuals');
+    xlabel('Time [s]');
+    ylabel('Residuals [rad]');
     title(sprintf('Total Phase Residuals (%s)', bands{r}));
     % legend('Location','best', 'Direction','reverse'); grid on;
     set(gca, 'FontSize', font_size);
@@ -297,7 +300,7 @@ stem_w  = 1.5;
 markers = struct('Weak','o','Moderate','s','Strong','^');
 time_lag = (0:lags) * sampling_interval;
 
-figure('Position',[100,100,1000,900]);
+figure('Position',[100,100,1000,750]);
 for r = 1:3
     % Amplitude ACF
     subplot(3,2,(r-1)*2+1); hold on;
@@ -307,11 +310,12 @@ for r = 1:3
              'LineWidth',stem_w, 'Marker',markers.(sev), 'DisplayName',sev, 'Color',colors(k,:));
     end
     hold off;
-    xlabel('Lag [s]'); ylabel('Normalized ACF');
+    xlabel('Time Lag [s]'); ylabel('Normalized ACF');
     title(sprintf('Amplitude ACF (%s)', bands{r}));
     if r == 2
-        legend('Location','best', 'Direction','reverse'); grid on;
+        legend('Location','best', 'Direction','reverse');
     end
+    grid on;
     set(gca, 'FontSize', font_size);
 
     % Total phase ACF
@@ -322,9 +326,11 @@ for r = 1:3
              'LineWidth',stem_w, 'Marker',markers.(sev), 'DisplayName',sev, 'Color',colors(k,:));
     end
     hold off;
-    xlabel('Lag [s]'); ylabel('Normalized ACF');
+    xlabel('Time Lag [s]'); 
+    ylabel('Normalized ACF [rad^2]');
     title(sprintf('Total Phase ACF (%s)', bands{r}));
-    % legend('Location','best', 'Direction','reverse'); grid on;
+    % legend('Location','best', 'Direction','reverse');
+    grid on;
     set(gca, 'FontSize', font_size);
 end
 
@@ -352,7 +358,7 @@ writetable(T_acf, fullfile(csv_dir,'residuals_acf_separate.csv'));
 % Parameters
 nfft             = 2^16;
 fs               = 1/sampling_interval;
-num_realizations = 300;
+num_realizations = 2;
 N                = simulation_time * fs;
 win              = hamming(N);
 noverlap         = 0;
@@ -455,57 +461,124 @@ for i = 1:numel(severities)
     psd_comparison.total_phs.(sev).var_psd      = acc_var_phs.(sev)/num_realizations;
 end
 
-%% Plot triple-frequency amplitude PSD comparison (3×3)
+%% Triple-frequency amplitude PSD comparison (3×3)
 cmap_emp = winter(numel(severities));
 cmap_var = autumn(numel(severities));
-figure('Position',[100,100,1000,900]);
-for p = 1:K
-    for q = 1:K
-        subplot(K,K,(p-1)*K+q); hold on;
-        for k = 1:numel(severities)
-            sev = severities{k};
-            per = psd_comparison.amplitude.(sev).periodogram(:,p,q);
-            varp = psd_comparison.amplitude.(sev).var_psd(:,p,q);
-            plot(f,10*log10(per),'--','Color',cmap_emp(k,:), 'DisplayName',[sev, ' - Periodogram']);
-            plot(f,10*log10(varp),'-','Color',cmap_var(k,:),'LineWidth',1.5, 'DisplayName', [sev, ' - VAR PSD']);
-        end
-        hold off;
-        set(gca,'XScale','log','XLim',[1e-4*fs,0.4*fs], 'FontSize', font_size);
-        title(sprintf('%s-%s',frequency_bands{p},frequency_bands{q}));
-        if p==K, xlabel('Frequency [Hz]'); end
-        if q==1, ylabel('Power Spectral Density [dB/Hz]'); end
-        grid on; 
-        if p == 2 && q == 2
-            legend('Location','best');
-        end
-    end
-end
-exportgraphics(gcf, fullfile(fig_dir,'periodogram_vs_ar_psd_amp_triplefreq_cpssm.pdf'),'ContentType','vector');
 
-%% Plot triple-frequency phase PSD comparison (3×3)
-figure('Position',[100,100,1000,900]);
+% Preallocate handles for legend (two lines per severity)
+h = gobjects(numel(severities)*2,1);
+
+figure('Position',[50,50,1200,700]);
+tl = tiledlayout(K, K, ...
+    'TileSpacing','compact', ...
+    'Padding','compact');
+
 for p = 1:K
     for q = 1:K
-        subplot(K,K,(p-1)*K+q); hold on;
+        ax = nexttile(tl);
+        hold(ax,'on');
+
         for k = 1:numel(severities)
-            sev = severities{k};
-            per = psd_comparison.total_phs.(sev).periodogram(:,p,q);
-            varp = psd_comparison.total_phs.(sev).var_psd(:,p,q);
-            plot(f,10*log10(per),'--','Color',cmap_emp(k,:), 'DisplayName',[sev, ' - Periodogram']);
-            plot(f,10*log10(varp),'-','Color',cmap_var(k,:), 'LineWidth',1.5,'DisplayName',[sev, ' - VAR PSD']);
+            sev  = severities{k};
+            per  = psd_comparison.amplitude.(sev).periodogram(:,p,q);
+            varp = psd_comparison.amplitude.(sev).var_psd(:,p,q);
+
+            if p==1 && q==1
+                % Capture handles only once for the shared legend
+                h(2*k-1) = plot(ax, f,10*log10(per), '--', ...
+                    'Color',cmap_emp(k,:), ...
+                    'DisplayName',sprintf('%s – Periodogram',sev));
+                h(2*k)   = plot(ax, f,10*log10(varp), '-', ...
+                    'Color',cmap_var(k,:), ...
+                    'LineWidth',1.5, ...
+                    'DisplayName',sprintf('%s – VAR PSD',sev));
+            else
+                plot(ax, f,10*log10(per), '--', 'Color',cmap_emp(k,:), ...
+                    'DisplayName',sprintf('%s – Periodogram',sev));
+                plot(ax, f,10*log10(varp), '-', 'Color',cmap_var(k,:), ...
+                    'LineWidth',1.5, ...
+                    'DisplayName',sprintf('%s – VAR PSD',sev));
+            end
         end
-        hold off;
-        set(gca,'XScale','log','XLim',[1e-4*fs,0.4*fs], 'FontSize', font_size);
-        title(sprintf('%s-%s',frequency_bands{p},frequency_bands{q}));
-        if p==K, xlabel('Frequency [Hz]'); end
-        if q==1, ylabel('Power Spectral Density[dB/Hz]'); end
-        grid on;
-        if p == 2 && q == 2
-            legend('Location','best');
-        end
+
+        hold(ax,'off');
+        ax.XScale   = 'log';
+        ax.XLim     = [1e-4*fs, 0.4*fs];
+        ax.FontSize = font_size;
+        title(ax, sprintf('%s – %s', frequency_bands{p}, frequency_bands{q}));
+
+        if p == K, xlabel(ax,'Norm. freq. (× 1/T_I) [Hz]'); end
+        if q == 1, ylabel(ax,'PSD [dB/Hz]');   end
+        grid(ax,'on');
     end
 end
-exportgraphics(gcf, fullfile(fig_dir,'periodogram_vs_ar_psd_phs_triplefreq_cpssm.pdf'),'ContentType','vector');
+
+% Place a single legend in the east tile of the layout
+lgd = legend(h, 'FontSize',font_size);
+lgd.Layout.Tile = 'east';
+
+% Export to vector PDF
+exportgraphics(gcf, fullfile(fig_dir,...
+    'periodogram_vs_ar_psd_amp_triplefreq_cpssm.pdf'), ...
+    'ContentType','vector');
+
+
+%% Triple-frequency phase PSD comparison (3×3)
+% (Exactly the same pattern, swapping amplitude→total_phs)
+
+h = gobjects(numel(severities)*2,1);
+
+figure('Position',[50,50,1200,700]);
+tl = tiledlayout(K, K, ...
+    'TileSpacing','compact', ...
+    'Padding','compact');
+
+for p = 1:K
+    for q = 1:K
+        ax = nexttile(tl);
+        hold(ax,'on');
+
+        for k = 1:numel(severities)
+            sev  = severities{k};
+            per  = psd_comparison.total_phs.(sev).periodogram(:,p,q);
+            varp = psd_comparison.total_phs.(sev).var_psd(:,p,q);
+
+            if p==1 && q==1
+                h(2*k-1) = plot(ax, f,10*log10(per), '--', ...
+                    'Color',cmap_emp(k,:), ...
+                    'DisplayName',sprintf('%s – Periodogram',sev));
+                h(2*k)   = plot(ax, f,10*log10(varp), '-', ...
+                    'Color',cmap_var(k,:), ...
+                    'LineWidth',1.5, ...
+                    'DisplayName',sprintf('%s – VAR PSD',sev));
+            else
+                plot(ax, f,10*log10(per), '--', 'Color',cmap_emp(k,:), ...
+                    'DisplayName',sprintf('%s – Periodogram',sev));
+                plot(ax, f,10*log10(varp), '-', 'Color',cmap_var(k,:), ...
+                    'LineWidth',1.5, ...
+                    'DisplayName',sprintf('%s – VAR PSD',sev));
+            end
+        end
+
+        hold(ax,'off');
+        ax.XScale   = 'log';
+        ax.XLim     = [1e-4*fs, 0.5*fs];
+        ax.FontSize = font_size;
+        title(ax, sprintf('%s – %s', frequency_bands{p}, frequency_bands{q}));
+
+        if p == K, xlabel(ax,'Norm. freq. (× 1/T_I) [Hz]'); end
+        if q == 1, ylabel(ax,'PSD [dB (rad^2/Hz)]');   end
+        grid(ax,'on');
+    end
+end
+
+lgd = legend(h, 'FontSize',font_size);
+lgd.Layout.Tile = 'east';
+
+exportgraphics(gcf, fullfile(fig_dir,...
+    'periodogram_vs_ar_psd_phs_triplefreq_cpssm.pdf'), ...
+    'ContentType','vector');
+
 
 %% Export CSVs per severity
 for i = 1:numel(severities)

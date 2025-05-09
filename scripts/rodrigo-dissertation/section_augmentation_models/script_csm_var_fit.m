@@ -44,10 +44,10 @@ csm_params = struct( ...
     'Moderate',struct('S4', 0.5, 'tau0', 0.6, 'simulation_time', simulation_time, 'sampling_interval', sampling_interval),...
     'Strong',  struct('S4', 0.9, 'tau0', 0.2, 'simulation_time', simulation_time, 'sampling_interval', sampling_interval)...
 );
-font_size = 16;
+font_size = 11;
 
 %% Monte Carlo optimal AR model order assessment
-mc_runs    = 300;
+mc_runs    = 2;
 min_order  = 1;
 max_order  = 30;
 optimal_orders_amp   = zeros(mc_runs,numel(severities));
@@ -104,7 +104,7 @@ end
 hold off;
 xlabel('AR Model Order');
 ylabel('Percentage of runs [%]');
-title('Optimal AR Order – Amplitude');
+title('Amplitude');
 legend('Location','best');
 set(gca, 'FontSize', font_size);
 grid on;
@@ -120,7 +120,7 @@ end
 hold off;
 xlabel('AR Model Order');
 ylabel('Percentage of runs [%]');
-title('Optimal AR Order – Phase');
+title('Phase');
 %legend('Location','best');
 set(gca, 'FontSize', font_size);
 grid on;
@@ -143,7 +143,7 @@ writetable(T_opt, fullfile(csv_dir,[fig_name,'.csv']));
 mean_sbc_amp_array = squeeze(mean(sbc_amp_array,1)).';
 mean_sbc_phase_array = squeeze(mean(sbc_phase_array,1)).';
 
-figure('Position',[100,100,1000,300]);
+figure('Position',[100,100,1000,250]);
 
 % Amplitude subplot
 subplot(1,2,1);
@@ -157,7 +157,7 @@ for j = 1:size(mean_sbc_amp_array,2)
 end
 xlabel('AR Model Order');
 ylabel('Mean SBC');
-title('Mean Schwarz Bayesian Criterion — Amplitude');
+title('Amplitude');
 legend(severities,'Location','northeast');
 set(gca, 'FontSize', font_size);
 grid on;
@@ -175,7 +175,7 @@ for j = 1:size(mean_sbc_phase_array,2)
 end
 xlabel('AR Model Order');
 ylabel('Mean SBC');
-title('Mean Schwarz Bayesian Criterion — Phase');
+title('Phase');
 %legend(severities,'Location','best');
 set(gca, 'FontSize', font_size);
 grid on;
@@ -229,7 +229,7 @@ time = sampling_interval : sampling_interval : simulation_time;
 base_colors = lines(numel(plot_order));
 colors      = base_colors([3,2,1],:);  
 
-figure('Position',[100,100,1000,400]);
+figure('Position',[100,100,1000,250]);
 
 % Amplitude residuals
 subplot(1,2,1); hold on;
@@ -242,7 +242,7 @@ end
 hold off;
 xlabel('Time [s]');
 ylabel('Residuals');
-title('Amplitude residuals by Severity');
+title('Amplitude Residuals');
 legend('Location','best', 'Direction','reverse');
 set(gca, 'FontSize', font_size);
 grid on;
@@ -257,8 +257,8 @@ for k = 1:numel(plot_order)
 end
 hold off;
 xlabel('Time [s]');
-ylabel('Residuals');
-title('Phase residuals by Severity'); 
+ylabel('Residuals [rad]');
+title('Phase Residuals'); 
 %legend('Location','best', 'Direction','reverse');
 set(gca, 'FontSize', font_size);
 grid on;
@@ -300,7 +300,7 @@ for i = 1:numel(severities)
 end
 
 time_lag = (0:lags_amount) * sampling_interval;
-figure('Position',[100,100,1000,300]);
+figure('Position',[100,100,1000,250]);
 subplot(1,2,1);
 hold on;
 for i = 1:numel(severities)
@@ -310,7 +310,7 @@ for i = 1:numel(severities)
 end
 hold off;
 xlabel('Time Lag [s]'); ylabel('Normalized ACF');
-title('Amplitude residuals ACF');
+title('Amplitude Residuals ACF');
 legend('Location','best'); grid on;
 set(gca, 'FontSize', font_size);
 
@@ -322,10 +322,11 @@ for i = 1:numel(severities)
          'Marker', markers.(severity), 'DisplayName', severity);
 end
 hold off;
-xlabel('Time Lag [s]'); ylabel('Normalized ACF');
-title('Phase residuals ACF');
+xlabel('Time Lag [s]'); ylabel('Normalized ACF [rad^2]');
+title('Phase Residuals ACF');
 set(gca, 'FontSize', font_size);
-%legend('Location','best'); grid on;
+%legend('Location','best'); 
+grid on;
 
 % Export residuals ACF plot & CSV
 fig_name = 'residuals_acf_csm';
@@ -348,7 +349,7 @@ nfft = 2^16;
 % Sampling frequency in Hz
 fs   = 1/sampling_interval;
 % Number of Monte Carlo realizations
-num_realizations = 300;
+num_realizations = 2;
 % Amount of samples in the time series
 N        = simulation_time * fs;
 % Windowing function --- Hamming window
@@ -457,11 +458,11 @@ for i = 1:numel(severities)
     psd_comparison.phase.(sev).ar_psd          = mean_ar_phs;
 end
 
-%---- Plot ----------------------------------------------------------------
+%% Plot periodograms and AR PSDs
 cmap_p = winter(numel(severities));  % periodogram lines
 cmap_v = autumn(numel(severities));  % AR-PSD     lines
 
-figure('Position',[100,100,1000,300]);
+figure('Position',[100,100,1000,350]);
 F = psd_comparison.freq;
 
 % Amplitude
@@ -476,8 +477,9 @@ for k=1:numel(severities)
                       'Color',cmap_v(k,:), 'LineWidth',2, 'DisplayName',[sev ' – AR PSD']);
 end
 hold off;
-xlabel('Frequency [Hz]'); ylabel('Power [dB]');
-title('Periodogram vs AR PSD - Amplitude');
+xlabel('Norm. freq. (× 1/T_I) [Hz]'); 
+ylabel('PSD [dB/Hz]');
+title('Amplitude');
 legend(h_amp,'Location','best');
 set(gca,'XScale','log','XLim',[1e-4*fs,0.4*fs], 'FontSize', font_size);
 grid on; 
@@ -495,9 +497,9 @@ for k=1:numel(severities)
                       'Color',cmap_v(k,:), 'LineWidth',2, 'DisplayName',[sev ' – AR PSD']);
 end
 hold off;
-xlabel('Frequency [Hz]'); ylabel('Power Spectral Density [dB/Hz]');
-title('Periodogram vs AR PSD - Phase');
-%legend(h_phs,'Location','best');
+xlabel('Norm. freq. (× 1/T_I) [Hz]');
+ylabel('PSD [dB (rad^2/Hz)]');
+title('Phase');
 set(gca,'XScale','log','XLim',[1e-4*fs,0.4*fs], 'FontSize', font_size);
 grid on; 
 
