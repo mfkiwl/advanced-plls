@@ -35,7 +35,7 @@ cpssm_params = struct( ...
 font_size = 11;
 
 %% Monte Carlo optimal order assessment
-mc_runs    = 2;
+mc_runs    = 300;
 min_order  = 1;
 max_order  = 30;
 orders_vec = min_order:max_order;
@@ -358,7 +358,7 @@ writetable(T_acf, fullfile(csv_dir,'residuals_acf_separate.csv'));
 % Parameters
 nfft             = 2^16;
 fs               = 1/sampling_interval;
-num_realizations = 2;
+num_realizations = 300;
 N                = simulation_time * fs;
 win              = hamming(N);
 noverlap         = 0;

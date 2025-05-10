@@ -47,7 +47,7 @@ csm_params = struct( ...
 font_size = 11;
 
 %% Monte Carlo optimal AR model order assessment
-mc_runs    = 2;
+mc_runs    = 300;
 min_order  = 1;
 max_order  = 30;
 optimal_orders_amp   = zeros(mc_runs,numel(severities));
@@ -349,7 +349,7 @@ nfft = 2^16;
 % Sampling frequency in Hz
 fs   = 1/sampling_interval;
 % Number of Monte Carlo realizations
-num_realizations = 2;
+num_realizations = 300;
 % Amount of samples in the time series
 N        = simulation_time * fs;
 % Windowing function --- Hamming window

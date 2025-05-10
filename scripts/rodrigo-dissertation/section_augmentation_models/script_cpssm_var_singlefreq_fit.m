@@ -52,7 +52,7 @@ cpssm_params = struct( ...
 font_size = 11;
 
 %% Monte Carlo optimal AR model order assessment
-mc_runs    = 2;
+mc_runs    = 300;
 min_order  = 1;
 max_order  = 30;
 optimal_orders_amp   = zeros(mc_runs,numel(severities));
@@ -592,7 +592,7 @@ writetable(T, fullfile(csv_dir, [fig_name,'.csv']));
 % Parameters
 nfft             = 2^16;
 fs               = 1/sampling_interval;
-num_realizations = 2;
+num_realizations = 300;
 N                = simulation_time * fs;
 win              = hamming(N);
 noverlap         = 0;
