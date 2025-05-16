@@ -58,7 +58,7 @@ hard_limited_flag = false;
 % NWPR parameters
 T_bit = 1/50;
 M_nwpr = T_bit / sampling_interval;
-N_nwpr = 20;
+N_nwpr = 10;
 hl_threshold = 35;
 
 % Not adaptive: No measurement or state adaptation.
@@ -92,46 +92,55 @@ adaptive_cfg_nwpr_matching =struct('measurement_cov_adapt_algorithm', 'nwpr', ..
 
 online_mdl_learning_cfg = struct('is_online', false);
 
-[kf, error_cov] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates, 'standard', 'none', adaptive_cfg_nonadaptive, online_mdl_learning_cfg);
-[kf_nwpr, error_cov_nwpr] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates, 'standard', 'none', adaptive_cfg_nwpr, online_mdl_learning_cfg);
-[kf_nwpr_matching, error_cov_nwpr_matching] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates, 'standard', 'none', adaptive_cfg_nwpr_matching, online_mdl_learning_cfg);
+% [kf, error_cov] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates, 'standard', 'none', adaptive_cfg_nonadaptive, online_mdl_learning_cfg);
+[kf_nwpr, error_cov_nwpr, cn0] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates, 'standard', 'none', adaptive_cfg_nwpr, online_mdl_learning_cfg);
+% [kf_nwpr_matching, error_cov_nwpr_matching] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates, 'standard', 'none', adaptive_cfg_nwpr_matching, online_mdl_learning_cfg);
 
 time_vector = sampling_interval:sampling_interval:simulation_time;
-true_total_phase = los_phase + refractive_phase_settled;%get_corrected_phase(psi_tppsm);
-phase_error_kf = kf(:,1) - true_total_phase;
-phase_error_kf_nwpr = kf_nwpr(:,1) - true_total_phase;
-phase_error_kf_nwpr_matching = kf_nwpr_matching(:,1) - true_total_phase;
-
-ds_factor = 100;
-[x_est, u_est, cycle_slips_amount] = get_cycle_slips(phase_error_kf_nwpr, 4, ds_factor);
 
 figure;
 hold on;
-plot(downsample(time_vector,ds_factor), x_est);
-plot(time_vector, phase_error_kf_nwpr);
-plot(time_vector, get_corrected_phase(psi_tppsm) - refractive_phase_settled);
+plot(time_vector,10*log10(abs(psi_tppsm).^2) + L1_C_over_N0_dBHz); 
+plot(time_vector,10*log10(abs(rx_sig_tppsm).^2) + L1_C_over_N0_dBHz); 
+plot(time_vector,10*log10(cn0));
+plot(time_vector,10*log10(cn0) - 10*log10(abs(psi_tppsm).^2));
+yline(L1_C_over_N0_dBHz);
 hold off;
-
-linewidth = 1;
-
-figure;
-hold on;
-scatter(time_vector,phase_error_kf, 'Marker', '.', 'LineWidth', linewidth);
-scatter(time_vector,phase_error_kf_nwpr, 'Marker', '.', 'LineWidth', linewidth);
-scatter(time_vector,phase_error_kf_nwpr_matching, 'Marker', '.', 'LineWidth', linewidth);
-legend({'KF', 'KF-NWPR', 'KF-NWPR-Matching'}, Location="best");
-hold off;
-
-time_vector = sampling_interval:sampling_interval:simulation_time;
-diffractive_phase_error_kf = kf(:,1) - los_phase - refractive_phase_settled;
-diffractive_phase_error_kf_nwpr = kf_nwpr(:,1) - los_phase - refractive_phase_settled;
-diffractive_phase_error_kf_nwpr_matching = kf_nwpr_matching(:,1) - los_phase - refractive_phase_settled;
-
-figure;
-hold on;
-scatter(time_vector,diffractive_phase_error_kf, 'Marker', '.', 'LineWidth', linewidth);
-scatter(time_vector,diffractive_phase_error_kf_nwpr, 'Marker', '.', 'LineWidth', linewidth);
-scatter(time_vector,diffractive_phase_error_kf_nwpr_matching, 'Marker', '.', 'LineWidth', linewidth);
-scatter(time_vector,get_corrected_phase(psi_tppsm) - refractive_phase_settled, 'Marker', '.', 'LineWidth', linewidth, 'Color', 'k');
-legend({'KF', 'KF-NWPR', 'KF-NWPR-Matching', 'Diffractive Phase'}, Location="best");
-hold off;
+% true_total_phase = los_phase + refractive_phase_settled;%get_corrected_phase(psi_tppsm);
+% phase_error_kf = kf(:,1) - true_total_phase;
+% phase_error_kf_nwpr = kf_nwpr(:,1) - true_total_phase;
+% phase_error_kf_nwpr_matching = kf_nwpr_matching(:,1) - true_total_phase;
+% 
+% ds_factor = 100;
+% [x_est, u_est, cycle_slips_amount] = get_cycle_slips(phase_error_kf_nwpr, 4, ds_factor);
+% 
+% figure;
+% hold on;
+% plot(downsample(time_vector,ds_factor), x_est);
+% plot(time_vector, phase_error_kf_nwpr);
+% plot(time_vector, get_corrected_phase(psi_tppsm) - refractive_phase_settled);
+% hold off;
+% 
+% linewidth = 1;
+% 
+% figure;
+% hold on;
+% scatter(time_vector,phase_error_kf, 'Marker', '.', 'LineWidth', linewidth);
+% scatter(time_vector,phase_error_kf_nwpr, 'Marker', '.', 'LineWidth', linewidth);
+% scatter(time_vector,phase_error_kf_nwpr_matching, 'Marker', '.', 'LineWidth', linewidth);
+% legend({'KF', 'KF-NWPR', 'KF-NWPR-Matching'}, Location="best");
+% hold off;
+% 
+% time_vector = sampling_interval:sampling_interval:simulation_time;
+% diffractive_phase_error_kf = kf(:,1) - los_phase - refractive_phase_settled;
+% diffractive_phase_error_kf_nwpr = kf_nwpr(:,1) - los_phase - refractive_phase_settled;
+% diffractive_phase_error_kf_nwpr_matching = kf_nwpr_matching(:,1) - los_phase - refractive_phase_settled;
+% 
+% figure;
+% hold on;
+% scatter(time_vector,diffractive_phase_error_kf, 'Marker', '.', 'LineWidth', linewidth);
+% scatter(time_vector,diffractive_phase_error_kf_nwpr, 'Marker', '.', 'LineWidth', linewidth);
+% scatter(time_vector,diffractive_phase_error_kf_nwpr_matching, 'Marker', '.', 'LineWidth', linewidth);
+% scatter(time_vector,get_corrected_phase(psi_tppsm) - refractive_phase_settled, 'Marker', '.', 'LineWidth', linewidth, 'Color', 'k');
+% legend({'KF', 'KF-NWPR', 'KF-NWPR-Matching', 'Diffractive Phase'}, Location="best");
+% hold off;

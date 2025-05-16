@@ -101,16 +101,11 @@ if settling_time > simulation_time
         'Settling time (%g s) must not exceed simulation time (%g s).', settling_time, simulation_time);
 end
 
-% Fixed parameters
-rx_mean_power = 1;
-sampling_frequency_before_correlation = 2e7;
-B = sampling_frequency_before_correlation/2; % Receiver bandwidth in Hz
-
 % Generate LOS phase using the provided doppler_profile
 los_phase = get_los_phase(simulation_time, sampling_interval, doppler_profile);
 
 % Generate thermal noise
-thermal_noise = get_thermal_noise(simulation_time, sampling_interval, rx_mean_power, C_over_N0_dBHz, B);
+thermal_noise = get_thermal_noise(simulation_time, sampling_interval, C_over_N0_dBHz);
 
 % Select scintillation model for baseband signal generation
 switch scint_model
@@ -132,7 +127,7 @@ switch scint_model
     case 'none'
         psi = ones(round(simulation_time / sampling_interval), 1);
         refractive_phase = [];
-        diffractive_phase = zeros(size(psi));
+        diffractive_phase = angle(psi); % NOTE: All zeros
 end
 
 % Apply settling period: initial period without scintillation effects
@@ -155,5 +150,5 @@ if ~isempty(refractive_phase)
 end
 
 % Construct the baseband received signal
-received_signal = sqrt(rx_mean_power) * psi_settled .* exp(1j * los_phase) + thermal_noise;
+received_signal = psi_settled .* exp(1j * los_phase) + thermal_noise;
 end

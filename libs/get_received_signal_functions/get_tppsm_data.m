@@ -1,13 +1,16 @@
-function [psi_cpssm, ps_realization, general_params, irr_params_set, seed] = get_tppsm_data(scenario, varargin)
+function [psi_tppsm, ps_realization, general_params, irr_params_set, seed] = get_tppsm_data(scenario, varargin)
 % get_tppsm_data
+% Generates Two-Component Power Law Model (TPPSM) realizations using preset 
+% irregularity parameters for a specified scintillation scenario.
 %
-% Generates multi-frequency (L1, L2 and L5) realizations of ionospheric 
-% scintillation complex field time series using preset irregularity 
-% parameters that characterizes the compact phase-screen-based 
-% scintillation model (CPSSM) for a specified scintillation scenario.
+% TPPSM stands for Two-Component Power Law Model. This implementation is 
+% focused on single-frequency (e.g., L1) carrier phase tracking. The function 
+% uses preset irregularity parameters (or those provided via the name-value pairs)
+% and passes the computed or provided rhof/veff ratio for the L1 frequency directly
+% to get_scintillation_time_series.
 %
 % Syntax:
-%   [psi_cpssm, ps_realization, general_params, irr_params_set, seed] = ...
+%   [psi_tppsm, ps_realization, general_params, irr_params_set, seed] = ...
 %       get_tppsm_data(scenario, 'simulation_time', simulation_time, ...
 %                      'sampling_interval', sampling_interval, ...
 %                      'general_params', general_params, ...
@@ -17,7 +20,7 @@ function [psi_cpssm, ps_realization, general_params, irr_params_set, seed] = get
 %
 % Inputs:
 %   scenario         - A string specifying the scintillation scenario 
-%                      ('weak', 'moderate', or 'strong').
+%                      ('Weak', 'Moderate', or 'Severe').
 %
 % Optional Name-Value Pair Inputs:
 %   'simulation_time'     - Duration of the simulation in seconds (default: 300 s).
@@ -35,14 +38,14 @@ function [psi_cpssm, ps_realization, general_params, irr_params_set, seed] = get
 %                           usage of external rhof_veff_ratio.
 %
 % Outputs:
-%   psi_cpssm        - Scintillation field time series (complex), as a row vector.
+%   psi_tppsm        - Scintillation field time series (complex), as a row vector.
 %   ps_realization   - Detrended phase screen realization (row vector).
 %   general_params   - Simulation parameters used for this run.
 %   irr_params_set   - Preset irregularity parameters used.
 %   seed             - Seed value used.
 %
 % Example:
-%   [psi_tpwpsm, ps_realization] = get_tppsm_data('moderate', 'seed', 42, 'rhof_veff_ratio', 0.35);
+%   [psi_tppsm, ps_realization] = get_tppsm_data('Moderate', 'seed', 42, 'rhof_veff_ratio', 0.35);
 %
 % Notes:
 %   - This implementation is for single-frequency carrier phase tracking.
@@ -67,10 +70,7 @@ addParameter(p, 'rhof_veff_ratio', [], @(x) isempty(x) || isnumeric(x));
 addParameter(p, 'is_enable_cmd_print', true, @(x) validateattributes(x, {'logical'}, {'nonempty'}));
 parse(p, scenario, varargin{:});
 
-% Validate the inputed scenario for simulation
 scenario = validatestring(p.Results.scenario, {'weak', 'moderate', 'strong'}, mfilename, 'scenario');
-
-% Instantiate all parameters for internal using
 simulation_time = p.Results.simulation_time;
 sampling_interval = p.Results.sampling_interval;
 general_params = p.Results.general_params;
@@ -79,13 +79,11 @@ seed = p.Results.seed;
 rhof_veff_ratio = p.Results.rhof_veff_ratio;
 is_enable_cmd_print = p.Results.is_enable_cmd_print;
 
-% Validate the `simulation_time` variable
 if simulation_time < sampling_interval
     error('get_tppsm_data:simulationTimeSmallerThanSamplingInterval', ...
           'The simulation_time (%g s) is smaller than the sampling_interval (%g s).', simulation_time, sampling_interval);
 end
 
-% Handle the number of the simulation samples
 num_samples_exact = simulation_time / sampling_interval;
 num_samples_rounded = round(num_samples_exact);
 if abs(num_samples_exact - num_samples_rounded) > eps
@@ -93,49 +91,33 @@ if abs(num_samples_exact - num_samples_rounded) > eps
             'simulation_time / sampling_interval is not an integer. Rounded from %.5g to %d samples.', num_samples_exact, num_samples_rounded);
 end
 
-% Get the general parameter if empty
 if isempty(general_params)
     general_params = get_general_parameters();
 end
 general_params.simulation_time = simulation_time;
 general_params.dt = sampling_interval;
 
-% Get the irregularity parameters if empty
 if isempty(irr_params_set)
     irr_params_set = get_irregularity_parameters();
 end
 
-% Select the irregularity parameters for the chosen scenario
 irr_params = irr_params_set.(scenario);
 
 % If the external rhof_veff_ratio is not provided, compute it.
 if isempty(rhof_veff_ratio)
-    % If the rhof_veff_ratio is empty, obtain it using the general_params
-    % configurations.
     rhof_veff_ratio = get_rhof_veff_ratio(general_params);
 else
     if is_enable_cmd_print
-        % Display a message if an externally provided rhof_veff ratio is
-        % being used.
         fprintf('Using externally provided rhof_veff_ratio: %g\n', rhof_veff_ratio);
     end
 end
 
-% Set a random seed
 rng(seed);
 
-% Extrapolate the irregularity parameters for L2 and L5.
-[extrapolated_irr_params, rhof_veff_ratio_vector] = freq_extrapolate(irr_params,general_params,rhof_veff_ratio);
+[scint_field, ~, detrended_phase, ~, ~] = get_scintillation_time_series(...
+    general_params, irr_params, rhof_veff_ratio, seed);
 
-% Chars cell of frequency bands for accessing the extrapolated irregularity
-% parameters from `extrapolated_irr_params`
-frequency_keys = {'L1', 'L2', 'L5'};
-psi_cpssm = zeros(num_samples_rounded, length(rhof_veff_ratio_vector));
-ps_realization = zeros(num_samples_rounded, length(rhof_veff_ratio_vector));
-for i = 1:length(rhof_veff_ratio_vector)
-    [scint_field, ~, detrended_phase] = get_scintillation_time_series(general_params, extrapolated_irr_params.(frequency_keys{i}), rhof_veff_ratio_vector(i), seed);
-    psi_cpssm(:,i) = scint_field(1:num_samples_rounded);
-    ps_realization(:,i) = detrended_phase(1:num_samples_rounded);
-end
+psi_tppsm = scint_field(1:num_samples_rounded).';
+ps_realization = detrended_phase(1:num_samples_rounded).';
 
 end

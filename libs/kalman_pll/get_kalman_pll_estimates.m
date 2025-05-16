@@ -434,7 +434,7 @@ function [adapt_R, extra_vars, L1_c_over_n0_linear_estimates] = compute_adaptive
             NP = NBP / WBP;
             extra_vars.NP_vec = [NP; extra_vars.NP_vec(1:end-1)];
             mu_hat = (extra_vars.M_nwpr / extra_vars.N_nwpr) * sum(extra_vars.NP_vec);
-            estimated_L1_c_over_n0_linear = (1 / extra_vars.sampling_interval) * (mu_hat) / (extra_vars.M_nwpr - mu_hat);
+            estimated_L1_c_over_n0_linear = (1 / extra_vars.sampling_interval) * (mu_hat - 1) / (extra_vars.M_nwpr - mu_hat);
             phase_noise_variance = (1 / (2 * estimated_L1_c_over_n0_linear * extra_vars.sampling_interval)) * ...
                                    (1 + (1 / (2 * estimated_L1_c_over_n0_linear * extra_vars.sampling_interval)));
             adapt_R = phase_noise_variance;
