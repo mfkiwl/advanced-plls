@@ -2,4 +2,5 @@
 *.fig
 *.mat
 *.pdf
-*.csvscripts/cache/kalman_pll_cache.mat
+*.csv
+scripts/cache/kalman_pll_cache.mat
