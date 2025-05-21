@@ -2,14 +2,14 @@ clearvars; clc;
 
 addpath(genpath(fullfile(pwd, "..", "..", "..")));
 
-if ~isempty(fullfile(pwd,'results_pdf'))
+if exist("results_pdf","dir")
     mkdir('results_pdf');
 end
 
 sim_time = 150;
 t_samp = 0.01;
 
-seed = 2;
+seed = 5;
 rng(seed);
 
 csm_params_weak     = struct('S4', 0.2, 'tau0', 1.0, 'simulation_time', sim_time, 'sampling_interval', t_samp);
@@ -19,6 +19,18 @@ csm_params_strong   = struct('S4', 0.9, 'tau0', 0.2, 'simulation_time', sim_time
 weak_ts = get_csm_data(csm_params_weak);
 moderate_ts = get_csm_data(csm_params_moderate);
 strong_ts = get_csm_data(csm_params_strong);
+
+weak_intensity_ts = 10*log10(abs(weak_ts).^2);
+moderate_intensity_ts = 10*log10(abs(moderate_ts).^2);
+strong_intensity_ts = 10*log10(abs(strong_ts).^2);
+
+weak_phase_ts = angle(weak_ts);
+moderate_phase_ts = angle(moderate_ts);
+strong_phase_ts = angle(strong_ts);
+
+weak_unwrapped_phase_ts = phase(weak_ts);
+moderate_unwrapped_phase_ts = phase(moderate_ts);
+strong_unwrapped_phase_ts = phase(strong_ts);
 
 time = t_samp:t_samp:sim_time;
 zoom_idx = 10000:15000;
@@ -34,9 +46,9 @@ font_size = 13;
 line_width = 1.5;
 nexttile;
 hold on;
-plot(time,10*log10(abs(strong_ts).^2), 'LineWidth',line_width, 'Color', cmap(3,:));
-plot(time,10*log10(abs(moderate_ts).^2), 'LineWidth',line_width, 'Color', cmap(2,:));
-plot(time,10*log10(abs(weak_ts).^2), 'LineWidth',line_width, 'Color', cmap(1,:));
+plot(time,strong_intensity_ts, 'LineWidth',line_width, 'Color', cmap(3,:));
+plot(time,moderate_intensity_ts, 'LineWidth',line_width, 'Color', cmap(2,:));
+plot(time,weak_intensity_ts, 'LineWidth',line_width, 'Color', cmap(1,:));
 hold off;
 grid on;
 grid("minor");
@@ -46,9 +58,9 @@ set(gca, 'FontSize', font_size, 'fontname', 'Times New Roman');
 
 nexttile;
 hold on;
-plot(time,angle(strong_ts), 'LineWidth',line_width, 'Color', cmap(3,:));
-plot(time,angle(moderate_ts), 'LineWidth',line_width, 'Color', cmap(2,:));
-plot(time,angle(weak_ts), 'LineWidth',line_width, 'Color', cmap(1,:));
+plot(time,strong_phase_ts, 'LineWidth',line_width, 'Color', cmap(3,:));
+plot(time,moderate_phase_ts, 'LineWidth',line_width, 'Color', cmap(2,:));
+plot(time,weak_phase_ts, 'LineWidth',line_width, 'Color', cmap(1,:));
 hold off;
 grid on;
 grid("minor");
@@ -57,9 +69,9 @@ set(gca, 'FontSize', font_size, 'fontname', 'Times New Roman');
 
 nexttile;
 hold on;
-plot(time,phase(strong_ts), 'LineWidth',line_width, 'Color', cmap(3,:));
-plot(time,phase(moderate_ts), 'LineWidth',line_width, 'Color', cmap(2,:));
-plot(time,phase(weak_ts), 'LineWidth',line_width, 'Color', cmap(1,:));
+plot(time,strong_unwrapped_phase_ts, 'LineWidth',line_width, 'Color', cmap(3,:));
+plot(time,moderate_unwrapped_phase_ts, 'LineWidth',line_width, 'Color', cmap(2,:));
+plot(time,weak_unwrapped_phase_ts, 'LineWidth',line_width, 'Color', cmap(1,:));
 hold off;
 grid on;
 grid("minor");
@@ -72,11 +84,13 @@ exportgraphics(gcf, 'results_pdf/csm_ts.pdf', 'ContentType', 'vector');
 figure('Position',[50,50,1000,600]);
 tiledlayout(3,1,"TileSpacing","tight");
 
+font_size = 13;
+line_width = 1.5;
 nexttile;
 hold on;
-plot(time_zoomed,10*log10(abs(strong_ts(zoom_idx)).^2), 'LineWidth',line_width, 'Color', cmap(3,:));
-plot(time_zoomed,10*log10(abs(moderate_ts(zoom_idx)).^2), 'LineWidth',line_width, 'Color', cmap(2,:));
-plot(time_zoomed,10*log10(abs(weak_ts(zoom_idx)).^2), 'LineWidth',line_width, 'Color', cmap(1,:));
+plot(time_zoomed,strong_intensity_ts(zoom_idx), 'LineWidth',line_width, 'Color', cmap(3,:));
+plot(time_zoomed,moderate_intensity_ts(zoom_idx), 'LineWidth',line_width, 'Color', cmap(2,:));
+plot(time_zoomed,weak_intensity_ts(zoom_idx), 'LineWidth',line_width, 'Color', cmap(1,:));
 hold off;
 grid on;
 grid("minor");
@@ -86,9 +100,9 @@ set(gca, 'FontSize', font_size, 'fontname', 'Times New Roman');
 
 nexttile;
 hold on;
-plot(time_zoomed,angle(strong_ts(zoom_idx)), 'LineWidth',line_width, 'Color', cmap(3,:));
-plot(time_zoomed,angle(moderate_ts(zoom_idx)), 'LineWidth',line_width, 'Color', cmap(2,:));
-plot(time_zoomed,angle(weak_ts(zoom_idx)), 'LineWidth',line_width, 'Color', cmap(1,:));
+plot(time_zoomed,strong_phase_ts(zoom_idx), 'LineWidth',line_width, 'Color', cmap(3,:));
+plot(time_zoomed,moderate_phase_ts(zoom_idx), 'LineWidth',line_width, 'Color', cmap(2,:));
+plot(time_zoomed,weak_phase_ts(zoom_idx), 'LineWidth',line_width, 'Color', cmap(1,:));
 hold off;
 grid on;
 grid("minor");
@@ -97,13 +111,13 @@ set(gca, 'FontSize', font_size, 'fontname', 'Times New Roman');
 
 nexttile;
 hold on;
-plot(time_zoomed,phase(strong_ts(zoom_idx)), 'LineWidth',line_width, 'Color', cmap(3,:));
-plot(time_zoomed,phase(moderate_ts(zoom_idx)), 'LineWidth',line_width, 'Color', cmap(2,:));
-plot(time_zoomed,phase(weak_ts(zoom_idx)), 'LineWidth',line_width, 'Color', cmap(1,:));
+plot(time_zoomed,strong_unwrapped_phase_ts(zoom_idx), 'LineWidth',line_width, 'Color', cmap(3,:));
+plot(time_zoomed,moderate_unwrapped_phase_ts(zoom_idx), 'LineWidth',line_width, 'Color', cmap(2,:));
+plot(time_zoomed,weak_unwrapped_phase_ts(zoom_idx), 'LineWidth',line_width, 'Color', cmap(1,:));
 hold off;
 grid on;
 grid("minor");
 ylabel('$\mathrm{unwrap}\{\phi_{\mathrm{I},1}[k]\}$ [rad]','Interpreter','latex');
 xlabel('Time [s]','Interpreter','latex');
 set(gca, 'FontSize', font_size, 'fontname', 'Times New Roman');
-exportgraphics(gcf, 'results_pdf/csm_ts_zoom.pdf', 'ContentType', 'vector');
+exportgraphics(gcf, 'results_pdf/csm_zoom_ts.pdf', 'ContentType', 'vector');

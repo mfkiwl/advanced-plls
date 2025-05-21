@@ -5,3 +5,6 @@
 	path = libs/scintillation_models/refactored_tppsm
 	url = https://github.com/rodrigodelimaf/gnss-scintillation-simulator
 	branch = refactored
+[submodule "libs/scintillation_models/cpssm/gnss-scintillation-simulator"]
+	path = libs/scintillation_models/cpssm/gnss-scintillation-simulator
+	url = https://github.com/ita-gnss-lab/gnss-scintillation-simulator

@@ -69,7 +69,7 @@ for mc_idx = 1:mc_runs
     for i = 1:numel(severities)
         severity = severities{i};
         rng(seed);
-        [scint_ts, refr_phs_ts_training] = get_tppsm_data(cpssm_params.(severity), 'seed', seed);
+        [scint_ts, refr_phs_ts_training] = get_tppsm_multifreq_data(cpssm_params.(severity), 'seed', seed);
         amp_ts    = abs(scint_ts(:,1));
         % NOTE: `get_corrected_phase` is a function from the
         % 'gnss_scintillation_simulator' git submodule.
@@ -316,7 +316,7 @@ for i = 1:numel(severities)
     rng(seed);
 
     % Training the AR model
-    [scint_ts, refr_phs_ts_training] = get_tppsm_data(cpssm_params.(severity), 'seed', seed);
+    [scint_ts, refr_phs_ts_training] = get_tppsm_multifreq_data(cpssm_params.(severity), 'seed', seed);
     amp_ts_training    = abs(scint_ts(:,1));
     total_phs_ts_training  = get_corrected_phase(scint_ts(:,1));
     diff_phs_ts_training = wrapToPi(total_phs_ts_training - refr_phs_ts_training(:,1));
@@ -335,7 +335,7 @@ for i = 1:numel(severities)
     % NOTE: Another generation seed is used herein to evaluate the reisuduals
     % correlation with statistical significance.
     rng(seed+1);
-    [scint_ts, refr_phs_ts_training] = get_tppsm_data(cpssm_params.(severity), 'seed', seed + 1);
+    [scint_ts, refr_phs_ts_training] = get_tppsm_multifreq_data(cpssm_params.(severity), 'seed', seed + 1);
     amp_ts_for_residuals    = abs(scint_ts(:,1));
     total_phs_ts_for_residuals  = get_corrected_phase(scint_ts(:,1));
     diff_phs_ts_for_residuals = wrapToPi(total_phs_ts_for_residuals - refr_phs_ts_training(:,1));
@@ -626,7 +626,7 @@ for i = 1:numel(severities)
         rng(seed + mc);
 
         % Generate & center signals
-        [scint_ts, refr_phs_ts] = get_tppsm_data(cpssm_params.(sev),'seed',seed+mc);
+        [scint_ts, refr_phs_ts] = get_tppsm_multifreq_data(cpssm_params.(sev),'seed',seed+mc);
         amp_ts       = abs(scint_ts(:,1));
         total_phs_ts = get_corrected_phase(scint_ts(:,1));
         diff_phs_ts  = wrapToPi(total_phs_ts - refr_phs_ts(:,1));

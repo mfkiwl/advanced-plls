@@ -52,7 +52,7 @@ for mc_idx = 1:mc_runs
     for i = 1:numel(severities)
         sev = severities{i};
         rng(seed);
-        [scint_ts, ~] = get_tppsm_data(cpssm_params.(sev), 'seed', seed);
+        [scint_ts, ~] = get_tppsm_multifreq_data(cpssm_params.(sev), 'seed', seed);
         amp_ts = abs(scint_ts);
         phs_ts = zeros(size(amp_ts));
         for f = 1:freq_amount
@@ -179,7 +179,7 @@ seed = 100;
 for i = 1:numel(severities)
     sev = severities{i};
     rng(seed);
-    [scint_train,~] = get_tppsm_data(cpssm_params.(sev),'seed',seed);
+    [scint_train,~] = get_tppsm_multifreq_data(cpssm_params.(sev),'seed',seed);
     amp_train = abs(scint_train);
     phs_train = zeros(size(amp_train));
     for f=1:freq_amount, phs_train(:,f)=get_corrected_phase(scint_train(:,f)); end
@@ -189,7 +189,7 @@ for i = 1:numel(severities)
     [w_p,A_p] = arfit(phs_train, ord_p, ord_p);
     % generate fresh data for residuals
     rng(seed+1);
-    [scint_res,~] = get_tppsm_data(cpssm_params.(sev),'seed',seed+1);
+    [scint_res,~] = get_tppsm_multifreq_data(cpssm_params.(sev),'seed',seed+1);
     amp_res_ts = abs(scint_res);
     phs_res_ts = zeros(size(amp_res_ts)); for f=1:freq_amount, phs_res_ts(:,f)=get_corrected_phase(scint_res(:,f)); end
     [~, res_a] = arres(w_a,A_a, amp_res_ts, 60);
@@ -379,7 +379,7 @@ for mc = 1:num_realizations
         rng(seed + mc);
 
         % Generate signals
-        [scint_ts, ~] = get_tppsm_data(cpssm_params.(sev), 'seed', seed+mc);
+        [scint_ts, ~] = get_tppsm_multifreq_data(cpssm_params.(sev), 'seed', seed+mc);
         amp_ts = abs(scint_ts);
         phs_ts = zeros(size(amp_ts));
         for f = 1:freq_amount
