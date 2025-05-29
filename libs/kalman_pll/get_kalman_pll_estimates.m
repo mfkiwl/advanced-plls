@@ -9,7 +9,8 @@ function [state_estimates, ...
     kf_type, ...
     training_scint_model, ...
     adaptive_config, ...
-    online_mdl_learning_cfg)
+    online_mdl_learning_cfg, ...
+    psi_tppsm)
 % get_kalman_pll_estimates
 %
 % Generates Kalman filter state and error covariance estimates based on the
@@ -165,10 +166,10 @@ function [state_estimates, ...
                         step, received_signal, extra_vars, H, adapt_R, R);
                 case 'extended'
                     [K, innovation, x_hat_update, P_hat_update] = extended_kf_update(...
-                        step, received_signal, Hj_handle, extra_vars, adapt_R, R);
+                        step, received_signal, Hj_handle, extra_vars, adapt_R, R, psi_tppsm);
                 case 'unscented'
                     [K, innovation, x_hat_update, P_hat_update] = unscented_kf_update(...
-                        step, received_signal, extra_vars, adapt_R, ut_params);
+                        step, received_signal, extra_vars, adapt_R, ut_params, psi_tppsm);
                 otherwise
                     error('get_kalman_pll_estimates:unsupported_kf', 'KF type %s is not yet supported.', kf_type);
             end
@@ -510,7 +511,7 @@ function [K, innovation, x_hat_update, P_hat_update] = standard_kf_update(...
 end
 
 function [K, innovation, x_hat_update, P_hat_update] = extended_kf_update(...
-    step, received_signal, Hj_handle, extra_vars, adapt_R, R)
+    step, received_signal, Hj_handle, extra_vars, adapt_R, R, psi_tppsm)
 % extended_kf_update
 %
 % Computes the Kalman gain and the innovation term for the extended Kalman
@@ -555,7 +556,7 @@ function [K, innovation, x_hat_update, P_hat_update] = extended_kf_update(...
 % ORCID: https://orcid.org/0000-0003-0412-5583
 % Email: rdlfresearch@gmail.com
     
-    external_amplitude = abs(received_signal(step - 1, 1));
+    external_amplitude = abs(psi_tppsm(step - 1, 1));
     H = Hj_handle(external_amplitude, extra_vars.x_hat_project_ahead);
     
     estimated_signal = exp(1j * extra_vars.x_hat_project_ahead(1));
@@ -573,7 +574,7 @@ function [K, innovation, x_hat_update, P_hat_update] = extended_kf_update(...
 end
 
 function [K, innovation, x_hat_update, P_hat_update] = unscented_kf_update(...
-    step, received_signal, extra_vars, adapt_R, ut_params)
+    step, received_signal, extra_vars, adapt_R, ut_params, psi_tppsm)
 % unscented_kf_update
 %
 % Performs the UKF measurement update by:
@@ -663,7 +664,7 @@ function [K, innovation, x_hat_update, P_hat_update] = unscented_kf_update(...
 
     % Map sigma points through the nonlinear measurement function:
     % h(a, x) = a * [cos(x(1)); sin(x(1))], based on [1, equation 7.5.11]
-    external_amp = abs(received_signal(step - 1, 1));
+    external_amp = abs(psi_tppsm(step - 1, 1));
     angles = X(1, :);  % use only the first element of each sigma point
     Z = external_amp * [cos(angles); sin(angles)];  % 2 x num_sigma
 

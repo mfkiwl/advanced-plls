@@ -1,4 +1,4 @@
-function [received_signal, los_phase, psi_settled, diffractive_phase_settled, refractive_phase_settled] = get_received_signal(C_over_N0_dBHz, scint_model, doppler_profile, varargin)
+function [received_signal, los_phase, psi_settled, diffractive_phase_settled, refractive_phase_settled] = get_received_signal(C_over_N0_dBHz, scint_model, doppler_profile, seed, varargin)
 % get_received_signal
 % Simulates the baseband received signal, including ionospheric scintillation
 % effects, thermal noise, and line-of-sight (LOS) phase dynamics.
@@ -28,6 +28,7 @@ function [received_signal, los_phase, psi_settled, diffractive_phase_settled, re
 %   scint_model     - Scintillation model to use ('CSM', 'TPPSM', or 'none').
 %   doppler_profile - Array of coefficients for the Taylor series expansion 
 %                     of LOS phase dynamics.
+%   seed            - Seed for random number generation
 %
 % Outputs:
 %   received_signal - Baseband received signal (complex-valued).
@@ -111,7 +112,7 @@ thermal_noise = get_thermal_noise(simulation_time, sampling_interval, C_over_N0_
 switch scint_model
     case 'TPPSM'
         % Call get_tppsm_data with the provided tppsm_scenario.
-        [psi, refractive_phase] = get_tppsm_data(tppsm_scenario, 'is_enable_cmd_print', is_enable_cmd_print, 'simulation_time', simulation_time, 'sampling_interval', sampling_interval, 'rhof_veff_ratio', 0.5);
+        [psi, refractive_phase] = get_tppsm_data(tppsm_scenario, 'is_enable_cmd_print', is_enable_cmd_print, 'simulation_time', simulation_time, 'sampling_interval', sampling_interval, 'seed', seed, 'rhof_veff_ratio', 0.5);
         diffractive_phase = wrapToPi(unwrap(angle(psi)) - refractive_phase);
         % Remove refractive effects if requested.
         if is_refractive_effects_removed

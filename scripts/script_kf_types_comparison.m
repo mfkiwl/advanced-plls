@@ -13,35 +13,35 @@ clearvars; clc;
 addpath(genpath(fullfile(pwd, '..', 'libs')));
 
 % Main seed for generating the received signal and the training data set.
-seed = 4;
+seed = 23;
 rng(seed);
 
 %% Generating the received signal for the TPPSM
 doppler_profile = [0, 1000, 0.94]; % Synthetic Doppler profile
 sampling_interval = 0.01; % 100 Hz
-L1_C_over_N0_dBHz = 80;
+L1_C_over_N0_dBHz = 90;
 simulation_time = 300;
 settling_time = sampling_interval;
 is_refractive_effects_removed_received_signal = false;
-[rx_sig_tppsm, los_phase, psi_tppsm, diffractive_phase_tppsm, refractive_phase_settled] = get_received_signal(L1_C_over_N0_dBHz, 'TPPSM', doppler_profile, ...
-    'tppsm_scenario', 'moderate', 'simulation_time', simulation_time, 'settling_time', settling_time, 'is_refractive_effects_removed', is_refractive_effects_removed_received_signal);
+[rx_sig_tppsm, los_phase, psi_tppsm, diffractive_phase_tppsm, refractive_phase_settled] = get_received_signal(L1_C_over_N0_dBHz, 'TPPSM', doppler_profile, seed,...
+    'tppsm_scenario', 'strong', 'simulation_time', simulation_time, 'sampling_interval', sampling_interval,'settling_time', settling_time, 'is_refractive_effects_removed', is_refractive_effects_removed_received_signal);
 
 %% Generating KF-AR configurations and obtaining initial estimates
 cache_dir = fullfile(fileparts(mfilename('fullpath')), 'cache');
 training_data_config = struct('scintillation_model', 'none', 'sampling_interval', sampling_interval);
 
-process_noise_variance_los = 1e1; 
+process_noise_variance_los = 1e3; 
 % The key feature will be another part of this struct that will
 % characterize the adopted KF type as one of the following: 
-% {'standard', 'extended', 'unscented', 'cubature'};
-minimum_carrier_to_noise_ratio_dB_Hz = 40;
+% {'standard', 'extended', 'unscented'};
+minimum_carrier_to_noise_ratio_dB_Hz = 60;
 expected_doppler_profile = [0, 1000, 0.94];
 general_config_standard = struct( ...
   'kf_type', 'standard', ...
-  'discrete_wiener_model_config', { {1, 3, 0.01, [0, 0, process_noise_variance_los], 1} }, ...
+  'discrete_wiener_model_config', { {1, 3, sampling_interval, [0, 0, process_noise_variance_los], 1} }, ...
   'scintillation_training_data_config', training_data_config, ...
   'C_over_N0_array_dBHz', minimum_carrier_to_noise_ratio_dB_Hz, ...
-  'initial_states_distributions_boundaries', { {[-pi, pi], [-1, 1], [-0.01, 0.01]} }, ...
+  'initial_states_distributions_boundaries', { {[-pi, pi], [-25, 25], [-0.2, 0.2]} }, ...
   'expected_doppler_profile', expected_doppler_profile, ...
   'augmentation_model_initializer', struct('id', 'none', 'model_params', struct()), ...
   'is_use_cached_settings', false, ...
@@ -72,8 +72,8 @@ adaptive_cfg_nonadaptive = struct(...
 online_mdl_learning_cfg = struct('is_online', false);
 
 [kf_std, error_cov_std] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates, 'standard', 'none', adaptive_cfg_nonadaptive, online_mdl_learning_cfg);
-[kf_ext, error_cov_ext] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates, 'extended', 'none', adaptive_cfg_nonadaptive, online_mdl_learning_cfg);
-[kf_uns, error_cov_uns] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates, 'unscented', 'none', adaptive_cfg_nonadaptive, online_mdl_learning_cfg);
+[kf_ext, error_cov_ext] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates, 'extended', 'none', adaptive_cfg_nonadaptive, online_mdl_learning_cfg, psi_tppsm);
+[kf_uns, error_cov_uns] = get_kalman_pll_estimates(rx_sig_tppsm, kf_cfg, init_estimates, 'unscented', 'none', adaptive_cfg_nonadaptive, online_mdl_learning_cfg, psi_tppsm);
 
 time_vector = sampling_interval:sampling_interval:simulation_time;
 true_total_phase = los_phase + get_corrected_phase(psi_tppsm);
