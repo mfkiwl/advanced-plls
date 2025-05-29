@@ -24,7 +24,7 @@ function [F, Q, R] = build_unscented_kf(F_los, Q_los, aug_data, general_config, 
 % Email: rdlfresearch@gmail.com
 
     % Default measurement noise covariance: Adjust using get_phase_variances.
-    variances = get_phase_variances(general_config.C_over_N0_array_dBHz, sampling_interval);
+    variances = 1/(10.^(general_config.C_over_N0_array_dBHz ./ 10) .* sampling_interval);
     I_Q_separate_variances = repelem(variances, 2) / 2;
     R = diag(I_Q_separate_variances);
 

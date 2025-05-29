@@ -23,18 +23,18 @@ function thermal_noise = get_thermal_noise(simulation_time, T_I, C_over_N0_dBHz)
 %                     derived from the specified parameters.
 %
 % Notes:
-%   - The continuous time noise variance is computed as:
+%   - The continuous-time noise variance is computed as:
 %       σ²_η = 2 * B * (rx_mean_power / (c/n₀)) (1),
 %     where c/n₀ is the linear scale equivalent of C/N₀ [dBHz] 
-%     (c/n₀ = 10^(C/N₀ / 10)), and B = (IF sampling frequency) / 2.
+%     (c/n₀ = 10^(C/N₀ / 10)), and B = (BB signal sampling frequency) / 2.
 %
 %     Assuming perfect delay estimates, so that the symbol periods and the 
 %     correlated samples are aligned, the equivalent complex noise variance
 %     of the signal after correlation can be given by
 %       σ²_η_D = σ²_η / (2 * B * T_I) (2).
 %
-%     The factor 2 * B * T_I represents the amount of samples that exists
-%     within a correlation period.
+%     The factor 2 * B * T_I represents the amount of BB signal
+%     samples that exists that are contained within a correlation period.
 %
 %     Thus, replacing equation (1) in equation (2), and assuming without
 %     loss of generality that rx_mean_power = 1, we get

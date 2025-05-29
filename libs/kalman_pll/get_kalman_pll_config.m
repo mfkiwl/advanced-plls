@@ -42,7 +42,7 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_
 %       initial_states_distributions_boundaries - Non-empty cell array; each cell contains a 1x2 numeric vector
 %           specifying lower and upper bounds (first element < second element).
 %
-%       real_doppler_profile - Non-empty numeric vector of Doppler profile values.
+%       expected_doppler_profile - Non-empty numeric vector of Doppler profile values.
 %
 %       augmentation_model_initializer - Struct specifying the augmentation model initialization method and its parameters:
 %           Fields:
@@ -83,7 +83,7 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_
 %       'scintillation_training_data_config', training_data_config, ...
 %       'C_over_N0_array_dBHz', 35, ...
 %       'initial_states_distributions_boundaries',{ {[-pi,pi], [-25,25], [-0.1,0.1]} }, ...
-%       'real_doppler_profile', [0, 1000, 0.94], ...
+%       'expected_doppler_profile', [0, 1000, 0.94], ...
 %       'augmentation_model_initializer', struct('id', 'aryule', 'model_params', struct('model_order', 3)), ...
 %       'is_use_cached_settings', false, ...
 %       'is_generate_random_initial_estimates', true ...
@@ -104,7 +104,7 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_
     scint_config = validateScintillationTrainingDataConfig(general_config.scintillation_training_data_config);
     validateattributes(general_config.C_over_N0_array_dBHz, {'numeric'}, {'nonempty','vector','positive'}, mfilename, 'C_over_N0_array_dBHz');
     validate_initial_states_boundaries(general_config.initial_states_distributions_boundaries);
-    validateattributes(general_config.real_doppler_profile, {'numeric'}, {'nonempty','vector'}, mfilename, 'real_doppler_profile');
+    validateattributes(general_config.expected_doppler_profile, {'numeric'}, {'nonempty','vector'}, mfilename, 'expected_doppler_profile');
     validate_augmentation_model(general_config);
     validateattributes(cache_dir, {'char', 'string'}, {'nonempty'}, mfilename, 'cache_dir');
     validateattributes(is_enable_cmd_print, {'logical'}, {'scalar'}, mfilename, 'is_enable_cmd_print');
