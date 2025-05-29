@@ -5,7 +5,25 @@ classdef test_build_extended_kf < matlab.unittest.TestCase
         general_config
         sampling_interval
     end
-    
+    methods(TestClassSetup)
+        function add_parent_path(test_case)
+            % Add the necessary directory paths
+            parent_dir = fileparts(fileparts(mfilename('fullpath')));
+            libs_dir = fileparts(parent_dir);
+            get_received_signal_functions_dir = fullfile(libs_dir, 'get_received_signal_functions');
+            tppsm_paths = genpath(fullfile(libs_dir, 'scintillation_models', 'refactored_tppsm'));
+            csm_paths = genpath(fullfile(libs_dir, 'scintillation_models', 'cornell_scintillation_model'));
+            arfit_path = fullfile(libs_dir, 'arfit');
+            addpath(parent_dir);
+            addpath(get_received_signal_functions_dir);
+            addpath(tppsm_paths);
+            addpath(csm_paths);
+            addpath(arfit_path);
+
+            test_case.addTeardown(@() rmpath(parent_dir, get_received_signal_functions_dir, ...
+                tppsm_paths, csm_paths, arfit_path));
+        end
+    end
     methods(TestMethodSetup)
         function setup(testCase)
             % Create a simple LOS dynamics example.
@@ -23,7 +41,7 @@ classdef test_build_extended_kf < matlab.unittest.TestCase
             aug_data.augmentation_type = 'none';
             
             % Call the function under test.
-            [F, Q, H_handlej, R, W] = build_extended_kf(...
+            [F, Q, H_handlej, R] = build_extended_kf(...
                 testCase.F_los, testCase.Q_los, aug_data, ...
                 testCase.general_config, testCase.sampling_interval);
             
@@ -32,9 +50,7 @@ classdef test_build_extended_kf < matlab.unittest.TestCase
                 'F should equal F_los when no augmentation is applied.');
             testCase.verifyEqual(Q, testCase.Q_los, ...
                 'Q should equal Q_los when no augmentation is applied.');
-            testCase.verifyEqual(W, zeros(size(testCase.F_los,1), 1), ...
-                'W should be a zero vector with length equal to the number of KF states.');
-            
+
             % Compute the expected R dynamically from get_phase_variances.
             % Note: This makes the test independent of an assumption on the value.
             variances = get_phase_variances(testCase.general_config.C_over_N0_array_dBHz, testCase.sampling_interval);
@@ -76,7 +92,7 @@ classdef test_build_extended_kf < matlab.unittest.TestCase
                 testCase.F_los, testCase.Q_los, aug_data, ...
                 testCase.general_config, testCase.sampling_interval);
             
-            testCase.verifyError(testFunc, 'MATLAB:UndefinedFunction', ...
+            testCase.verifyError(testFunc, 'MATLAB:NotImplementedAugmentationModel', ...
                 'An unsupported augmentation type should trigger the proper error.');
         end
     end
