@@ -17,9 +17,9 @@ seed = 23;
 rng(seed);
 
 %% Generating the received signal for the TPPSM
-doppler_profile = [0, 1000, 0.94]; % Synthetic Doppler profile
+doppler_profile = [0, 1000, 0.94,1]; % Synthetic Doppler profile
 sampling_interval = 0.01; % 100 Hz
-L1_C_over_N0_dBHz = 90;
+L1_C_over_N0_dBHz = 40;
 simulation_time = 300;
 settling_time = sampling_interval;
 is_refractive_effects_removed_received_signal = false;
@@ -30,7 +30,7 @@ is_refractive_effects_removed_received_signal = false;
 cache_dir = fullfile(fileparts(mfilename('fullpath')), 'cache');
 training_data_config = struct('scintillation_model', 'none', 'sampling_interval', sampling_interval);
 
-process_noise_variance_los = 1e3; 
+process_noise_variance_los = 1e1; 
 % The key feature will be another part of this struct that will
 % characterize the adopted KF type as one of the following: 
 % {'standard', 'extended', 'unscented'};
