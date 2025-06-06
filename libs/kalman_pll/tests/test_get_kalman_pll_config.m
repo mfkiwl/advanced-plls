@@ -7,7 +7,7 @@ classdef test_get_kalman_pll_config < matlab.unittest.TestCase
     %     with the expected model field (added by the dummy update_cache) and a
     %     column vector of initial estimates.
     %   - Missing required fields, mismatched sampling intervals, invalid boundaries,
-    %     an empty real_doppler_profile, or negative C/N0 values trigger errors.
+    %     an empty expected_doppler_profile, or negative C/N0 values trigger errors.
     %
     % Dummy lower-level functions (get_cached_kalman_pll_config, update_cache,
     % and get_initial_estimates) are overridden by static methods defined in this class.
@@ -52,7 +52,7 @@ classdef test_get_kalman_pll_config < matlab.unittest.TestCase
                 'var_maximum_order', 6, ...
                 'C_over_N0_array_dBHz', 35, ...
                 'initial_states_distributions_boundaries', { {[-pi,pi], [-5,5], [-0.1,0.1]} }, ...
-                'real_doppler_profile', [0, 1000, 0.94], ...
+                'expected_doppler_profile', [0, 1000, 0.94], ...
                 'augmentation_model_initializer', struct('id', 'arfit', 'model_params', struct('model_order', 3)), ...
                 'is_use_cached_settings', false, ...
                 'is_generate_random_initial_estimates', true ...
@@ -99,9 +99,9 @@ classdef test_get_kalman_pll_config < matlab.unittest.TestCase
         end
         
         function testEmptyRealDopplerProfile(testCase)
-            % Set real_doppler_profile to an empty array.
+            % Set expected_doppler_profile to an empty array.
             config = testCase.default_config;
-            config.real_doppler_profile = [];
+            config.expected_doppler_profile = [];
             testCase.verifyError(@() get_kalman_pll_config(config, testCase.default_cache_dir, testCase.default_is_enable_cmd_print), ...
                 'MATLAB:get_kalman_pll_config:expectedNonempty');
         end
