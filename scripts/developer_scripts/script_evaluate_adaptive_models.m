@@ -13,7 +13,7 @@
 
 clearvars; clc;
 
-addpath(genpath(fullfile(pwd, '..', 'libs')));
+addpath(genpath(fullfile(pwd, '..', '..', 'libs')));
 
 % Main seed for generating the received signal and the training data set.
 seed = 6;

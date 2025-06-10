@@ -41,7 +41,7 @@ clear; clc;
 script_folder = fileparts(mfilename('fullpath'));
 results_folder = fullfile(script_folder, 'results');
 results_file = fullfile(results_folder, 'monte_carlo_with_process_noise_sweep_results.mat');
-libs_folder = genpath(fullfile('..','libs'));
+libs_folder = genpath(fullfile('..','..','libs'));
 
 addpath(libs_folder);
 

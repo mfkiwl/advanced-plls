@@ -24,13 +24,13 @@
 
 clearvars; clc;
 
-addpath(genpath(fullfile(pwd, '..', 'libs')));
+addpath(genpath(fullfile(pwd, '..', '..', 'libs')));
 
 % Main seed for generating the received signal and the training data set.
 seed = 4;
 rng(seed);
 
-%% Generating the received signal for CSM and TPPSM under severe scintillation scenarios
+%% Generating the received signal for CSM and CPSSM under scintillation scenarios
 doppler_profile = [0, 1000, 0.94,0.0001];
 sampling_interval = 0.01; % 100 Hz
 L1_C_over_N0_dBHz = 42;

@@ -1,4 +1,4 @@
-% Script: script_KFAR_RMSE_monte_carlo_with_process_noise_sweep.m
+% Script: script_performance_assessment_for_heatmaps.m
 %
 % Description:
 %   This script performs a Monte Carlo simulation where the process noise variance is
@@ -37,7 +37,7 @@
 
 clearvars; clc;
 
-addpath(genpath(fullfile(pwd, '..', 'libs')));
+addpath(genpath(fullfile(pwd, '..', '..', 'libs')));
 
 %% Overall Parameters
 % Simulation Parameters

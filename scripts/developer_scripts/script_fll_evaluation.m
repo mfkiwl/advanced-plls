@@ -9,7 +9,7 @@
 
 clearvars; clc;
 
-addpath(genpath(fullfile(pwd, '..', 'libs')));
+addpath(genpath(fullfile(pwd, '..', '..', 'libs')));
 
 % Set simulation parameters
 doppler_profile = [0, 1000, 0.94];

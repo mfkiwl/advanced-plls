@@ -1,5 +1,5 @@
 % Script to analyze the output of get_csm_data and visualize results
-addpath(genpath(fullfile(pwd,'..','libs')));
+addpath(genpath(fullfile(pwd,'..','..','libs')));
 % Parameters for CSM data generation
 S4 = 0.8;                   % Scintillation index (0 <= S4 <= 1)
 tau0 = 0.7;                 % Decorrelation time (seconds)

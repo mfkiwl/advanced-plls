@@ -20,8 +20,8 @@ function [received_signal, los_phase, psi_settled, diffractive_phase_settled, re
 %   'tau0'                         - Signal intensity decorrelation time (s); required if scint_model is 'CSM'
 %   'tppsm_scenario'               - TPPSM scenario ('weak', 'moderate', or 'strong'); required if scint_model is 'TPPSM'
 %   'is_enable_cmd_print'          - logical value that configures whether command
-%                                    lines would appear on the regarding of the 
-%                                    usage of external rhof_veff_ratio.
+%                                    lines would appear on the regarding of the
+%   'rhof_veff_ratio'              - usage of external rhof_veff_ratio.
 %
 % Inputs:
 %   C_over_N0_dBHz  - Carrier-to-noise density ratio in dB-Hz.
@@ -64,6 +64,7 @@ addParameter(p, 'sampling_interval', 0.01, @(x) isnumeric(x) && isscalar(x) && (
 addParameter(p, 'is_refractive_effects_removed', true, @(x) islogical(x) && isscalar(x));
 addParameter(p, 'S4', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && (x >= 0) && (x <= 1)));
 addParameter(p, 'tau0', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && (x > 0)));
+addParameter(p, 'rhof_veff_ratio', [], @(x) isempty(x) || (isnumeric(x) && isscalar(x) && (x > 0)));
 addParameter(p, 'tppsm_scenario', [], @(x) isempty(x) || ismember(x, {'weak', 'moderate', 'strong'}));
 addParameter(p, 'is_enable_cmd_print', true, @(x) validateattributes(x, {'logical'}, {'nonempty'}));
 
@@ -75,6 +76,7 @@ sampling_interval = p.Results.sampling_interval;
 is_refractive_effects_removed = p.Results.is_refractive_effects_removed;
 S4 = p.Results.S4;
 tau0 = p.Results.tau0;
+rhof_veff_ratio = p.Results.rhof_veff_ratio;
 tppsm_scenario = p.Results.tppsm_scenario;
 is_enable_cmd_print = p.Results.is_enable_cmd_print;
 
@@ -112,8 +114,8 @@ thermal_noise = get_thermal_noise(simulation_time, sampling_interval, C_over_N0_
 switch scint_model
     case 'TPPSM'
         % Call get_tppsm_data with the provided tppsm_scenario.
-        [psi, refractive_phase] = get_tppsm_data(tppsm_scenario, 'is_enable_cmd_print', is_enable_cmd_print, 'simulation_time', simulation_time, 'sampling_interval', sampling_interval, 'seed', seed, 'rhof_veff_ratio', 0.5);
-        diffractive_phase = wrapToPi(unwrap(angle(psi)) - refractive_phase);
+        [psi, refractive_phase] = get_tppsm_data(tppsm_scenario, 'is_enable_cmd_print', is_enable_cmd_print, 'simulation_time', simulation_time, 'sampling_interval', sampling_interval, 'seed', seed, 'rhof_veff_ratio', rhof_veff_ratio);
+        diffractive_phase = wrapToPi(get_corrected_phase(psi) - refractive_phase);
         % Remove refractive effects if requested.
         if is_refractive_effects_removed
             psi = psi .* exp(-1j * refractive_phase);
