@@ -20,9 +20,10 @@ cache_dir = fullfile(fileparts(mfilename('fullpath')), 'cache');
 [kf_ar_cfg, akf_ar_cfg, ahl_kf_ar_cfg, kf_cfg, akf_cfg, online_mdl_learning_cfg] = get_adaptive_cfgs();
 
 % Wiener state noise variance (\sigma^2_{W,3})
-sigma2_W_3_sweep = logspace(-14,2,10);
+sigma2_W_3_sweep_amount = 15;
+sigma2_W_3_sweep = logspace(-14,2,sigma2_W_3_sweep_amount);
 % Amount of Monte Carlo runs
-mc_runs = 2;
+mc_runs = 100;
 % Ionospheric Scintillation Severities
 severities = ["weak", "strong"];
 
@@ -47,7 +48,11 @@ results = struct('csm', severities_struct, ...
     'cpssm_wo_refr', severities_struct, ...
     'cpssm_w_refr', severities_struct);
 
-% CSM loop
+%%% CSM loop
+fprintf('Starting CSM simulations...\n');
+total_csm = numel(severities) * length(sigma2_W_3_sweep) * mc_runs;
+iter = 0;
+start_time = tic;
 for severity = severities
     for sigma2_W_3_idx = 1:length(sigma2_W_3_sweep)
         for seed = 1:mc_runs
@@ -112,11 +117,22 @@ for severity = severities
             % AKF
             results.csm.(severity).akf.phi_T(sigma2_W_3_idx, seed) = rms(wrapToPi(akf_valid_hat_phi_T - valid_total_phase));
             results.csm.(severity).akf.phi_W(sigma2_W_3_idx, seed) = rms(wrapToPi(akf_valid_hat_phi_T - valid_los_phase));
+
+            % progress print
+            iter = iter + 1;
+            elapsed = toc(start_time);
+            remain  = elapsed * (total_csm/iter - 1);
+            fprintf('CSM [%d/%d] severity=%s, sigma2_W_3_idx=%d/%d, seed=%d/%d, elapsed=%.1fs, remaining~%.1fs\n', ...
+                    iter, total_csm, severity, sigma2_W_3_idx, length(sigma2_W_3_sweep), seed, mc_runs, elapsed, remain);
         end
     end
 end
 
-%CPSSM loop (diffractive phase only)
+%%% CPSSM loop (diffractive phase only)
+fprintf('\nStarting CPSSM (without refractive effect) simulations...\n');
+total_wo = numel(severities) * length(sigma2_W_3_sweep) * mc_runs;
+iter = 0;
+start_time = tic;
 for severity = severities
     for sigma2_W_3_idx = 1:length(sigma2_W_3_sweep)
         for seed = 1:mc_runs
@@ -181,11 +197,22 @@ for severity = severities
             % AKF
             results.cpssm_wo_refr.(severity).akf.phi_T(sigma2_W_3_idx, seed) = rms(wrapToPi(akf_valid_hat_phi_T - valid_total_phase));
             results.cpssm_wo_refr.(severity).akf.phi_W(sigma2_W_3_idx, seed) = rms(wrapToPi(akf_valid_hat_phi_T - valid_los_phase));
+
+            % progress print
+            iter = iter + 1;
+            elapsed = toc(start_time);
+            remain  = elapsed * (total_csm/iter - 1);
+            fprintf('CPSSM (w/o refractive effect) [%d/%d] severity=%s, sigma2_W_3_idx=%d/%d, seed=%d/%d, elapsed=%.1fs, remaining~%.1fs\n', ...
+                    iter, total_csm, severity, sigma2_W_3_idx, length(sigma2_W_3_sweep), seed, mc_runs, elapsed, remain);
         end
     end
 end
 
-% CPSSM loop (diffractive + refractive phase)
+%%% CPSSM loop (diffractive + refractive phase)
+fprintf('\nStarting CPSSM (without refractive effect) simulations...\n');
+total_wo = numel(severities) * length(sigma2_W_3_sweep) * mc_runs;
+iter = 0;
+start_time = tic;
 for severity = severities
     for sigma2_W_3_idx = 1:length(sigma2_W_3_sweep)
         for seed = 1:mc_runs
@@ -251,11 +278,13 @@ for severity = severities
             % AKF
             results.cpssm_w_refr.(severity).akf.phi_W(sigma2_W_3_idx, seed) = rms(wrapToPi(akf_valid_hat_phi_T - valid_los_phase));
             results.cpssm_w_refr.(severity).akf.phi_T(sigma2_W_3_idx, seed) = rms(wrapToPi(akf_valid_hat_phi_T - valid_total_phase));
-            % if seed == 1 && strcmp(severity, 'weak') && sigma2_W_3_idx == 1
-            %     hold on;
-            %     plot(kf_valid_hat_phi_T-valid_total_phase);
-            %     hold off;
-            % end
+
+            % progress print
+            iter = iter + 1;
+            elapsed = toc(start_time);
+            remain  = elapsed * (total_csm/iter - 1);
+            fprintf('CPSSM (w/ refractive effect) [%d/%d] severity=%s, sigma2_W_3_idx=%d/%d, seed=%d/%d, elapsed=%.1fs, remaining~%.1fs\n', ...
+                    iter, total_csm, severity, sigma2_W_3_idx, length(sigma2_W_3_sweep), seed, mc_runs, elapsed, remain);
         end
     end
 end
