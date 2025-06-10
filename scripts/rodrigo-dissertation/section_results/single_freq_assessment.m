@@ -20,9 +20,9 @@ cache_dir = fullfile(fileparts(mfilename('fullpath')), 'cache');
 [kf_ar_cfg, akf_ar_cfg, ahl_kf_ar_cfg, kf_cfg, akf_cfg, online_mdl_learning_cfg] = get_adaptive_cfgs();
 
 % Wiener state noise variance (\sigma^2_{W,3})
-sigma2_W_3_sweep = logspace(1e-14,2,5);
+sigma2_W_3_sweep = logspace(-14,2,10);
 % Amount of Monte Carlo runs
-mc_runs = 3;
+mc_runs = 2;
 % Ionospheric Scintillation Severities
 severities = ["weak", "strong"];
 
@@ -40,8 +40,8 @@ struct_states = struct('phi_T', results_matrix_template, 'phi_W', results_matrix
 approaches_struct = struct('kf_ar', struct_states, ...
                            'akf_ar', struct_states, ...
                            'ahl_kf_ar', struct_states, ...
-                           'kf', struct('phi_T',results_matrix_template), ...
-                           'akf', struct('phi_T',results_matrix_template));
+                           'kf', struct('phi_T', results_matrix_template, 'phi_W', results_matrix_template), ...
+                           'akf', struct('phi_T',results_matrix_template, 'phi_W', results_matrix_template));
 severities_struct = struct('weak', approaches_struct, 'strong',approaches_struct);
 results = struct('csm', severities_struct, ...
     'cpssm_wo_refr', severities_struct, ...
@@ -57,23 +57,23 @@ for severity = severities
             [rx_sig_csm, true_los_phase, ~, diffractive_phase] = get_received_signal(rx_signal_model_inputs{:});
             % For CSM, the training_scint_model is 'CSM' (AR augmented).
             % 1. KF-AR     : No adaptive update.
-            % 2. AKF-AR    : nwpr adaptive update with hard_limited = false.
-            % 3. AHL-KF-AR : nwpr adaptive update with hard_limited = true.
+            % 2. AKF-AR    : NWPR adaptive update with hard_limited = false.
+            % 3. AHL-KF-AR : NWPR adaptive update with hard_limited = true.
             [kf_ar_csm, ~] = get_kalman_pll_estimates(rx_sig_csm, gen_kf_cfg, init_estimates_csm, 'standard', 'CSM', kf_ar_cfg, online_mdl_learning_cfg);
             [akf_ar_csm, ~]  = get_kalman_pll_estimates(rx_sig_csm, gen_kf_cfg, init_estimates_csm, 'standard', 'CSM', akf_ar_cfg, online_mdl_learning_cfg);
             [ahl_kf_ar_csm, ~]   = get_kalman_pll_estimates(rx_sig_csm, gen_kf_cfg, init_estimates_csm, 'standard', 'CSM', ahl_kf_ar_cfg, online_mdl_learning_cfg);
-            
+
             % For standard KF estimates, training_scint_model is 'none'.
             % 4. KF-std    : No adaptive update.
-            % 5. AKF-std   : nwpr adaptive update with hard_limited = false.
-            % 6. AHL-KF-std: nwpr adaptive update with hard_limited = true.
+            % 5. AKF-std   : NWPR adaptive update with hard_limited = false.
+            % 6. AHL-KF-std: NWPR adaptive update with hard_limited = true.
             [kf_csm, ~] = get_kalman_pll_estimates(rx_sig_csm, gen_kf_cfg, init_estimates_none, 'standard', 'none', kf_cfg, online_mdl_learning_cfg);
             [akf_csm, ~] = get_kalman_pll_estimates(rx_sig_csm, gen_kf_cfg, init_estimates_none, 'standard', 'none', akf_cfg, online_mdl_learning_cfg);
 
             % Define validation vectors (assuming valid_samples_vector is defined)
-            valid_los_phase = wrapToPi(true_los_phase(valid_samples_vector,1)); % This is being iterated unecessarily.
+            valid_los_phase = true_los_phase(valid_samples_vector,1); % This is being iterated unecessarily.
             valid_csm_phase = diffractive_phase(valid_samples_vector,1);
-            valid_total_phase = wrapToPi(valid_los_phase + valid_csm_phase);
+            valid_total_phase = valid_los_phase + valid_csm_phase;
 
             %%% Extracting estimates
             % KF-AR
@@ -92,7 +92,7 @@ for severity = severities
             kf_valid_hat_phi_T = kf_csm(valid_samples_vector,1);
             % AKF
             akf_valid_hat_phi_T = akf_csm(valid_samples_vector,1);
-            
+
             %%% Saving the performance assessment
             % KF-AR
             results.csm.(severity).kf_ar.phi_W(sigma2_W_3_idx, seed) = rms(wrapToPi(kf_ar_valid_hat_phi_W - valid_los_phase));
@@ -108,15 +108,159 @@ for severity = severities
             results.csm.(severity).ahl_kf_ar.phi_T(sigma2_W_3_idx, seed) = rms(wrapToPi(ahl_kf_ar_valid_hat_phi_T - valid_total_phase));
             % KF
             results.csm.(severity).kf.phi_T(sigma2_W_3_idx, seed) = rms(wrapToPi(kf_valid_hat_phi_T - valid_total_phase));
+            results.csm.(severity).kf.phi_W(sigma2_W_3_idx, seed) = rms(wrapToPi(kf_valid_hat_phi_T - valid_los_phase));
             % AKF
             results.csm.(severity).akf.phi_T(sigma2_W_3_idx, seed) = rms(wrapToPi(akf_valid_hat_phi_T - valid_total_phase));
+            results.csm.(severity).akf.phi_W(sigma2_W_3_idx, seed) = rms(wrapToPi(akf_valid_hat_phi_T - valid_los_phase));
         end
     end
 end
-% CPSSM loop (diffractive phase)
+
+%CPSSM loop (diffractive phase only)
+for severity = severities
+    for sigma2_W_3_idx = 1:length(sigma2_W_3_sweep)
+        for seed = 1:mc_runs
+            [rx_signal_model_inputs, gen_kf_cfg, init_estimates_csm, init_estimates_cpssm, init_estimates_none, ar_phase_idx] =...
+                get_overall_cfgs(cache_dir, 'cpssm', severity, true, sigma2_W_3_sweep(sigma2_W_3_idx), sampling_interval, settling_time, simulation_time, seed);
+
+            [rx_sig_cpssm_wo_refr, true_los_phase, ~, diffractive_phase] = get_received_signal(rx_signal_model_inputs{:});
+            % For CPSSM, the training_scint_model is 'TPPSM' (AR augmented).
+            % 1. KF-AR     : No adaptive update.
+            % 2. AKF-AR    : NWPR adaptive update with hard_limited = false.
+            % 3. AHL-KF-AR : NWPR adaptive update with hard_limited = true.
+            [kf_ar_cpssm, ~] = get_kalman_pll_estimates(rx_sig_cpssm_wo_refr, gen_kf_cfg, init_estimates_cpssm, 'standard', 'TPPSM', kf_ar_cfg, online_mdl_learning_cfg);
+            [akf_ar_cpssm, ~]  = get_kalman_pll_estimates(rx_sig_cpssm_wo_refr, gen_kf_cfg, init_estimates_cpssm, 'standard', 'TPPSM', akf_ar_cfg, online_mdl_learning_cfg);
+            [ahl_kf_ar_cpssm, ~]   = get_kalman_pll_estimates(rx_sig_cpssm_wo_refr, gen_kf_cfg, init_estimates_cpssm, 'standard', 'TPPSM', ahl_kf_ar_cfg, online_mdl_learning_cfg);
+
+            % For standard KF estimates, training_scint_model is 'none'.
+            % 4. KF-std    : No adaptive update.
+            % 5. AKF-std   : NWPR adaptive update with hard_limited = false.
+            % 6. AHL-KF-std: NWPR adaptive update with hard_limited = true.
+            [kf_cpssm, ~] = get_kalman_pll_estimates(rx_sig_cpssm_wo_refr, gen_kf_cfg, init_estimates_none, 'standard', 'none', kf_cfg, online_mdl_learning_cfg);
+            [akf_cpssm, ~] = get_kalman_pll_estimates(rx_sig_cpssm_wo_refr, gen_kf_cfg, init_estimates_none, 'standard', 'none', akf_cfg, online_mdl_learning_cfg);
+
+            % Define validation vectors (assuming valid_samples_vector is defined)
+            valid_los_phase = true_los_phase(valid_samples_vector,1); % This is being iterated unecessarily.
+            valid_cpssm_phase = diffractive_phase(valid_samples_vector,1);
+            valid_total_phase = valid_los_phase + valid_cpssm_phase;
+
+            %%% Extracting estimates
+            % KF-AR
+            kf_ar_valid_hat_phi_W = kf_ar_cpssm(valid_samples_vector,1);
+            kf_ar_valid_hat_phi_AR = kf_ar_cpssm(valid_samples_vector,ar_phase_idx);
+            kf_ar_valid_hat_phi_T = kf_ar_valid_hat_phi_W + kf_ar_valid_hat_phi_AR;
+            % AKF-AR
+            akf_ar_valid_hat_phi_W = akf_ar_cpssm(valid_samples_vector,1);
+            akf_ar_valid_hat_phi_AR = akf_ar_cpssm(valid_samples_vector,ar_phase_idx);
+            akf_ar_valid_hat_phi_T = akf_ar_valid_hat_phi_W + akf_ar_valid_hat_phi_AR;
+            % AHL-KF-AR
+            ahl_kf_ar_valid_hat_phi_W = ahl_kf_ar_cpssm(valid_samples_vector,1);
+            ahl_kf_ar_valid_hat_phi_AR = ahl_kf_ar_cpssm(valid_samples_vector,ar_phase_idx);
+            ahl_kf_ar_valid_hat_phi_T = ahl_kf_ar_valid_hat_phi_W + ahl_kf_ar_valid_hat_phi_AR;
+            % KF
+            kf_valid_hat_phi_T = kf_cpssm(valid_samples_vector,1);
+            % AKF
+            akf_valid_hat_phi_T = akf_cpssm(valid_samples_vector,1);
+
+            %%% Saving the performance assessment
+            % KF-AR
+            results.cpssm_wo_refr.(severity).kf_ar.phi_W(sigma2_W_3_idx, seed) = rms(wrapToPi(kf_ar_valid_hat_phi_W - valid_los_phase));
+            results.cpssm_wo_refr.(severity).kf_ar.phi_AR(sigma2_W_3_idx, seed) = rms(wrapToPi(kf_ar_valid_hat_phi_AR - valid_cpssm_phase));
+            results.cpssm_wo_refr.(severity).kf_ar.phi_T(sigma2_W_3_idx, seed) = rms(wrapToPi(kf_ar_valid_hat_phi_T - valid_total_phase));
+            % AKF-AR
+            results.cpssm_wo_refr.(severity).akf_ar.phi_W(sigma2_W_3_idx, seed) = rms(wrapToPi(akf_ar_valid_hat_phi_W - valid_los_phase));
+            results.cpssm_wo_refr.(severity).akf_ar.phi_AR(sigma2_W_3_idx, seed) = rms(wrapToPi(akf_ar_valid_hat_phi_AR - valid_cpssm_phase));
+            results.cpssm_wo_refr.(severity).akf_ar.phi_T(sigma2_W_3_idx, seed) = rms(wrapToPi(akf_ar_valid_hat_phi_T - valid_total_phase));
+            % AHL-KF-AR
+            results.cpssm_wo_refr.(severity).ahl_kf_ar.phi_W(sigma2_W_3_idx, seed) = rms(wrapToPi(ahl_kf_ar_valid_hat_phi_W - valid_los_phase));
+            results.cpssm_wo_refr.(severity).ahl_kf_ar.phi_AR(sigma2_W_3_idx, seed) = rms(wrapToPi(ahl_kf_ar_valid_hat_phi_AR - valid_cpssm_phase));
+            results.cpssm_wo_refr.(severity).ahl_kf_ar.phi_T(sigma2_W_3_idx, seed) = rms(wrapToPi(ahl_kf_ar_valid_hat_phi_T - valid_total_phase));
+            % KF
+            results.cpssm_wo_refr.(severity).kf.phi_T(sigma2_W_3_idx, seed) = rms(wrapToPi(kf_valid_hat_phi_T - valid_total_phase));
+            results.cpssm_wo_refr.(severity).kf.phi_W(sigma2_W_3_idx, seed) = rms(wrapToPi(kf_valid_hat_phi_T - valid_los_phase));
+            % AKF
+            results.cpssm_wo_refr.(severity).akf.phi_T(sigma2_W_3_idx, seed) = rms(wrapToPi(akf_valid_hat_phi_T - valid_total_phase));
+            results.cpssm_wo_refr.(severity).akf.phi_W(sigma2_W_3_idx, seed) = rms(wrapToPi(akf_valid_hat_phi_T - valid_los_phase));
+        end
+    end
+end
 
 % CPSSM loop (diffractive + refractive phase)
+for severity = severities
+    for sigma2_W_3_idx = 1:length(sigma2_W_3_sweep)
+        for seed = 1:mc_runs
+            [rx_signal_model_inputs, gen_kf_cfg, init_estimates_csm, init_estimates_cpssm, init_estimates_none, ar_phase_idx] =...
+                get_overall_cfgs(cache_dir, 'cpssm', severity, false, sigma2_W_3_sweep(sigma2_W_3_idx), sampling_interval, settling_time, simulation_time, seed);
 
+            [rx_sig_cpssm_w_refr, true_los_phase, psi_settled, diffractive_phase] = get_received_signal(rx_signal_model_inputs{:});
+            % For CPSSM, the training_scint_model is 'TPPSM' (AR augmented).
+            % 1. KF-AR     : No adaptive update.
+            % 2. AKF-AR    : NWPR adaptive update with hard_limited = false.
+            % 3. AHL-KF-AR : NWPR adaptive update with hard_limited = true.
+            [kf_ar_cpssm, ~] = get_kalman_pll_estimates(rx_sig_cpssm_w_refr, gen_kf_cfg, init_estimates_cpssm, 'standard', 'TPPSM', kf_ar_cfg, online_mdl_learning_cfg);
+            [akf_ar_cpssm, ~]  = get_kalman_pll_estimates(rx_sig_cpssm_w_refr, gen_kf_cfg, init_estimates_cpssm, 'standard', 'TPPSM', akf_ar_cfg, online_mdl_learning_cfg);
+            [ahl_kf_ar_cpssm, ~]   = get_kalman_pll_estimates(rx_sig_cpssm_w_refr, gen_kf_cfg, init_estimates_cpssm, 'standard', 'TPPSM', ahl_kf_ar_cfg, online_mdl_learning_cfg);
+            
+            % For standard KF estimates, training_scint_model is 'none'.
+            % 4. KF-std    : No adaptive update.
+            % 5. AKF-std   : NWPR adaptive update with hard_limited = false.
+            % 6. AHL-KF-std: NWPR adaptive update with hard_limited = true.
+            [kf_cpssm, ~] = get_kalman_pll_estimates(rx_sig_cpssm_w_refr, gen_kf_cfg, init_estimates_none, 'standard', 'none', kf_cfg, online_mdl_learning_cfg);
+            [akf_cpssm, ~] = get_kalman_pll_estimates(rx_sig_cpssm_w_refr, gen_kf_cfg, init_estimates_none, 'standard', 'none', akf_cfg, online_mdl_learning_cfg);
+
+            % Define validation vectors (assuming valid_samples_vector is defined)
+            valid_los_phase = true_los_phase(valid_samples_vector,1); % This is being iterated unecessarily.
+            valid_cpssm_diffractive_phase = diffractive_phase(valid_samples_vector,1);
+            valid_cpssm_total_phase = get_corrected_phase(psi_settled(valid_samples_vector,1));
+            valid_total_phase = valid_los_phase + valid_cpssm_total_phase;
+
+            %%% Extracting estimates
+            % KF-AR
+            kf_ar_valid_hat_phi_W = kf_ar_cpssm(valid_samples_vector,1);
+            kf_ar_valid_hat_phi_AR = kf_ar_cpssm(valid_samples_vector,ar_phase_idx);
+            kf_ar_valid_hat_phi_T = kf_ar_valid_hat_phi_W + kf_ar_valid_hat_phi_AR;
+            % AKF-AR
+            akf_ar_valid_hat_phi_W = akf_ar_cpssm(valid_samples_vector,1);
+            akf_ar_valid_hat_phi_AR = akf_ar_cpssm(valid_samples_vector,ar_phase_idx);
+            akf_ar_valid_hat_phi_T = akf_ar_valid_hat_phi_W + akf_ar_valid_hat_phi_AR;
+            % AHL-KF-AR
+            ahl_kf_ar_valid_hat_phi_W = ahl_kf_ar_cpssm(valid_samples_vector,1);
+            ahl_kf_ar_valid_hat_phi_AR = ahl_kf_ar_cpssm(valid_samples_vector,ar_phase_idx);
+            ahl_kf_ar_valid_hat_phi_T = ahl_kf_ar_valid_hat_phi_W + ahl_kf_ar_valid_hat_phi_AR;
+            % KF
+            kf_valid_hat_phi_T = kf_cpssm(valid_samples_vector,1);
+            % AKF
+            akf_valid_hat_phi_T = akf_cpssm(valid_samples_vector,1);
+            
+            %%% Saving the performance assessment
+            % KF-AR
+            results.cpssm_w_refr.(severity).kf_ar.phi_W(sigma2_W_3_idx, seed) = rms(wrapToPi(kf_ar_valid_hat_phi_W - valid_los_phase));
+            results.cpssm_w_refr.(severity).kf_ar.phi_AR(sigma2_W_3_idx, seed) = rms(wrapToPi(kf_ar_valid_hat_phi_AR - valid_cpssm_diffractive_phase));
+            results.cpssm_w_refr.(severity).kf_ar.phi_T(sigma2_W_3_idx, seed) = rms(wrapToPi(kf_ar_valid_hat_phi_T - valid_total_phase));
+            % AKF-AR
+            results.cpssm_w_refr.(severity).akf_ar.phi_W(sigma2_W_3_idx, seed) = rms(wrapToPi(akf_ar_valid_hat_phi_W - valid_los_phase));
+            results.cpssm_w_refr.(severity).akf_ar.phi_AR(sigma2_W_3_idx, seed) = rms(wrapToPi(akf_ar_valid_hat_phi_AR - valid_cpssm_diffractive_phase));
+            results.cpssm_w_refr.(severity).akf_ar.phi_T(sigma2_W_3_idx, seed) = rms(wrapToPi(akf_ar_valid_hat_phi_T - valid_total_phase));
+            % AHL-KF-AR
+            results.cpssm_w_refr.(severity).ahl_kf_ar.phi_W(sigma2_W_3_idx, seed) = rms(wrapToPi(ahl_kf_ar_valid_hat_phi_W - valid_los_phase));
+            results.cpssm_w_refr.(severity).ahl_kf_ar.phi_AR(sigma2_W_3_idx, seed) = rms(wrapToPi(ahl_kf_ar_valid_hat_phi_AR - valid_cpssm_diffractive_phase));
+            results.cpssm_w_refr.(severity).ahl_kf_ar.phi_T(sigma2_W_3_idx, seed) = rms(wrapToPi(ahl_kf_ar_valid_hat_phi_T - valid_total_phase));
+            % KF
+            results.cpssm_w_refr.(severity).kf.phi_W(sigma2_W_3_idx, seed) = rms(wrapToPi(kf_valid_hat_phi_T - valid_los_phase));
+            results.cpssm_w_refr.(severity).kf.phi_T(sigma2_W_3_idx, seed) = rms(wrapToPi(kf_valid_hat_phi_T - valid_total_phase));
+            % AKF
+            results.cpssm_w_refr.(severity).akf.phi_W(sigma2_W_3_idx, seed) = rms(wrapToPi(akf_valid_hat_phi_T - valid_los_phase));
+            results.cpssm_w_refr.(severity).akf.phi_T(sigma2_W_3_idx, seed) = rms(wrapToPi(akf_valid_hat_phi_T - valid_total_phase));
+            % if seed == 1 && strcmp(severity, 'weak') && sigma2_W_3_idx == 1
+            %     hold on;
+            %     plot(kf_valid_hat_phi_T-valid_total_phase);
+            %     hold off;
+            % end
+        end
+    end
+end
+
+save(fullfile('results/results_single_freq_assessment.mat'), "results", "sigma2_W_3_sweep");
 
 %% Auxiliary functions
 function [rx_signal_model_inputs, gen_kf_cfg, init_estimates_csm, init_estimates_cpssm, init_estimates_none, ar_phase_idx] = ...
