@@ -27,11 +27,11 @@ clearvars; clc;
 addpath(genpath(fullfile(pwd, '..', '..', 'libs')));
 
 % Main seed for generating the received signal and the training data set.
-seed = 4;
+seed = 1;
 rng(seed);
 
 %% Generating the received signal for CSM and CPSSM under scintillation scenarios
-doppler_profile = [0, 1000, 0.94,0.0001];
+doppler_profile = [0, 1000, 0.94];
 sampling_interval = 0.01; % 100 Hz
 L1_C_over_N0_dBHz = 42;
 simulation_time = 300;
@@ -57,15 +57,15 @@ training_data_config_tppsm = struct('scintillation_model', 'TPPSM', 'scenario', 
 training_data_config_none = struct('scintillation_model', 'none', 'sampling_interval', sampling_interval);
 
 % Here, we used the same noise variance as used in [1, Section V; Subsection A]
-process_noise_variance = 2.6*1e-7; 
-ar_model_order = 5;
+process_noise_variance = 1e-14; 
+ar_model_order = 14;
 expected_doppler_profile = [0,1000,0.94];
 general_config_csm = struct( ...
   'kf_type', 'standard', ...
   'discrete_wiener_model_config', { {1, 3, 0.01, [0, 0, process_noise_variance], 1} }, ...
   'scintillation_training_data_config', training_data_config_csm, ...
   'C_over_N0_array_dBHz', L1_C_over_N0_dBHz, ...
-  'initial_states_distributions_boundaries', { {[-pi, pi], [-5, 5], [-0.1, 0.1]} }, ...
+  'initial_states_distributions_boundaries', { {[-pi, pi], [-1, 1], [-0.1, 0.1]} }, ...
   'expected_doppler_profile', expected_doppler_profile, ...
   'augmentation_model_initializer', struct('id', 'aryule', 'model_params', struct('model_order', ar_model_order)), ...
   'is_use_cached_settings', false, ...
@@ -95,7 +95,6 @@ hard_limited_threshold = 38;
 T_bit = 1/50;
 M_nwpr = T_bit / sampling_interval;
 N_nwpr = 20;
-hl_threshold = 35;
 
 % For AR (KFAR) estimates:
 adaptive_config_KF_AR = struct(...

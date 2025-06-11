@@ -10,7 +10,7 @@ end
 load(data_file, 'results', 'sigma2_W_3_sweep');
 
 % Plot settings
-font_size = 14;  % Base font size for labels, legends, and ticks
+font_size = 18;  % Base font size for labels, legends, and ticks
 
 % Define model names and approaches
 model_names = {'csm', 'cpssm_wo_refr', 'cpssm_w_refr'};
@@ -25,7 +25,7 @@ field_names = {'phi_T', 'phi_W', 'phi_AR'};
 for i_model = 1:numel(model_names)
     model = model_names{i_model};
     % Create figure with larger width and height
-    fig = figure('Name', sprintf('%s RMSE', upper(model)), ...
+    fig = figure('Name', sprintf('%s MRMSE', upper(model)), ...
                  'Color', 'w', ...
                  'Units', 'normalized', ...
                  'Position', [0.05 0.05 0.9 0.85]);
@@ -74,7 +74,7 @@ for i_model = 1:numel(model_names)
             % Y-label for first column
             if col == 1
                 phi_label = field(5:end); % 'T', 'W', or 'AR'
-                ylabel(sprintf('RMSE($\\hat{\\phi}_{%s,1}[k|k-1]$)', phi_label), 'Interpreter', 'latex', 'FontSize', font_size);
+                ylabel(sprintf('MRMSE($\\hat{\\phi}_{%s,1}[k|k-1]$)', phi_label), 'Interpreter', 'latex', 'FontSize', font_size);
             end
 
             % X-label for bottom row
