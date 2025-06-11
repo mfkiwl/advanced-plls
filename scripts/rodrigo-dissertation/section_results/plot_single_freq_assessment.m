@@ -15,9 +15,9 @@ font_size = 14;  % Base font size for labels, legends, and ticks
 % Define model names and approaches
 model_names = {'csm', 'cpssm_wo_refr', 'cpssm_w_refr'};
 approaches_all = {'kf_ar', 'akf_ar', 'ahl_kf_ar', 'kf', 'akf'};
-approach_labels_all = {'KF AR', 'AKF AR', 'AHL KF AR', 'KF', 'AKF'};
+approach_labels_all = {'KF-AR', 'AKF-AR', 'AHL-KF-AR', 'KF', 'AKF'};
 approaches_ar = {'kf_ar', 'akf_ar', 'ahl_kf_ar'};
-approach_labels_ar = {'KF AR', 'AKF AR', 'AHL KF AR'};
+approach_labels_ar = {'KF-AR', 'AKF-AR', 'AHL-KF-AR'};
 severities = {'weak', 'strong'};
 field_names = {'phi_T', 'phi_W', 'phi_AR'};
 
@@ -74,7 +74,7 @@ for i_model = 1:numel(model_names)
             % Y-label for first column
             if col == 1
                 phi_label = field(5:end); % 'T', 'W', or 'AR'
-                ylabel(sprintf('RMSE($\\hat{\\phi}_{%s,1}[k]$)', phi_label), 'Interpreter', 'latex', 'FontSize', font_size);
+                ylabel(sprintf('RMSE($\\hat{\\phi}_{%s,1}[k|k-1]$)', phi_label), 'Interpreter', 'latex', 'FontSize', font_size);
             end
 
             % X-label for bottom row
@@ -83,8 +83,8 @@ for i_model = 1:numel(model_names)
             end
 
             % Legend only on the first tile
-            if row == 1 && col == 1
-                legend(approach_labels, 'Location', 'northeast', 'FontSize', font_size - 2);
+            if row == 2 && col == 1
+                legend(approach_labels, 'Location', 'best', 'FontSize', font_size - 2);
             end
 
             set(ax, 'XScale', 'log');

@@ -20,7 +20,7 @@ cache_dir = fullfile(fileparts(mfilename('fullpath')), 'cache');
 [kf_ar_cfg, akf_ar_cfg, ahl_kf_ar_cfg, kf_cfg, akf_cfg, online_mdl_learning_cfg] = get_adaptive_cfgs();
 
 % Wiener state noise variance (\sigma^2_{W,3})
-sigma2_W_3_sweep_amount = 15;
+sigma2_W_3_sweep_amount = 20;
 sigma2_W_3_sweep = logspace(-14,2,sigma2_W_3_sweep_amount);
 % Amount of Monte Carlo runs
 mc_runs = 100;
@@ -130,7 +130,7 @@ end
 
 %%% CPSSM loop (diffractive phase only)
 fprintf('\nStarting CPSSM (without refractive effect) simulations...\n');
-total_wo = numel(severities) * length(sigma2_W_3_sweep) * mc_runs;
+total_cppsm_wo_refr = numel(severities) * length(sigma2_W_3_sweep) * mc_runs;
 iter = 0;
 start_time = tic;
 for severity = severities
@@ -203,14 +203,14 @@ for severity = severities
             elapsed = toc(start_time);
             remain  = elapsed * (total_csm/iter - 1);
             fprintf('CPSSM (w/o refractive effect) [%d/%d] severity=%s, sigma2_W_3_idx=%d/%d, seed=%d/%d, elapsed=%.1fs, remaining~%.1fs\n', ...
-                    iter, total_csm, severity, sigma2_W_3_idx, length(sigma2_W_3_sweep), seed, mc_runs, elapsed, remain);
+                    iter, total_cppsm_wo_refr, severity, sigma2_W_3_idx, length(sigma2_W_3_sweep), seed, mc_runs, elapsed, remain);
         end
     end
 end
 
 %%% CPSSM loop (diffractive + refractive phase)
 fprintf('\nStarting CPSSM (without refractive effect) simulations...\n');
-total_wo = numel(severities) * length(sigma2_W_3_sweep) * mc_runs;
+total_cppsm_w_refr = numel(severities) * length(sigma2_W_3_sweep) * mc_runs;
 iter = 0;
 start_time = tic;
 for severity = severities
@@ -284,7 +284,7 @@ for severity = severities
             elapsed = toc(start_time);
             remain  = elapsed * (total_csm/iter - 1);
             fprintf('CPSSM (w/ refractive effect) [%d/%d] severity=%s, sigma2_W_3_idx=%d/%d, seed=%d/%d, elapsed=%.1fs, remaining~%.1fs\n', ...
-                    iter, total_csm, severity, sigma2_W_3_idx, length(sigma2_W_3_sweep), seed, mc_runs, elapsed, remain);
+                    iter, total_cppsm_w_refr, severity, sigma2_W_3_idx, length(sigma2_W_3_sweep), seed, mc_runs, elapsed, remain);
         end
     end
 end
@@ -314,7 +314,10 @@ function [rx_signal_model_inputs, gen_kf_cfg, init_estimates_csm, init_estimates
     % CSM parameters for weak and strong scintillation
     S4_preset = [0.2, 0.9];
     tau0_preset = [1, 0.2];
-    
+
+    % CPSSM timing scaling parameters for weak and strong scintillation
+    rhof_veff_ratio_preset = [1.5, 0.27]; % See right plot of Table 3.2 of my dissertation.
+
     switch severity
         case 'weak'
             train_cfg_csm = struct('scintillation_model', 'CSM', 'S4', S4_preset(1), 'tau0', tau0_preset(1), ...
@@ -323,11 +326,11 @@ function [rx_signal_model_inputs, gen_kf_cfg, init_estimates_csm, init_estimates
                                               'is_unwrapping_used', is_unwrapping_used);
             switch scint_model
                 case 'csm'
-                    rx_signal_model_inputs = [csm_first_part(:)',{seed},{'S4'},{S4_preset(1)},{'tau0'},{tau0_preset(1)},csm_second_part(:)'];
                     ar_model_order = 6; % See right plot of Figure 4.2 of my dissertation.
-                case 'cpssm' 
-                    rx_signal_model_inputs = [cpssm_first_part(:)',{seed},{'tppsm_scenario'}, {'weak'},cpssm_second_part(:)'];
+                    rx_signal_model_inputs = [csm_first_part(:)',{seed},{'S4'},{S4_preset(1)},{'tau0'},{tau0_preset(1)},csm_second_part(:)'];
+                case 'cpssm'
                     ar_model_order = 14; % See right plot of Figure 4.7 of my dissertation.
+                    rx_signal_model_inputs = [cpssm_first_part(:)',{seed},{'tppsm_scenario'}, {'weak'},cpssm_second_part(:)', 'rhof_veff_ratio', rhof_veff_ratio_preset(1)];
             end
         case 'strong'
             train_cfg_csm = struct('scintillation_model', 'CSM', 'S4', S4_preset(2), 'tau0', tau0_preset(2), ...
@@ -339,8 +342,8 @@ function [rx_signal_model_inputs, gen_kf_cfg, init_estimates_csm, init_estimates
                     rx_signal_model_inputs = [csm_first_part(:)',{seed},{'S4'},{S4_preset(2)},{'tau0'},{tau0_preset(2)},csm_second_part(:)'];
                     ar_model_order = 5; % See right plot of Figure 4.2 of my dissertation.
                 case 'cpssm' 
-                    rx_signal_model_inputs = [cpssm_first_part(:)',{seed},{'tppsm_scenario'},{'strong'},cpssm_second_part(:)'];
                     ar_model_order = 1; % See right plot of Figure 4.7 of my dissertation.
+                    rx_signal_model_inputs = [cpssm_first_part(:)',{seed},{'tppsm_scenario'},{'strong'},cpssm_second_part(:)', 'rhof_veff_ratio', rhof_veff_ratio_preset(2)];
             end
     end
 
