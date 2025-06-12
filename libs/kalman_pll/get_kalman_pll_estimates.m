@@ -147,10 +147,12 @@ function [state_estimates, ...
 
             % Apply hard-limited constraint if enabled.
             if adaptive_config.hard_limited.is_used
-                if (10 * log10(extra_vars.latest_L1_c_over_n0_linear) < extra_vars.threshold)
-                    % TODO: It is hard coded here. Doesn't fit the extended
-                    % KF SSM neither the multi-frequency case.
-                    adapt_R = 100;
+                if step * adaptive_config.sampling_interval > adaptive_config.hl_start_time
+                    if (10 * log10(extra_vars.latest_L1_c_over_n0_linear) < extra_vars.threshold)
+                        % TODO: It is hard coded here. Doesn't fit the extended
+                        % KF SSM neither the multi-frequency case.
+                        adapt_R = 999;
+                    end
                 end
             end
 

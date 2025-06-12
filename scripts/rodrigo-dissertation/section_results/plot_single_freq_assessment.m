@@ -13,7 +13,7 @@ end
 load(data_file, 'results', 'sigma2_W_3_sweep');
 
 % Plot settings
-font_size = 18;  % Base font size for labels, legends, and ticks
+font_size = 20;  % Base font size for labels, legends, and ticks
 
 % Define model names and approaches
 model_names = {'csm', 'cpssm_wo_refr', 'cpssm_w_refr'};
@@ -31,7 +31,7 @@ for i_model = 1:numel(model_names)
     fig = figure('Name', sprintf('%s MRMSE', upper(model)), ...
                  'Color', 'w', ...
                  'Units', 'normalized', ...
-                 'Position', [0.05 0.05 0.9 0.85]);
+                 'Position', [0.05 0.05 0.9 0.9]);
 
     % Set default font and LaTeX interpreter
     set(groot, ...
@@ -65,7 +65,7 @@ for i_model = 1:numel(model_names)
                 approach = approaches{k};
                 data_matrix = results.(model).(severity).(approach).(field);
                 mean_rmse = mean(data_matrix, 2);
-                plot(sigma2_W_3_sweep, mean_rmse, 'LineWidth', 1.5);
+                plot(sigma2_W_3_sweep, mean_rmse, 'LineWidth', 2);
             end
 
             % Title for first row
@@ -77,21 +77,22 @@ for i_model = 1:numel(model_names)
             % Y-label for first column
             if col == 1
                 phi_label = field(5:end); % 'T', 'W', or 'AR'
-                ylabel(sprintf('MRMSE($\\hat{\\phi}_{%s,1}[k|k-1]$)', phi_label), 'Interpreter', 'latex', 'FontSize', font_size);
+                ylabel(sprintf('MRMSE($\\hat{\\phi}_{%s,1}[k|k-1]$)', phi_label), 'Interpreter', 'latex', 'FontSize', font_size, 'FontName', 'Times New Roman');
             end
 
             % X-label for bottom row
             if row == 3
-                xlabel('$\sigma^2_{W,3}$', 'Interpreter', 'latex', 'FontSize', font_size);
+                xlabel('$\sigma^2_{W,3}$', 'Interpreter', 'latex', 'FontSize', font_size, 'FontName', 'Times New Roman');
             end
 
             % Legend only on the first tile
             if row == 2 && col == 1
-                legend(approach_labels, 'Location', 'best', 'FontSize', font_size - 2);
+                legend(approach_labels, 'Location', 'best', 'FontSize', font_size - 2, 'FontName', 'Times New Roman');
             end
-
+            
             set(ax, 'XScale', 'log');
             grid(ax, 'on');
+            grid("minor");
         end
     end
 

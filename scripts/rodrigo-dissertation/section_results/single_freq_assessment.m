@@ -21,7 +21,7 @@ cache_dir = fullfile(fileparts(mfilename('fullpath')), 'cache');
 sigma2_W_3_sweep_amount = 20;
 sigma2_W_3_sweep = logspace(-14,2,sigma2_W_3_sweep_amount);
 % Amount of Monte Carlo runs
-mc_runs = 100;
+mc_runs = 2;
 % Ionospheric Scintillation Severities
 severities = ["weak", "strong"];
 
@@ -394,10 +394,10 @@ end
 
 function [kf_ar_cfg, akf_ar_cfg, ahl_kf_ar_cfg, kf_cfg, akf_cfg, online_mdl_learning_cfg] = get_adaptive_cfgs()
     % Define approaches settings
-    
     sampling_interval = 1e-2;
+
     % Hard-Limiting constraint threshold.
-    lambda = 38;  
+    lambda = 35;  
     
     % NWPR parameters
     T_bit = 1/50;
@@ -424,6 +424,7 @@ function [kf_ar_cfg, akf_ar_cfg, ahl_kf_ar_cfg, kf_cfg, akf_cfg, online_mdl_lear
         'measurement_cov_adapt_algorithm', 'nwpr', ...
         'measurement_cov_adapt_algorithm_params', struct('N_nwpr', N_nwpr, 'M_nwpr', M_nwpr), ...
         'states_cov_adapt_algorithm', 'none', ...
+        'hl_start_time', 50, ...
         'sampling_interval', sampling_interval, ...
         'hard_limited', struct('is_used', true, 'L1_C_over_N0_dBHz_threshold', lambda));
     
