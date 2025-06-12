@@ -1,5 +1,8 @@
-%% plot_rmse_results.m
-% Script to plot RMSE results for CSM and CPSSM (without and with refraction)
+% plot_rmse_results.m
+%
+% Description:
+%   Script to plot RMSE results for CSM and CPSSM (without and with refraction)
+%
 % Usage: run this script from the folder containing the 'results' directory.
 
 % Load data

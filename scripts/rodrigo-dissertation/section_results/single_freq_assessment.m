@@ -1,10 +1,8 @@
-% Script: single_freq_assessment.m
+% single_freq_assessment.m
 %
 % Description:
 %   Script for running Monte Carlo runs for performance assessement
 %   of the approaches KF, AKF, KF-AR, AKF-AR, and AHL-KF-AR.
-% 
-% References:
 %
 % Author: Rodrigo de Lima Florindo
 % ORCID: https://orcid.org/0000-0003-0412-5583
