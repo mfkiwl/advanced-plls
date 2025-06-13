@@ -21,7 +21,7 @@ cache_dir = fullfile(fileparts(mfilename('fullpath')), 'cache');
 sigma2_W_3_sweep_amount = 20;
 sigma2_W_3_sweep = logspace(-14,2,sigma2_W_3_sweep_amount);
 % Amount of Monte Carlo runs
-mc_runs = 2;
+mc_runs = 100;
 % Ionospheric Scintillation Severities
 severities = ["weak", "strong"];
 
