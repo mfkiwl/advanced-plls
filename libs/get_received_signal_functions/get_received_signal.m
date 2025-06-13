@@ -149,7 +149,7 @@ diffractive_phase_settled(settling_samples+1:end) = diffractive_phase(settling_s
 
 if ~isempty(refractive_phase)
     refractive_phase_settled(1:settling_samples) = 0;
-    refractive_phase_settled(settling_samples+1:end) = refractive_phase(settling_samples+1:end);
+    refractive_phase_settled(settling_samples+1:end) = refractive_phase(settling_samples+1:end) - floor(refractive_phase(settling_samples+1) / (2*pi)) * 2*pi;
 end
 
 % Construct the baseband received signal

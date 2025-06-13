@@ -13,7 +13,7 @@ clearvars; clc;
 addpath(genpath(fullfile(pwd,'..','..','..','libs')));
 
 %% Reproducibility
-seed = 3;
+seed = 2;
 rng(seed);
 
 %% Configuration
@@ -21,7 +21,6 @@ cache_dir       = fullfile(fileparts(mfilename('fullpath')),'cache');
 sampling_interval = 1e-2;
 settling_time     = 50;
 simulation_time   = 300;
-
 
 % get only KF-AR config
 [ahl_kf_ar_cfg, online_mdl_learning_cfg] = get_adaptive_cfgs();
@@ -51,10 +50,10 @@ sigma2_W_3_amount = 5;
 sigma2_W_3_sweep = logspace(-2,-10, sigma2_W_3_amount);
 
 %% loop over models
-% create figure
+
+% CSM
 fig = figure('Units','normalized','Position',[0.05 0.05 0.9 0.9],'Color','w');
 tiledlayout(3,2,'TileSpacing','compact','Padding','compact');
-
 for row = 1:3
     for col = 1:2
         ax = nexttile;
@@ -112,10 +111,9 @@ for row = 1:3
         % if row == 3
         %     reference_phase_error = diffractive_phase(idx_full);
         % end
-        disp_name = 'Target Error';
         plot(ax, time_zoom, reference_phase_error, ...
             'LineWidth',2.5,'Color','k', ...
-            'DisplayName', disp_name);
+            'DisplayName', 'Target Error');
 
         hold(ax,'off');
 
@@ -154,6 +152,208 @@ out_base = fullfile(results_dir, sprintf('%s_phase_errors_zoom','csm'));
 exportgraphics(fig, [out_base,'.pdf'], 'ContentType','vector');
 savefig(fig, [out_base,'.fig']);
 
+% CPSSM without refractive phase
+fig = figure('Units','normalized','Position',[0.05 0.05 0.9 0.9],'Color','w');
+tiledlayout(3,2,'TileSpacing','compact','Padding','compact');
+for row = 1:3
+    for col = 1:2
+        ax = nexttile;
+        hold(ax,'on');
+
+        severity = severities{col};
+
+        % --- generate received signal & diffractive phase once ---
+        [rx_inputs_base, ~, ~, init_cpssm, ~, ar_phase_idx] = ...
+            get_overall_cfgs(cache_dir, 'cpssm', severity, true, sigma2_W_3_sweep(1), ...
+                                sampling_interval, settling_time, simulation_time, seed);
+        [rx_signal, true_los_phase, ~, diffractive_phase] = ...
+            get_received_signal(rx_inputs_base{:});
+        
+        % prepare colors
+        colors = cool(sigma2_W_3_amount);
+
+        % loop over σ²_{W,3}
+        for k = 1:sigma2_W_3_amount
+            sigma2_W_3 = sigma2_W_3_sweep(k);
+
+            % get KF-AR config & init estimates for this σ²
+            [~, gen_kf_cfg, init_csm, init_cpssm, ~, ~] = ...
+                get_overall_cfgs(cache_dir, 'cpssm', severity, true, sigma2_W_3, ...
+                                    sampling_interval, settling_time, simulation_time, seed);
+
+            % Compute KF-AR estimates
+            [kf_ar_est, ~] = get_kalman_pll_estimates( ...
+                rx_signal, gen_kf_cfg, init_csm, ...
+                'standard', upper('tppsm'), ahl_kf_ar_cfg, online_mdl_learning_cfg);
+
+            switch row
+                case 1  % total phase error
+                    phi_T = kf_ar_est(:,1) + kf_ar_est(:,ar_phase_idx);
+                    phase_error = phi_T(idx_full) - (true_los_phase(idx_full) + diffractive_phase(idx_full));
+                case 2  % Wiener noise error
+                    phi_W = kf_ar_est(:,1);
+                    phase_error = phi_W(idx_full) - true_los_phase(idx_full);
+                case 3  % AR component error
+                    phi_AR = kf_ar_est(:,ar_phase_idx);
+                    phase_error = phi_AR(idx_full) - diffractive_phase(idx_full);
+            end
+
+            % plot error for this σ²
+            plot(ax, time_zoom, phase_error, ...
+                'LineWidth',1.5, ...
+                'Color',colors(k,:), ...
+                'DisplayName',sprintf('$\\sigma^2_{W,3}=%.1e$',sigma2_W_3));
+        end
+
+        % plot diffractive_phase error = 0 baseline (in black)
+        reference_phase_error = zeros(size(idx_full));
+
+        % if row == 3
+        %     reference_phase_error = diffractive_phase(idx_full);
+        % end
+        plot(ax, time_zoom, reference_phase_error, ...
+            'LineWidth',2.5,'Color','k', ...
+            'DisplayName', 'Target Error');
+
+        hold(ax,'off');
+
+        % only add legend on first row, first column
+        if row == 1 && col == 1
+            legend(ax, 'Location','best', ...
+                'Interpreter','latex', ...
+                'FontName','Times New Roman');
+        end
+
+        if col == 1
+            severity_title = 'Weak';
+        elseif col == 2
+            severity_title = 'Strong';
+        end
+
+        % titles & labels
+        if row==1
+            title(ax, severity_title, 'Interpreter','latex','FontName','Times New Roman');
+        end
+        if col==1
+            ylabel(ax, field_labels{row}, 'Interpreter','latex','FontName','Times New Roman');
+        end
+        if row==3
+            xlabel(ax, 'Time [s]', 'Interpreter','latex','FontName','Times New Roman');
+        end
+
+        % styling
+        grid(ax,'on'); grid(ax,'minor');
+        set(ax,'FontName','Times New Roman','TickLabelInterpreter','latex', 'FontSize', 22);
+    end
+end
+
+% CPSSM with refractive phase component
+fig = figure('Units','normalized','Position',[0.05 0.05 0.9 0.9],'Color','w');
+tiledlayout(3,2,'TileSpacing','compact','Padding','compact');
+for row = 1:3
+    for col = 1:2
+        ax = nexttile;
+        hold(ax,'on');
+
+        severity = severities{col};
+
+        % --- generate received signal & diffractive phase once ---
+        [rx_inputs_base, ~, ~, init_cpssm, ~, ar_phase_idx] = ...
+            get_overall_cfgs(cache_dir, 'cpssm', severity, false, sigma2_W_3_sweep(1), ...
+                                sampling_interval, settling_time, simulation_time, seed);
+        [rx_signal, true_los_phase, psi_cpssm, diffractive_phase, refractive_phase] = ...
+            get_received_signal(rx_inputs_base{:});
+        
+        % prepare colors
+        colors = cool(sigma2_W_3_amount);
+
+        % loop over σ²_{W,3}
+        for k = 1:sigma2_W_3_amount
+            sigma2_W_3 = sigma2_W_3_sweep(k);
+
+            % get KF-AR config & init estimates for this σ²
+            [~, gen_kf_cfg, init_csm, init_cpssm, ~, ~] = ...
+                get_overall_cfgs(cache_dir, 'cpssm', severity, false, sigma2_W_3, ...
+                                    sampling_interval, settling_time, simulation_time, seed);
+
+            % Compute KF-AR estimates
+            [kf_ar_est, ~] = get_kalman_pll_estimates( ...
+                rx_signal, gen_kf_cfg, init_csm, ...
+                'standard', upper('tppsm'), ahl_kf_ar_cfg, online_mdl_learning_cfg);
+
+            full_phase_propagated_scint_field = get_corrected_phase(psi_cpssm);
+            switch row
+                case 1  % total phase error
+                    phi_T = kf_ar_est(:,1) + kf_ar_est(:,ar_phase_idx);
+                    phase_error = phi_T(idx_full) - (true_los_phase(idx_full) + full_phase_propagated_scint_field(idx_full));
+                case 2  % Wiener noise error
+                    phi_W = kf_ar_est(:,1);
+                    phase_error = phi_W(idx_full) - true_los_phase(idx_full);
+                case 3  % AR component error
+                    phi_AR = kf_ar_est(:,ar_phase_idx);
+                    phase_error = phi_AR(idx_full) - diffractive_phase(idx_full);
+            end
+
+            % plot error for this σ²
+            plot(ax, time_zoom, phase_error, ...
+                'LineWidth',1.5, ...
+                'Color',colors(k,:), ...
+                'DisplayName',sprintf('$\\sigma^2_{W,3}=%.1e$',sigma2_W_3));
+        end
+
+        % plot diffractive_phase error = 0 baseline (in black)
+        reference_phase_error = zeros(size(idx_full));
+        
+        % if row == 3
+        %     reference_phase_error = diffractive_phase(idx_full);
+        % end
+        plot(ax, time_zoom, reference_phase_error, ...
+            'LineWidth',2.5,'Color','k', ...
+            'DisplayName', 'Target Error');
+
+        if row == 2
+            plot(ax, time_zoom, refractive_phase(idx_full), ...
+                'LineWidth', 2.5,'Color','k', ...
+                'LineStyle', ':', ...
+                'DisplayName', 'Refractive Phase ($\phi_{\mathrm{R}, 1} [k]$)');
+        end
+
+        hold(ax,'off');
+
+        % only add legend on first row, first column
+        if row == 2 && col == 1
+            legend(ax, 'Location','best', ...
+                'Interpreter','latex', ...
+                'FontName','Times New Roman');
+        end
+
+        if col == 1
+            severity_title = 'Weak';
+        elseif col == 2
+            severity_title = 'Strong';
+        end
+
+        % titles & labels
+        if row==1
+            title(ax, severity_title, 'Interpreter','latex','FontName','Times New Roman');
+        end
+        if col==1
+            ylabel(ax, field_labels{row}, 'Interpreter','latex','FontName','Times New Roman');
+        end
+        if row==3
+            xlabel(ax, 'Time [s]', 'Interpreter','latex','FontName','Times New Roman');
+        end
+
+        % styling
+        grid(ax,'on'); grid(ax,'minor');
+        set(ax,'FontName','Times New Roman','TickLabelInterpreter','latex', 'FontSize', 22);
+    end
+end
+
+% save outputs
+out_base = fullfile(results_dir, sprintf('%s_phase_errors_zoom','csm'));
+exportgraphics(fig, [out_base,'.pdf'], 'ContentType','vector');
+savefig(fig, [out_base,'.fig']);
 
 %% Auxiliary functions
 function [rx_signal_model_inputs, gen_kf_cfg, init_estimates_csm, init_estimates_cpssm, init_estimates_none, ar_phase_idx] = ...
