@@ -1,4 +1,4 @@
-% error_series_comparison.m
+% errors_comparison_all_approaches.m
 %
 % Overlay phase error time series for five PLL approaches:
 % KF-AR, AKF-AR, AHL-KF-AR, KF, AKF
@@ -7,13 +7,14 @@
 % Now includes diffractive phase on last row (".-" style) and refractive in last fig legend.
 %
 % Author: Rodrigo de Lima Florindo
-% Date:   2025-06-15
+% ORCID: https://orcid.org/0000-0003-0412-5583
+% Email: rdlfresearch@gmail.com
 
 clearvars; clc;
 addpath(genpath(fullfile(pwd,'..','..','..','libs')));
 
 %% 1) Simulation settings
-seed               = 3;
+seed               = 6;
 rng(seed);
 severities         = {'weak','strong'};   % severity loop
 sampling_interval  = 1e-2;
@@ -21,7 +22,7 @@ settling_time      = 50;
 simulation_time    = 300;
 cache_dir          = fullfile(fileparts(mfilename('fullpath')),'cache');
 
-sigma2_W_3         = 1e-5;               % fixed AR-noise variance
+sigma2_W_3         = 1e-6;               % fixed AR-noise variance
 
 %% 2) Zoom window
 zoom_start         = 50;  % seconds
@@ -76,7 +77,7 @@ field_labels = { ...
     '$\hat{\phi}_{\mathrm{AR},1}[k\mid k-1]$', ...
 };
 font_size = 14;
-colors    = cool(numel(title_names));
+colors    = winter(numel(title_names));
 legend_pos = {[1,1],[1,1],[1,1]};
 
 for fig_i = 1:numel(model_list)
