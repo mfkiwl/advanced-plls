@@ -25,7 +25,7 @@ approaches_ar = {'kf_ar', 'akf_ar', 'ahl_kf_ar'};
 approach_labels_ar = {'KF-AR', 'AKF-AR', 'AHL-KF-AR'};
 severities = {'weak', 'strong'};
 field_names = {'phi_T', 'phi_W', 'phi_AR'};
-
+colors = winter(numel(approach_labels_all));
 % Loop through each model
 for i_model = 1:numel(model_names)
     model = model_names{i_model};
@@ -67,7 +67,7 @@ for i_model = 1:numel(model_names)
                 approach = approaches{k};
                 data_matrix = results.(model).(severity).(approach).(field);
                 mean_rmse = mean(data_matrix, 2);
-                plot(sigma2_W_3_sweep, mean_rmse, 'LineWidth', 2);
+                plot(sigma2_W_3_sweep, mean_rmse, 'LineWidth', 2, 'Color', colors(k,:));
             end
 
             % Title for first row
@@ -99,7 +99,7 @@ for i_model = 1:numel(model_names)
     end
 
     % Save figures
-    out_base = fullfile('results', sprintf('%s_rmse', model));
+    out_base = fullfile('results', sprintf('%s_mrmse', model));
     exportgraphics(fig, [out_base, '.pdf'], 'ContentType', 'vector');
     savefig(fig, [out_base, '.fig']);
 end
