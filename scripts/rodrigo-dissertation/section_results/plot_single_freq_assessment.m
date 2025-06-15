@@ -3,7 +3,9 @@
 % Description:
 %   Script to plot RMSE results for CSM and CPSSM (without and with refraction)
 %
-% Usage: run this script from the folder containing the 'results' directory.
+% Author: Rodrigo de Lima Florindo
+% ORCID: https://orcid.org/0000-0003-0412-5583
+% Email: rdlfresearch@gmail.com
 
 % Load data
 data_file = fullfile('results', 'results_single_freq_assessment.mat');
@@ -13,7 +15,7 @@ end
 load(data_file, 'results', 'sigma2_W_3_sweep');
 
 % Plot settings
-font_size = 20;  % Base font size for labels, legends, and ticks
+font_size = 14;  % Base font size for labels, legends, and ticks
 
 % Define model names and approaches
 model_names = {'csm', 'cpssm_wo_refr', 'cpssm_w_refr'};
@@ -76,13 +78,13 @@ for i_model = 1:numel(model_names)
 
             % Y-label for first column
             if col == 1
-                phi_label = field(5:end); % 'T', 'W', or 'AR'
+                phi_label = ['\mathrm{',field(5:end),'}']; % 'T', 'W', or 'AR'
                 ylabel(sprintf('MRMSE($\\hat{\\phi}_{%s,1}[k|k-1]$)', phi_label), 'Interpreter', 'latex', 'FontSize', font_size, 'FontName', 'Times New Roman');
             end
 
             % X-label for bottom row
             if row == 3
-                xlabel('$\sigma^2_{W,3}$', 'Interpreter', 'latex', 'FontSize', font_size, 'FontName', 'Times New Roman');
+                xlabel('$\sigma^2_{\mathrm{W},3}$', 'Interpreter', 'latex', 'FontSize', font_size, 'FontName', 'Times New Roman');
             end
 
             % Legend only on the first tile
