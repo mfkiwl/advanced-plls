@@ -21,7 +21,7 @@ settling_time      = 50;
 simulation_time    = 300;
 cache_dir          = fullfile(fileparts(mfilename('fullpath')),'cache');
 
-sigma2_W_3         = 1e-12;               % fixed AR-noise variance
+sigma2_W_3         = 1e-5;               % fixed AR-noise variance
 
 %% 2) Zoom window
 zoom_start         = 50;  % seconds
@@ -168,7 +168,7 @@ for fig_i = 1:numel(model_list)
             hold(ax,'off');
 
             if row==legend_pos{fig_i}(1) && col==legend_pos{fig_i}(2)
-                legend(ax,'Location','northwest','Interpreter','latex','FontName','Times New Roman');
+                legend(ax,'Location','best','Interpreter','latex','FontName','Times New Roman');
             end
             if strcmp(sev, 'weak')
                 title_name_final = 'Weak';
