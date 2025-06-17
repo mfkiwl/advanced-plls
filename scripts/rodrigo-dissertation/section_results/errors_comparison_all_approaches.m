@@ -3,7 +3,7 @@
 % Overlay phase error time series for five PLL approaches:
 % KF-AR, AKF-AR, AHL-KF-AR, KF, AKF
 % Replicates exactly the layout and styling of error_series_plots_vs_sigma2_W,
-% but with a fixed sigma2_W_3=1e-4 and overlay of all approaches.
+% but with a fixed sigma2_W_3=1e-6 and overlay of all approaches.
 % Now includes diffractive phase on last row (".-" style) and refractive in last fig legend.
 %
 % Author: Rodrigo de Lima Florindo
@@ -26,7 +26,7 @@ sigma2_W_3         = 1e-6;               % fixed AR-noise variance
 
 %% 2) Zoom window
 zoom_start         = 50;  % seconds
-zoom_end           = 100; % seconds
+zoom_end           = 150; % seconds
 idx_full           = round(zoom_start/sampling_interval) : round(zoom_end/sampling_interval);
 time_zoom          = (zoom_start : sampling_interval : zoom_end).' ;
 

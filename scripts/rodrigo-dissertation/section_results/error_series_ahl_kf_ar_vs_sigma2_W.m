@@ -22,7 +22,7 @@ cache_dir         = fullfile(fileparts(mfilename('fullpath')),'cache');
 
 %% 2) Zoom window
 zoom_start = 50;  % seconds
-zoom_end   = 100; % seconds
+zoom_end   = 150; % seconds
 idx_full   = round(zoom_start/sampling_interval):round(zoom_end/sampling_interval);
 time_zoom  = (zoom_start:sampling_interval:zoom_end).';
 
