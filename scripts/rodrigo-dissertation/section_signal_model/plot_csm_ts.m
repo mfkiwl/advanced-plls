@@ -2,8 +2,8 @@ clearvars; clc;
 
 addpath(genpath(fullfile(pwd, "..", "..", "..")));
 
-if exist("results_pdf","dir")
-    mkdir('results_pdf');
+if exist("results","dir")
+    mkdir('results');
 end
 
 sim_time = 150;
@@ -78,7 +78,7 @@ grid("minor");
 ylabel('$\mathrm{unwrap}\{\phi_{\mathrm{I},1}[k]\}$ [rad]','Interpreter','latex');
 xlabel('Time [s]','Interpreter','latex');
 set(gca, 'FontSize', font_size, 'fontname', 'Times New Roman');
-exportgraphics(gcf, 'results_pdf/csm_ts.pdf', 'ContentType', 'vector');
+exportgraphics(gcf, 'results/csm_ts.pdf', 'ContentType', 'vector');
 
 %% Generate plots - zoomed
 figure('Position',[50,50,1000,600]);
@@ -120,4 +120,4 @@ grid("minor");
 ylabel('$\mathrm{unwrap}\{\phi_{\mathrm{I},1}[k]\}$ [rad]','Interpreter','latex');
 xlabel('Time [s]','Interpreter','latex');
 set(gca, 'FontSize', font_size, 'fontname', 'Times New Roman');
-exportgraphics(gcf, 'results_pdf/csm_zoom_ts.pdf', 'ContentType', 'vector');
+exportgraphics(gcf, 'results/csm_zoom_ts.pdf', 'ContentType', 'vector');
