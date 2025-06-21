@@ -2,7 +2,7 @@ clearvars; clc;
 
 addpath(genpath(fullfile(pwd, "..", "..", "..")));
 
-if exist("results","dir")
+if ~exist("results","dir")
     mkdir('results');
 end
 

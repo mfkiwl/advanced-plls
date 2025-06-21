@@ -2,8 +2,8 @@ clearvars; clc;
 addpath(genpath(fullfile(pwd,"..","..","..")));
 
 % make results folder
-if ~exist("results_pdf","dir")
-    mkdir("results_pdf");
+if ~exist("results","dir")
+    mkdir("results");
 end
 
 %% parameters
@@ -76,7 +76,7 @@ plot(time,weak_diff_w, 'LineWidth',line_width, 'Color', cmap(1,:));
 hold off;
 grid on;
 grid("minor");
-ylabel('$\mathrm{W}\{\phi_{\mathrm{D}}[k]\}$ [rad]','Interpreter','latex');
+ylabel('$\phi_{\mathrm{D}}[k]$ [rad]','Interpreter','latex');
 xlabel('Time [s]','Interpreter','latex');
 set(gca, 'FontSize', font_size, 'fontname', 'Times New Roman');
 exportgraphics(gcf, 'results/csm_ts.pdf', 'ContentType', 'vector');
@@ -88,10 +88,10 @@ plot(time,weak_diff, 'LineWidth',line_width, 'Color', cmap(1,:));
 hold off;
 grid on;
 grid("minor");
-ylabel('$\phi_{\mathrm{D}}[k]$ [rad]','Interpreter','latex');
+ylabel('$\mathrm{UW}\{\phi_{\mathrm{D}}[k]\}$ [rad]','Interpreter','latex');
 xlabel('Time [s]','Interpreter','latex');
 set(gca, 'FontSize', font_size, 'fontname', 'Times New Roman');
-exportgraphics(gcf, 'results/csm_ts.pdf', 'ContentType', 'vector');
+exportgraphics(gcf, 'results/cpssm_ts.pdf', 'ContentType', 'vector');
 
 % nexttile;
 % hold on;
