@@ -31,16 +31,6 @@ end
 
 %% Simulation parameters
 
-
-simulation_time = 300;
-sampling_interval = 0.01;
-severities = {'Weak','Moderate','Strong'};
-cpssm_params = struct( ...
-    'Weak',    {'weak',     'is_enable_cmd_print', false, 'simulation_time', simulation_time, 'sampling_interval', sampling_interval, 'rhof_veff_ratio', 1.5},...
-    'Moderate',{'moderate', 'is_enable_cmd_print', false, 'simulation_time', simulation_time, 'sampling_interval', sampling_interval, 'rhof_veff_ratio', 0.8},...
-    'Strong',  {'strong',   'is_enable_cmd_print', false, 'simulation_time', simulation_time, 'sampling_interval', sampling_interval, 'rhof_veff_ratio', 0.27}...
-    );
-font_size = 16;
 simulation_time = 300;
 sampling_interval = 0.01;
 severities = {'Weak','Moderate','Strong'};

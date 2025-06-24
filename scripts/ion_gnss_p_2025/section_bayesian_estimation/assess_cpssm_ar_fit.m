@@ -9,16 +9,25 @@ fs = 1/t_samp;
 seed = 8;
 rng(seed);
 
-csm_params_weak     = struct('S4', 0.2, 'tau0', 1.0, 'simulation_time', sim_time, 'sampling_interval', t_samp);
-csm_params_strong   = struct('S4', 0.9, 'tau0', 0.2, 'simulation_time', sim_time, 'sampling_interval', t_samp);
+severities = {'Weak','Strong'};
+cpssm_params = struct( ...
+    'Weak',    {'weak', 'is_enable_cmd_print', false, 'simulation_time', sim_time, 'sampling_interval', t_samp, 'rhof_veff_ratio', 1.5},...
+    'Strong',  {'strong', 'is_enable_cmd_print', false, 'simulation_time', sim_time, 'sampling_interval', t_samp, 'rhof_veff_ratio', 0.27}...
+    );
 
-psi_weak_ts = get_csm_data(csm_params_weak);
-psi_strong_ts = get_csm_data(csm_params_strong);
+[psi_weak_ts, phi_R_weak_ts] = get_tppsm_multifreq_data(cpssm_params.Weak, 'seed', seed);
+[psi_strong_ts, phi_R_strong_ts] = get_tppsm_multifreq_data(cpssm_params.Strong, 'seed', seed);
 
-weak_phi_D_ts = angle(psi_weak_ts);
-strong_phi_D_ts = angle(psi_strong_ts);
+phi_I_weak_ts = get_corrected_phase(psi_weak_ts(:,1));
+phi_I_strong_ts = get_corrected_phase(psi_strong_ts(:,1));
 
-phases_ts = [weak_phi_D_ts, strong_phi_D_ts];
+phi_D_weak_ts = phi_I_weak_ts - phi_R_weak_ts(:,1);
+phi_D_strong_ts = phi_I_strong_ts - phi_R_strong_ts(:,1);
+
+wrapped_phi_D_weak_ts = wrapToPi(phi_D_weak_ts);
+wrapped_phi_D_strong_ts = wrapToPi(phi_D_strong_ts);
+
+phases_ts = [wrapped_phi_D_weak_ts, wrapped_phi_D_strong_ts];
 
 ar_orders_amount = 20;
 bic_array = zeros(ar_orders_amount,2);
@@ -126,7 +135,7 @@ if ~exist("results","dir")
     mkdir("results");
 end
 
-exportgraphics(gcf, 'results/csm_ar_fit.pdf', 'ContentType','vector');
+exportgraphics(gcf, 'results/cpssm_ar_fit.pdf', 'ContentType','vector');
 
 function S_gg = compute_ar_psd(ar_coeffs, t_samp, sigma2_ar, freq)
 % COMPUTE_AR_PSD  Compute S_{γγ}(f) for an AR(p) process

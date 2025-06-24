@@ -15,7 +15,7 @@ end
 load(data_file, 'results', 'sigma2_W_3_sweep');
 
 % Plot settings
-font_size = 14;  % Base font size for labels, legends, and ticks
+font_size = 15.5;  % Base font size for labels, legends, and ticks
 
 % Define model names and approaches
 model_names = {'csm', 'cpssm_wo_refr', 'cpssm_w_refr'};
@@ -33,7 +33,7 @@ for i_model = 1:numel(model_names)
     fig = figure('Name', sprintf('%s MRMSE', upper(model)), ...
                  'Color', 'w', ...
                  'Units', 'normalized', ...
-                 'Position', [0.05 0.05 0.9 0.9]);
+                 'Position', [0.05 0.05 1 0.8]);
 
     % Set default font and LaTeX interpreter
     set(groot, ...
@@ -79,12 +79,12 @@ for i_model = 1:numel(model_names)
             % Y-label for first column
             if col == 1
                 phi_label = ['\mathrm{',field(5:end),'}']; % 'T', 'W', or 'AR'
-                ylabel(sprintf('MRMSE($\\hat{\\phi}_{%s,1}[k|k-1]$)', phi_label), 'Interpreter', 'latex', 'FontSize', font_size, 'FontName', 'Times New Roman');
+                ylabel(sprintf('MRMSE($\\hat{\\phi}_{%s}[k|k-1]$)', phi_label), 'Interpreter', 'latex', 'FontSize', font_size, 'FontName', 'Times New Roman');
             end
 
             % X-label for bottom row
             if row == 3
-                xlabel('$\sigma^2_{\mathrm{W},3}$', 'Interpreter', 'latex', 'FontSize', font_size, 'FontName', 'Times New Roman');
+                xlabel('$\sigma^2_{\mathrm{W}}$', 'Interpreter', 'latex', 'FontSize', font_size, 'FontName', 'Times New Roman');
             end
 
             % Legend only on the first tile
