@@ -227,6 +227,7 @@ for r = 1:3
     hold off;
     xlabel('Time [s]');
     ylabel('Residuals');
+    ylim([-0.2,0.4]);
     title(sprintf('Amplitude Residuals (%s)', bands{r}));
     if r == 2
         legend('Location','best', 'Direction','reverse');
@@ -243,6 +244,7 @@ for r = 1:3
     hold off;
     xlabel('Time [s]');
     ylabel('Residuals [rad]');
+    ylim([-pi,pi]);
     title(sprintf('Total Phase Residuals (%s)', bands{r}));
     % legend('Location','best', 'Direction','reverse'); grid on;
     set(gca, 'FontSize', font_size);
