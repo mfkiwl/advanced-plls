@@ -60,6 +60,7 @@ function [FDnew,QDnew] = LOS(L,M,T,sigma,delta)
     for i = 1:(M+L-1)
         expr = E * Qe(:,:,i) * E';
         QDi(:,:,i) = int(expr,tau,0,T_I);
+        disp(QDi(:,:,i))
         QD = QD + QDi(:,:,i);
     end
 
