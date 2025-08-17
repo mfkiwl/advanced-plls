@@ -15,7 +15,7 @@ end
 load(data_file, 'results', 'sigma2_W_3_sweep');
 
 % Plot settings
-font_size = 15.5;  % Base font size for labels, legends, and ticks
+font_size = 22;  % Base font size for labels, legends, and ticks
 
 % Define model names and approaches
 model_names = {'csm', 'cpssm_wo_refr', 'cpssm_w_refr'};
@@ -25,7 +25,7 @@ approaches_ar = {'kf_ar', 'akf_ar', 'ahl_kf_ar'};
 approach_labels_ar = {'KF-AR', 'AKF-AR', 'AHL-KF-AR'};
 severities = {'weak', 'strong'};
 field_names = {'phi_T', 'phi_W', 'phi_AR'};
-colors = winter(numel(approach_labels_all));
+colors = turbo(numel(approach_labels_all));
 % Loop through each model
 for i_model = 1:numel(model_names)
     model = model_names{i_model};
@@ -92,6 +92,7 @@ for i_model = 1:numel(model_names)
                 legend(approach_labels, 'Location', 'best', 'FontSize', font_size - 2, 'FontName', 'Times New Roman');
             end
             
+            xlim([1e-14,1e2])
             set(ax, 'XScale', 'log');
             grid(ax, 'on');
             grid("minor");

@@ -1,4 +1,4 @@
-# kalman_pll_testbench
+# Advanced PLLs
 
 
 This repository contains the Kalman PLL Testbench project for MATLAB R2024b. It is designed to simulate and analyze GNSS receiver dynamics using a Kalman filter-based Phase Lock Loop (PLL). The project integrates several components—including scintillation models and auxiliary libraries—some of which are managed as Git submodules.
