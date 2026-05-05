@@ -98,6 +98,10 @@ function [F, Q, H, R, W] = build_standard_kf(F_los, Q_los, aug_data, general_con
             H = [1, zeros(1, size(F_los,1)-1), aug_data.H_aug];
             W = zeros(size(F,1), 1);
 
+        case 'arfit-complex-field'
+            error('MATLAB:NotImplementedAugmentationModel', ...
+                'The arfit-complex-field augmentation model is only supported by the unscented KF.');
+
         otherwise
             error('MATLAB:InvalidAugmentationModel', 'KF augmentation type %s is not supported in standard KF builder.', aug_data.augmentation_type);
     end

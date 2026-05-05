@@ -64,7 +64,9 @@ function kalman_pll_config = build_kalman_pll_config(general_config, kalman_pll_
     [F_los, Q_los] = get_discrete_wiener_model(general_config.discrete_wiener_model_config{:});
     
     % 2. Preprocess training data.
-    training_data = preprocess_training_data(general_config.scintillation_training_data_config);
+    training_data = preprocess_training_data( ...
+        general_config.scintillation_training_data_config, ...
+        general_config.augmentation_model_initializer.id);
     sampling_interval = general_config.discrete_wiener_model_config{3};
     
     % 3. Compute augmentation data using the new helper.
@@ -81,9 +83,8 @@ function kalman_pll_config = build_kalman_pll_config(general_config, kalman_pll_
             W = zeros(size(F_los,1), 1);
             H = [];
         case 'unscented'
-            [F, Q, R] = build_unscented_kf(F_los, Q_los, aug_data, general_config, sampling_interval);
+            [F, Q, R, W] = build_unscented_kf(F_los, Q_los, aug_data, general_config, sampling_interval);
             Hj_handle = [];
-            W = zeros(size(F_los,1), 1);
             H = [];
         case 'cubature'
             error('MATLAB:NotImplemented', 'Cubature KF variant is not implemented yet.');

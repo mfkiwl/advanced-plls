@@ -1,4 +1,4 @@
-function training_data = preprocess_training_data(scint_training_data_cfg)
+function training_data = preprocess_training_data(scint_training_data_cfg, augmentation_model_id)
 % preprocess_training_data
 %
 % Syntax:
@@ -7,7 +7,9 @@ function training_data = preprocess_training_data(scint_training_data_cfg)
 % Description:
 %   This function generates training data for a given scintillation model.
 %   It extracts the phase information from the scintillation field, optionally
-%   removing refractive effects for the TPPSM model.
+%   removing refractive effects for the TPPSM model. For the
+%   'arfit-complex-field' augmentation model, it returns the propagated
+%   complex scintillation field directly.
 %
 % Inputs:
 %   scint_training_data_cfg - Struct containing scintillation model settings.
@@ -32,7 +34,8 @@ function training_data = preprocess_training_data(scint_training_data_cfg)
 %                                augmentation models.
 %
 % Outputs:
-%   training_data - Phase data extracted from the scintillation field.
+%   training_data - Phase data or complex field extracted from the
+%                   scintillation field.
 %
 % Notes:
 %   - Calls external functions (get_csm_data or get_tppsm_data) to generate scintillation fields.
@@ -59,14 +62,24 @@ function training_data = preprocess_training_data(scint_training_data_cfg)
 %   ORCID: https://orcid.org/0000-0003-0412-5583
 %   Email: rdlfresearch@gmail.com
 
+    if nargin < 2
+        augmentation_model_id = '';
+    end
+
+    is_complex_field_training = strcmpi(augmentation_model_id, 'arfit-complex-field');
+
     switch upper(scint_training_data_cfg.scintillation_model)
         case 'CSM'
             % Generate CSM data
             csm_config = rmfield(scint_training_data_cfg,'scintillation_model');
             scint_complex_field = get_csm_data(csm_config);
-            training_data = angle(scint_complex_field);
-            if scint_training_data_cfg.is_unwrapping_used
-                training_data = unwrap(training_data);
+            if is_complex_field_training
+                training_data = scint_complex_field;
+            else
+                training_data = angle(scint_complex_field);
+                if scint_training_data_cfg.is_unwrapping_used
+                    training_data = unwrap(training_data);
+                end
             end
 
         case 'TPPSM'
@@ -80,9 +93,13 @@ function training_data = preprocess_training_data(scint_training_data_cfg)
             if scint_training_data_cfg.is_refractive_effects_removed
                 scint_complex_field = scint_complex_field .* exp(-1j * ps_realization);
             end
-            training_data = angle(scint_complex_field);
-            if scint_training_data_cfg.is_unwrapping_used
-                training_data = unwrap(training_data);
+            if is_complex_field_training
+                training_data = scint_complex_field;
+            else
+                training_data = angle(scint_complex_field);
+                if scint_training_data_cfg.is_unwrapping_used
+                    training_data = unwrap(training_data);
+                end
             end
         case 'NONE'
             % For 'none', we can define training_data as an empty array

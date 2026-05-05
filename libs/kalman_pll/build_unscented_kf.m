@@ -1,4 +1,4 @@
-function [F, Q, R] = build_unscented_kf(F_los, Q_los, aug_data, general_config, sampling_interval)
+function [F, Q, R, W] = build_unscented_kf(F_los, Q_los, aug_data, general_config, sampling_interval)
 % build_unscented_kf
 %
 % Constructs the full unscented Kalman filter matrices.
@@ -13,8 +13,8 @@ function [F, Q, R] = build_unscented_kf(F_los, Q_los, aug_data, general_config, 
 %   sampling_interval- The sampling interval.
 %
 % Outputs:
-%   F, Q, R          - The state transition, process noise, measurement noise,
-%                      and additional KF matrices.
+%   F, Q, R, W       - The state transition, process noise, measurement noise,
+%                      and additive state-transition vector.
 % Notes:
 %   - In this version, the amplitude is not part of the KF state but is 
 %     provided by an external estimator.
@@ -34,15 +34,32 @@ function [F, Q, R] = build_unscented_kf(F_los, Q_los, aug_data, general_config, 
             % No augmentation is applied.
             F = F_los;
             Q = Q_los;
+            W = zeros(size(F_los, 1), 1);
+
+        case 'arfit-complex-field'
+            F_aug = aug_data.F_aug;
+            Q_aug = aug_data.Q_aug;
+            intercept_vector = aug_data.intercept;
+            states_amount = aug_data.augInfo.states_amount;
+            model_order = aug_data.augInfo.model_order;
+
+            if states_amount ~= 2
+                error('MATLAB:InvalidAugmentationModel', ...
+                    'The arfit-complex-field augmentation model must contain exactly real and imaginary VAR states.');
+            end
+
+            F = blkdiag(F_los, F_aug);
+            Q = blkdiag(Q_los, Q_aug);
+            W = [zeros(size(F_los, 1), 1); intercept_vector; zeros(states_amount * (model_order - 1), 1)];
 
         case {'arfit', 'aryule', 'kinematic', 'arima'}
             % Future augmentation types to be implemented.
             error('MATLAB:NotImplementedAugmentationModel', ...
-                'KF augmentation type %s is not supported in extended KF builder yet.', aug_data.augmentation_type);
+                'KF augmentation type %s is not supported in unscented KF builder yet.', aug_data.augmentation_type);
 
         otherwise
             error('MATLAB:InvalidAugmentationModel', ...
-                'KF augmentation type %s is not supported in extended KF builder.', aug_data.augmentation_type);
+                'KF augmentation type %s is not supported in unscented KF builder.', aug_data.augmentation_type);
     end
 
 end

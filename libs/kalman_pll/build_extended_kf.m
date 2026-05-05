@@ -49,7 +49,7 @@ function [F, Q, Hj_handle, R] = build_extended_kf(F_los, Q_los, aug_data, genera
             % Jacobian will require two inputs: the external amplitude and the KF state.
             Hj_handle = @(external_amplitude, x) measurement_jacobian(external_amplitude, x, meas_param);
 
-        case {'arfit', 'aryule', 'kinematic', 'arima'}
+        case {'arfit', 'aryule', 'kinematic', 'arima', 'arfit-complex-field'}
             % Future augmentation types to be implemented.
             error('MATLAB:NotImplementedAugmentationModel', ...
                 'KF augmentation type %s is not supported in extended KF builder yet.', aug_data.augmentation_type);

@@ -102,6 +102,32 @@ function initial_estimates = get_initial_estimates(general_config, kalman_pll_co
                 initial_estimates.P_hat_init = blkdiag(LOS_cov, (pi^2/3) * eye(N));
             end
 
+        case 'arfit-complex-field'
+            % The complex-field VAR state stores [real(psi); imag(psi)]
+            % for the current sample followed by its lag blocks.
+            var_states = 2;
+            var_order = general_config.augmentation_model_initializer.model_params.model_order;
+            N = var_states * var_order;
+            complex_field_init = repmat([1; 0], var_order, 1);
+            if general_config.is_generate_random_initial_estimates
+                % Generate random errors for LOS states based on uniform distributions.
+                random_errors = zeros(L,1);
+                for i = 1:L
+                    bound = general_config.initial_states_distributions_boundaries{i};
+                    random_errors(i) = unifrnd(bound(1), bound(2));
+                end
+
+                initial_estimates.x_hat_init = [general_config.expected_doppler_profile.' - random_errors; complex_field_init];
+
+                los_variances = cellfun(@(b) (b(2) - b(1))^2 / 12, general_config.initial_states_distributions_boundaries);
+                initial_estimates.P_hat_init = blkdiag(diag(los_variances), eye(N));
+            else
+                initial_estimates.x_hat_init = [general_config.expected_doppler_profile.'; complex_field_init];
+
+                LOS_cov = diag([pi^2/3, zeros(1, L-1)]);
+                initial_estimates.P_hat_init = blkdiag(LOS_cov, eye(N));
+            end
+
         case 'rbf'
             % NOTE: This part is under development.
         case 'kinematic'

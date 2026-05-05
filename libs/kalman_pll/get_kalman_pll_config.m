@@ -47,7 +47,8 @@ function [kalman_pll_config, initial_estimates] = get_kalman_pll_config(general_
 %       augmentation_model_initializer - Struct specifying the augmentation model initialization method and its parameters:
 %           Fields:
 %               id - A string indicating the augmentation model initialization method. Allowed values are:
-%                    'arfit', 'aryule', 'kinematic', 'arima', 'rbf', or 'none'.
+%                    'arfit', 'arfit-complex-field', 'aryule', 'kinematic',
+%                    'arima', 'rbf', or 'none'.
 %               model_params - A struct containing parameters specific to the chosen method:
 %                  - For 'arfit' and 'aryule': include the field 'model_order' (numeric) indicating the order of the VAR model.
 %                  - For 'kinematic': include 'wiener_mdl_order' (numeric) and 'process_noise_variance' (numeric) to define the LOS augmentation.
@@ -239,13 +240,32 @@ end
 function validate_augmentation_model(general_config)
     % Validate that the augmentation model initializer is a nonempty string and one of the allowed values.
     validateattributes(general_config.augmentation_model_initializer, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer');
-    if ~any(strcmpi(general_config.augmentation_model_initializer.id, {'arfit', 'aryule', 'arima', 'rbf', 'kinematic', 'none'}))
+    if ~any(strcmpi(general_config.augmentation_model_initializer.id, {'arfit', 'arfit-complex-field', 'aryule', 'arima', 'rbf', 'kinematic', 'none'}))
         error('get_kalman_pll_config:InvalidAugmentationModel', ...
-            'augmentation_model_initializer must be ''arfit'', ''aryule'', ''second_wiener_mdl'', ''rbf'' or ''none''. Received: `%s`.', model_initializer.id);
+            'augmentation_model_initializer must be ''arfit'', ''arfit-complex-field'', ''aryule'', ''second_wiener_mdl'', ''rbf'' or ''none''. Received: `%s`.', general_config.augmentation_model_initializer.id);
     end
     validateattributes(general_config.augmentation_model_initializer.model_params, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params');
     switch general_config.augmentation_model_initializer.id
         case 'arfit'
+            validateattributes(general_config.augmentation_model_initializer.model_params, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params');
+            validateattributes(general_config.augmentation_model_initializer.model_params.model_order, {'double'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params.model_order');
+        case 'arfit-complex-field'
+            if general_config.discrete_wiener_model_config{1} ~= 1
+                error('get_kalman_pll_config:incompatible_model_with_multi_frequency_tracking', ...
+                    'The arfit-complex-field model_initializer is only supported for single-frequency carrier phase tracking systems.');
+            end
+            if strcmpi(general_config.scintillation_training_data_config.scintillation_model, 'none')
+                error('get_kalman_pll_config:incompatible_training_model', ...
+                    'The arfit-complex-field model_initializer requires CSM or TPPSM training data.');
+            end
+            if numel(general_config.C_over_N0_array_dBHz) ~= 1
+                error('get_kalman_pll_config:incompatible_model_with_multi_frequency_tracking', ...
+                    'The arfit-complex-field model_initializer expects scalar C_over_N0_array_dBHz.');
+            end
+            if ~strcmpi(general_config.kf_type, 'unscented')
+                error('get_kalman_pll_config:incompatible_kf_type', ...
+                    'The arfit-complex-field model_initializer is only supported with kf_type = ''unscented''.');
+            end
             validateattributes(general_config.augmentation_model_initializer.model_params, {'struct'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params');
             validateattributes(general_config.augmentation_model_initializer.model_params.model_order, {'double'}, {'nonempty'}, mfilename, 'augmentation_model_initializer.model_params.model_order');
         case 'aryule'

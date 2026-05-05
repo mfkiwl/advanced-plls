@@ -134,6 +134,10 @@ function [state_estimates, ...
 % Author: Rodrigo de Lima Florindo
 % ORCID: https://orcid.org/0000-0003-0412-5583
 % Email: rdlfresearch@gmail.com
+
+    if nargin < 8
+        psi_tppsm = [];
+    end
     
     [F, Q, H, R, W, Hj_handle, state_estimates, error_covariance_estimates, L1_c_over_n0_linear_estimates, extra_vars, N, ut_params] = ...
     initializer_function(received_signal, kalman_pll_config, initial_estimates, kf_type, training_scint_model, adaptive_config, online_mdl_learning_cfg);
@@ -302,6 +306,27 @@ function [F, Q, H, R, W, Hj_handle, state_estimates, error_covariance_estimates,
     % Set initial estimates for the filtering loop.
     extra_vars.x_hat_project_ahead = initial_estimates.x_hat_init;
     extra_vars.P_hat_project_ahead = initial_estimates.P_hat_init;
+
+    augmentation_model_id = lower(char(config_struct.augmentation_model_initializer.id));
+    extra_vars.augmentation_model_id = augmentation_model_id;
+    extra_vars.measurement_model = 'external_amplitude_phase';
+    if strcmpi(kf_type, 'unscented') && strcmp(augmentation_model_id, 'arfit-complex-field')
+        if ~strcmpi(adaptive_config.measurement_cov_adapt_algorithm, 'none') || ...
+                ~strcmpi(adaptive_config.states_cov_adapt_algorithm, 'none')
+            error('get_kalman_pll_estimates:unsupported_adaptive_complex_field', ...
+                'The arfit-complex-field UKF path currently supports only nonadaptive filtering.');
+        end
+        model_order = config_struct.augmentation_model_initializer.model_params.model_order;
+        n_los = states_amount - 2 * model_order;
+        if n_los < 1
+            error('get_kalman_pll_estimates:invalid_complex_field_state_layout', ...
+                'The arfit-complex-field state vector does not contain a valid LOS block.');
+        end
+        extra_vars.measurement_model = 'complex_field';
+        extra_vars.idx.phase = 1;
+        extra_vars.idx.field_real = n_los + 1;
+        extra_vars.idx.field_imag = n_los + 2;
+    end
     
     % Initialize any other variables that are shared in the loop,
     % such as thresholds or baseline measurements from the adaptive_config.
@@ -664,11 +689,27 @@ function [K, innovation, x_hat_update, P_hat_update] = unscented_kf_update(...
         X(:,i) = extra_vars.x_hat_project_ahead - sqrt_mat(:, i - n - 1);
     end
 
-    % Map sigma points through the nonlinear measurement function:
-    % h(a, x) = a * [cos(x(1)); sin(x(1))], based on [1, equation 7.5.11]
-    external_amp = abs(psi_tppsm(step - 1, 1));
-    angles = X(1, :);  % use only the first element of each sigma point
-    Z = external_amp * [cos(angles); sin(angles)];  % 2 x num_sigma
+    % Map sigma points through the nonlinear measurement function, based on
+    % [1, equation 7.5.11].
+    switch extra_vars.measurement_model
+        case 'complex_field'
+            angles = X(extra_vars.idx.phase, :);
+            field_real = X(extra_vars.idx.field_real, :);
+            field_imag = X(extra_vars.idx.field_imag, :);
+            Z = [field_real .* cos(angles) - field_imag .* sin(angles); ...
+                 field_real .* sin(angles) + field_imag .* cos(angles)];
+        case 'external_amplitude_phase'
+            if isempty(psi_tppsm)
+                error('get_kalman_pll_estimates:missing_external_amplitude', ...
+                    'The unscented KF without complex-field augmentation requires psi_tppsm to provide the external amplitude.');
+            end
+            external_amp = abs(psi_tppsm(step - 1, 1));
+            angles = X(1, :);  % use only the first element of each sigma point
+            Z = external_amp * [cos(angles); sin(angles)];  % 2 x num_sigma
+        otherwise
+            error('get_kalman_pll_estimates:invalid_measurement_model', ...
+                'Unsupported UKF measurement model: %s.', extra_vars.measurement_model);
+    end
 
     % Compute predicted measurement mean [1, equation 7.5.12]
     z_pred = ut_params.omega_mean_0 * Z(:,1) + ut_params.omega_mean_covariance_general * sum(Z(:,2:end), 2);
@@ -1131,6 +1172,9 @@ function validate_online_learning_cfg(online_mdl_learning_cfg, kalman_pll_config
                 if ismember(method, 'kalman')
                     error('get_kalman_pll_estimates:NotSupportedLearningMethod', 'Adapting the AR coefficients using a Kalman filter is not yet supported.')
                 end
+            case 'arfit-complex-field'
+                error('get_kalman_pll_estimates:unsupported_online_complex_field', ...
+                    'Online learning is not supported for the arfit-complex-field augmentation model.');
             case 'rbf'
                 error('get_kalman_pll_estimates:NotSupported', 'RBF online learning is not yet supported.');
             case 'kinematic'

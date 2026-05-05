@@ -29,6 +29,34 @@ function aug_data = get_augmentation_model(training_data, general_config, sampli
                                      'model_order', var_model_order);
             aug_data.augmentation_type = 'arfit';
 
+        case 'arfit-complex-field'
+            % Use ARFIT to estimate a VAR model for the real and imaginary
+            % components of the propagated complex scintillation field.
+            if isfield(general_config, 'discrete_wiener_model_config') && general_config.discrete_wiener_model_config{1} ~= 1
+                error('get_augmentation_model:MultiFrequencyComplexFieldNotSupported', ...
+                    'The arfit-complex-field augmentation model is only supported for single-frequency tracking.');
+            end
+            if isempty(training_data)
+                error('get_augmentation_model:EmptyComplexFieldTrainingData', ...
+                    'The arfit-complex-field augmentation model requires nonempty complex-field training data.');
+            end
+            if ~isvector(training_data)
+                error('get_augmentation_model:MultiFrequencyComplexFieldNotSupported', ...
+                    'The arfit-complex-field augmentation model expects a single complex field time series.');
+            end
+
+            model_order = general_config.augmentation_model_initializer.model_params.model_order;
+            complex_field_training_data = [real(training_data(:)), imag(training_data(:))];
+            [intercept_vector, var_coefficient_matrices, var_covariance_matrices] = ...
+                arfit(complex_field_training_data, model_order, model_order);
+            [F_var, Q_var, var_states_amount, var_model_order] = build_var_matrices(var_coefficient_matrices, var_covariance_matrices);
+            aug_data.F_aug = F_var;
+            aug_data.Q_aug = Q_var;
+            aug_data.intercept = intercept_vector;
+            aug_data.augInfo = struct('states_amount', var_states_amount, ...
+                                     'model_order', var_model_order);
+            aug_data.augmentation_type = 'arfit-complex-field';
+
         case 'aryule'
             % Use ARYULE to estimate the VAR model parameters.
             model_order = general_config.augmentation_model_initializer.model_params.model_order;
